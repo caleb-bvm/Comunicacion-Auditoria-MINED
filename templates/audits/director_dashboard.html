@@ -2,16 +2,21 @@
 {% block title %}Inicio | Dirección de Auditoría{% endblock %}
 {% block content %}
 <section class="executive-hero">
-    <div><p class="eyebrow">Dirección de Auditoría Interna</p><h1>Inicio</h1><p>Consulte el estado de los expedientes, las solicitudes pendientes y la carga de trabajo del equipo.</p></div>
-    <div class="button-group executive-actions"><a class="button button-primary button-large" href="{% url 'director_decisions' %}">Solicitudes <span class="count-badge">{{ pending_decisions_count }}</span></a><a class="button button-light button-large" href="{% url 'director_statistics' %}">Ver estadísticas <span aria-hidden="true">→</span></a></div>
+    <div><p class="eyebrow">Dirección de Auditoría Interna</p><h1>Situación de los centros educativos</h1><p>Localice un centro y conozca rápidamente sus riesgos, obligaciones, respuestas, auditorías y condiciones institucionales.</p></div>
+    <form class="executive-center-search" method="get" action="{% url 'director_educational_centers' %}" role="search"><label for="dashboard-center-q">Buscar centro educativo</label><div><input id="dashboard-center-q" name="q" placeholder="Código, nombre o ubicación"><button class="button button-primary" type="submit">Buscar</button></div><a href="{% url 'director_educational_centers' %}">Explorar todos los centros <span aria-hidden="true">→</span></a></form>
 </section>
 
-<section class="executive-stats" aria-label="Resumen de expedientes">
-    <a class="executive-stat executive-stat-attention" href="{% url 'director_decisions' %}"><span>Solicitudes pendientes</span><strong>{{ pending_decisions_count }}</strong><small>por resolver</small></a>
-    <a class="executive-stat" href="{% url 'case_list' %}"><span>Expedientes activos</span><strong>{{ open_cases }}</strong><small>de {{ total_cases }} registrados</small></a>
-    <article class="executive-stat executive-stat-warning"><span>Plazos vencidos</span><strong>{{ overdue_recommendations }}</strong><small>sin respuesta vigente</small></article>
-    <article class="executive-stat executive-stat-risk"><span>Hallazgos críticos</span><strong>{{ critical_findings }}</strong><small>en expedientes abiertos</small></article>
-    <article class="executive-stat executive-stat-success"><span>Cumplimiento</span><strong>{{ compliance_rate }}%</strong><small>de resultados definitivos</small></article>
+<section class="executive-stats center-dashboard-stats" aria-label="Resumen institucional de centros educativos">
+    <a class="executive-stat" href="{% url 'director_educational_centers' %}"><span>Centros educativos</span><strong>{{ educational_centers_count }}</strong><small>{{ audited_centers_count }} con auditorías consolidadas</small></a>
+    <a class="executive-stat executive-stat-risk" href="{% url 'director_educational_centers' %}?attention=immediate"><span>Atención inmediata</span><strong>{{ centers_immediate_attention_count }}</strong><small>con vencimientos o riesgo crítico</small></a>
+    <a class="executive-stat executive-stat-warning" href="{% url 'director_educational_centers' %}?attention=overdue"><span>Plazos vencidos</span><strong>{{ centers_overdue_count }}</strong><small>centros con obligaciones abiertas</small></a>
+    <a class="executive-stat executive-stat-risk" href="{% url 'director_educational_centers' %}?risk=critical"><span>Riesgo crítico</span><strong>{{ centers_critical_count }}</strong><small>centros con hallazgos críticos activos</small></a>
+    <a class="executive-stat executive-stat-attention" href="{% url 'director_educational_centers' %}?cde=pending"><span>Sin CDE vigente</span><strong>{{ centers_without_current_cde_count }}</strong><small>según las fechas registradas</small></a>
+</section>
+
+<section class="priority-centers-section">
+    <div class="section-heading"><div><p class="eyebrow">Priorización institucional</p><h2>Centros que requieren revisión primero</h2><p>Ordenados por vencimientos, riesgo crítico, incumplimientos automáticos, correcciones y próximos plazos.</p></div><a class="button button-secondary" href="{% url 'director_educational_centers' %}">Ver análisis completo</a></div>
+    <div class="priority-center-grid">{% for center in priority_centers %}<article class="priority-center-card attention-{{ center.attention_level }}"><header><div><span>{{ center.code }}</span><h3><a href="{% url 'director_educational_center_detail' center.pk %}">{{ center.name }}</a></h3><small>{{ center.municipality|default:"Municipio sin registrar" }}{% if center.department %} · {{ center.department }}{% endif %}</small></div><span class="attention-badge attention-badge-{{ center.attention_level }}">{{ center.attention_label }}</span></header>{% if center.attention_reasons %}<ul>{% for reason in center.attention_reasons|slice:":2" %}<li class="reason-{{ reason.kind }}">{{ reason.label }}</li>{% endfor %}</ul>{% else %}<p>Sin alertas abiertas con los datos consolidados.</p>{% endif %}<footer><span>{{ center.active_case_count }} casos activos</span><span>{{ center.obligation_count }} obligaciones</span><a class="text-link" href="{% url 'director_educational_center_detail' center.pk %}">Ver ficha</a></footer></article>{% empty %}<div class="compact-empty"><strong>No hay centros que requieran atención</strong><p>Las alertas institucionales se encuentran al día con los datos disponibles.</p></div>{% endfor %}</div>
 </section>
 
 <div class="executive-layout">

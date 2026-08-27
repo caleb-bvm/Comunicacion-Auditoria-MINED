@@ -70,6 +70,25 @@ dependencias que participen en el mismo expediente.
 - El comando `process_overdue_recommendations` registra como no cumplidas las recomendaciones sin respuesta cuyo plazo vigente ya terminó. Solo procesa expedientes publicados y respeta la prórroga más reciente.
 - Los expedientes publicados no se eliminan. Las correcciones se realizan mediante nuevas versiones y todas las actuaciones quedan en la bitácora.
 
+## Informes estadísticos de Dirección
+
+- La Dirección puede descargar un libro XLSX a partir de los filtros de la página de estadísticas. La descarga es privada y queda registrada con folio, parámetros, conteos y huella SHA-256.
+- El período selecciona expedientes por su fecha de registro. Los estados, responsables, vencimientos y resultados corresponden al momento de generación; el archivo no reconstruye una situación histórica al cierre del período.
+- El libro distingue la institución auditada de la dependencia responsable de atender cada recomendación y no incluye archivos, rutas privadas, credenciales ni huellas de evidencias.
+
+## Inteligencia de centros educativos
+
+- El universo incluye todos los centros educativos del catálogo, incluso aquellos sin auditorías. La ausencia de datos se presenta como no disponible y nunca como cumplimiento.
+- La página de Análisis ofrece alcance nacional o filtros encadenados por departamento, municipio y distrito. La comparación puede agruparse por cualquiera de esos niveles y permite continuar hacia el siguiente nivel territorial o hacia el directorio de centros.
+- La situación actual y la actividad del período son lecturas distintas. Las alertas, obligaciones y riesgos vigentes no se recortan por antigüedad; el período solamente limita expedientes, informes, respuestas, dictámenes, prórrogas e incumplimientos según la fecha propia de cada evento.
+- Los indicadores de riesgo y hallazgos se atribuyen al centro auditado. Los indicadores de plazos, respuestas y cumplimiento se atribuyen a la institución responsable de cada recomendación.
+- Solamente los expedientes enviados, en seguimiento o cerrados forman parte de los indicadores consolidados. Los borradores y publicaciones pendientes pueden consultarse, pero no modifican la lectura institucional.
+- Las alertas de plazos usan la última prórroga concedida y abarcan todo el historial consolidado para no ocultar obligaciones actuales originadas en auditorías anteriores.
+- El nivel de atención no es un puntaje opaco: la interfaz muestra las razones concretas que originan la prioridad, como vencimientos, riesgo crítico, incumplimiento automático, correcciones o plazos próximos.
+- Un CDE se considera vigente únicamente cuando está marcado como actual y la fecha de consulta se encuentra dentro de su período de inicio y finalización.
+- El cumplimiento territorial se calcula con los totales de recomendaciones cumplidas y recomendaciones con resultado definitivo; no se promedian porcentajes de centros. Si no existe un resultado definitivo, se muestra `N/D`.
+- La página web consume un servicio territorial compartido. La siguiente etapa hará que el XLSX consuma la misma selección y los mismos resultados, evitando que la pantalla y el archivo apliquen reglas diferentes.
+
 ## Consejo Directivo Escolar
 
 - Cada centro educativo administra con su cuenta institucional los períodos e integrantes de su Consejo Directivo Escolar (CDE).

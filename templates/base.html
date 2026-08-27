@@ -32,17 +32,17 @@
             <a href="{% url 'director_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'director_dashboard' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_dashboard' %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-home"></use></svg></span><span>Inicio</span>
             </a>
-            <a href="{% url 'director_decisions' %}" class="nav-item {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}aria-current="page"{% endif %}>
-                <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-requests"></use></svg></span><span>Solicitudes</span>
+            <a href="{% url 'director_educational_centers' %}" class="nav-item {% if request.resolver_match.url_name == 'director_educational_centers' or request.resolver_match.url_name == 'director_educational_center_detail' or 'cde_' in request.resolver_match.url_name %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_educational_centers' or request.resolver_match.url_name == 'director_educational_center_detail' or 'cde_' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
+                <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-centers"></use></svg></span><span>Centros</span>
             </a>
             <a href="{% url 'director_statistics' %}" class="nav-item {% if request.resolver_match.url_name == 'director_statistics' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_statistics' %}aria-current="page"{% endif %}>
-                <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-statistics"></use></svg></span><span>Estadísticas</span>
-            </a>
-            <a href="{% url 'director_educational_centers' %}" class="nav-item {% if request.resolver_match.url_name == 'director_educational_centers' or 'cde_' in request.resolver_match.url_name %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_educational_centers' or 'cde_' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
-                <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-centers"></use></svg></span><span>Centros educativos</span>
+                <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-statistics"></use></svg></span><span>Análisis</span>
             </a>
             <a href="{% url 'case_list' %}" class="nav-item {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'director_reassign_case' %}is-active{% endif %}">
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-files"></use></svg></span><span>Expedientes</span>
+            </a>
+            <a href="{% url 'director_decisions' %}" class="nav-item {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}aria-current="page"{% endif %}>
+                <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-requests"></use></svg></span><span>Solicitudes</span>
             </a>
             <a href="{% url 'historical_document_list' %}" class="nav-item {% if 'historical_' in request.resolver_match.url_name %}is-active{% endif %}">
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-reports"></use></svg></span><span>Informes</span>

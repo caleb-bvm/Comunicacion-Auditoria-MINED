@@ -8,7 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Count, Exists, Max, OuterRef, Prefetch, Q
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
@@ -32,6 +32,13 @@ from .forms import (
     RecommendationForm,
     ResponseForm,
     ReviewForm,
+)
+from .center_analytics import (
+    ACTIVE_CASE_STATUSES,
+    CONSOLIDATED_CASE_STATUSES,
+    center_analytics_queryset,
+    enrich_center,
+    enrich_centers,
 )
 from .models import (
     ActivityLog,
@@ -60,6 +67,8 @@ from .statistics import (
     build_case_statistics,
     percentage,
 )
+from .territorial_analysis import build_territorial_analysis
+from .xlsx import build_director_statistics_xlsx
 
 
 def get_client_ip(request):
@@ -393,6 +402,7 @@ class DirectorDashboardView(LoginRequiredMixin, TemplateView):
         )
         centers_without_users = (
             Organization.objects.filter(
+                kind=Organization.Kind.EDUCATIONAL_CENTER,
                 recommendations__finding__case__status__in=[
                     AuditCase.Status.PUBLISHED,
                     AuditCase.Status.IN_RESPONSE,
@@ -424,6 +434,33 @@ class DirectorDashboardView(LoginRequiredMixin, TemplateView):
             .order_by("-open_cases_count", "first_name", "last_name", "username")
         )
 
+        center_intelligence = center_analytics_queryset(today=today)
+        priority_center_queryset = center_intelligence.filter(
+            Q(overdue_count__gt=0)
+            | Q(critical_active_count__gt=0)
+            | Q(automatic_no_response_count__gt=0)
+            | Q(correction_count__gt=0)
+            | Q(due_soon_count__gt=0)
+            | Q(high_active_count__gt=0)
+            | (
+                Q(obligation_count__gt=0)
+                & (
+                    Q(has_current_cde=False)
+                    | Q(active_user_count=0)
+                    | Q(is_active=False)
+                )
+            )
+        ).order_by(
+            "-overdue_count",
+            "-critical_active_count",
+            "-automatic_no_response_count",
+            "-correction_count",
+            "-due_soon_count",
+            "-high_active_count",
+            "name",
+        )[:6]
+        priority_centers = enrich_centers(list(priority_center_queryset), today=today)
+
         context.update(
             {
                 "total_cases": cases.count(),
@@ -451,6 +488,21 @@ class DirectorDashboardView(LoginRequiredMixin, TemplateView):
                 "recent_decisions": CaseDecision.objects.exclude(
                     status=CaseDecision.Status.PENDING
                 ).select_related("case", "decided_by")[:5],
+                "educational_centers_count": center_intelligence.count(),
+                "audited_centers_count": center_intelligence.filter(case_count__gt=0).count(),
+                "centers_immediate_attention_count": center_intelligence.filter(
+                    Q(overdue_count__gt=0) | Q(critical_active_count__gt=0)
+                ).count(),
+                "centers_overdue_count": center_intelligence.filter(
+                    overdue_count__gt=0
+                ).count(),
+                "centers_critical_count": center_intelligence.filter(
+                    critical_active_count__gt=0
+                ).count(),
+                "centers_without_current_cde_count": center_intelligence.filter(
+                    has_current_cde=False
+                ).count(),
+                "priority_centers": priority_centers,
             }
         )
         return context
@@ -469,6 +521,8 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
     )
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
         if not user_is_director(request.user):
             raise PermissionDenied("Esta sección es exclusiva de la Dirección de Auditoría.")
         return super().dispatch(request, *args, **kwargs)
@@ -557,6 +611,7 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
 
         return cases, {
             "selected_period": period,
+            "selected_period_label": dict(self.PERIOD_CHOICES)[period],
             "start_date": start_date,
             "end_date": end_date,
             "selected_auditor": selected_auditor,
@@ -580,6 +635,12 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
                 open_cases_count=Count(
                     "pk", filter=~Q(status=AuditCase.Status.CLOSED)
                 ),
+                in_management_count=Count(
+                    "pk",
+                    filter=~Q(
+                        status__in=[AuditCase.Status.DRAFT, AuditCase.Status.CLOSED]
+                    ),
+                ),
             )
         }
         recommendation_counts = {
@@ -593,6 +654,12 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
                 ),
                 complied_count=Count(
                     "pk", filter=Q(status=Recommendation.Status.COMPLIED)
+                ),
+                partial_count=Count(
+                    "pk", filter=Q(status=Recommendation.Status.PARTIAL)
+                ),
+                not_complied_count=Count(
+                    "pk", filter=Q(status=Recommendation.Status.NOT_COMPLIED)
                 ),
             )
         }
@@ -625,8 +692,15 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
                     "auditor": auditor,
                     "cases_count": case_row.get("cases_count", 0),
                     "open_cases_count": case_row.get("open_cases_count", 0),
+                    "in_management_count": case_row.get("in_management_count", 0),
                     "recommendation_count": recommendation_row.get(
                         "recommendation_count", 0
+                    ),
+                    "terminal_count": recommendation_row.get("terminal_count", 0),
+                    "complied_count": recommendation_row.get("complied_count", 0),
+                    "partial_count": recommendation_row.get("partial_count", 0),
+                    "not_complied_count": recommendation_row.get(
+                        "not_complied_count", 0
                     ),
                     "pending_reviews_count": pending_review_counts.get(auditor.pk, 0),
                     "overdue_count": overdue_counts.get(auditor.pk, 0),
@@ -659,10 +733,19 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
                 "audited_organization_id",
                 "audited_organization__code",
                 "audited_organization__name",
+                "audited_organization__kind",
+                "audited_organization__department",
+                "audited_organization__municipality",
             ).annotate(
                 cases_count=Count("pk"),
                 open_cases_count=Count(
                     "pk", filter=~Q(status=AuditCase.Status.CLOSED)
+                ),
+                in_management_count=Count(
+                    "pk",
+                    filter=~Q(
+                        status__in=[AuditCase.Status.DRAFT, AuditCase.Status.CLOSED]
+                    ),
                 ),
             )
         )
@@ -677,6 +760,12 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
                 ),
                 complied_count=Count(
                     "pk", filter=Q(status=Recommendation.Status.COMPLIED)
+                ),
+                partial_count=Count(
+                    "pk", filter=Q(status=Recommendation.Status.PARTIAL)
+                ),
+                not_complied_count=Count(
+                    "pk", filter=Q(status=Recommendation.Status.NOT_COMPLIED)
                 ),
             )
         }
@@ -700,10 +789,22 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
                     "organization_id": organization_id,
                     "code": case_row["audited_organization__code"],
                     "name": case_row["audited_organization__name"],
+                    "kind": dict(Organization.Kind.choices).get(
+                        case_row["audited_organization__kind"], ""
+                    ),
+                    "department": case_row["audited_organization__department"],
+                    "municipality": case_row["audited_organization__municipality"],
                     "cases_count": case_row["cases_count"],
                     "open_cases_count": case_row["open_cases_count"],
+                    "in_management_count": case_row["in_management_count"],
                     "recommendation_count": recommendation_row.get(
                         "recommendation_count", 0
+                    ),
+                    "terminal_count": recommendation_row.get("terminal_count", 0),
+                    "complied_count": recommendation_row.get("complied_count", 0),
+                    "partial_count": recommendation_row.get("partial_count", 0),
+                    "not_complied_count": recommendation_row.get(
+                        "not_complied_count", 0
                     ),
                     "overdue_count": overdue_counts.get(organization_id, 0),
                     "critical_count": critical_counts.get(organization_id, 0),
@@ -721,31 +822,102 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
                 -row["open_cases_count"],
                 row["name"],
             ),
-        )[:10]
+        )
+
+    def get_report_data(self):
+        cases, filters = self._filtered_cases()
+        statistics = build_case_statistics(cases)
+        auditor_statistics = self._auditor_rows(
+            cases, filters["selected_auditor"]
+        )
+        organization_statistics = self._organization_rows(cases)
+        return cases, filters, statistics, auditor_statistics, organization_statistics
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        cases, filters = self._filtered_cases()
-        statistics = build_case_statistics(cases)
-        context.update(statistics)
-        context.update(filters)
-        context.update(
-            {
-                "period_choices": self.PERIOD_CHOICES,
-                "auditor_options": User.objects.filter(
-                    role=User.Role.AUDITOR
-                ).order_by("first_name", "last_name", "username"),
-                "organization_options": Organization.objects.filter(
-                    audit_cases__isnull=False
-                ).distinct().order_by("name"),
-                "status_choices": AuditCase.Status.choices,
-                "auditor_statistics": self._auditor_rows(
-                    cases, filters["selected_auditor"]
-                ),
-                "organization_statistics": self._organization_rows(cases),
-            }
+        territorial = build_territorial_analysis(self.request.GET)
+        context.update(territorial)
+
+        # Preserve the established operational filter contract while the web page
+        # moves to the territorial dataset. The XLSX view still uses get_report_data
+        # until it is migrated to this same service in the next development stage.
+        legacy_filter_requested = any(
+            self.request.GET.get(name) for name in ("auditor", "organization", "status")
         )
+        if legacy_filter_requested:
+            legacy_cases, legacy_filters = self._filtered_cases()
+            context["total_cases"] = legacy_cases.count()
+            context["selected_auditor"] = legacy_filters["selected_auditor"]
+            context["selected_organization"] = legacy_filters[
+                "selected_organization"
+            ]
+            context["selected_status"] = legacy_filters["selected_status"]
+        else:
+            context["total_cases"] = territorial["activity_case_count"]
+            context["selected_auditor"] = None
+            context["selected_organization"] = None
+            context["selected_status"] = ""
         return context
+
+
+class DirectorStatisticsXlsxView(DirectorStatisticsView):
+    def get(self, request, *args, **kwargs):
+        with transaction.atomic():
+            (
+                cases,
+                filters,
+                statistics,
+                auditor_statistics,
+                organization_statistics,
+            ) = self.get_report_data()
+            if filters["filter_errors"]:
+                return HttpResponseBadRequest(" ".join(filters["filter_errors"]))
+
+            generated_at = timezone.now()
+            workbook_buffer, export_metadata = build_director_statistics_xlsx(
+                cases=cases,
+                filters=filters,
+                statistics=statistics,
+                auditor_statistics=auditor_statistics,
+                organization_statistics=organization_statistics,
+                generated_by=request.user,
+                generated_at=generated_at,
+            )
+        sha256 = hashlib.sha256(workbook_buffer.getbuffer()).hexdigest()
+        normalized_filters = {
+            "period": filters["selected_period"],
+            "start": filters["start_date"].isoformat() if filters["start_date"] else None,
+            "end": filters["end_date"].isoformat() if filters["end_date"] else None,
+            "auditor_id": filters["selected_auditor"].pk if filters["selected_auditor"] else None,
+            "organization_id": (
+                filters["selected_organization"].pk
+                if filters["selected_organization"]
+                else None
+            ),
+            "status": filters["selected_status"] or None,
+        }
+        filename = f"informe-estadistico-auditoria-{timezone.localtime(generated_at):%Y%m%d-%H%M%S}.xlsx"
+        log_activity(
+            request,
+            "director_statistics_xlsx_exported",
+            details={
+                "report_id": export_metadata["report_id"],
+                "filename": filename,
+                "sha256": sha256,
+                "filters": normalized_filters,
+                "rows": export_metadata["counts"],
+            },
+        )
+        response = FileResponse(
+            workbook_buffer,
+            as_attachment=True,
+            filename=filename,
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
 
 
 class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
@@ -766,20 +938,7 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
             role=User.Role.INSTITUTION
         ).order_by("-is_active", "username")
         return (
-            Organization.objects.filter(kind=Organization.Kind.EDUCATIONAL_CENTER)
-            .annotate(
-                active_user_count=Count(
-                    "users",
-                    filter=Q(users__role=User.Role.INSTITUTION, users__is_active=True),
-                    distinct=True,
-                ),
-                institutional_user_count=Count(
-                    "users",
-                    filter=Q(users__role=User.Role.INSTITUTION),
-                    distinct=True,
-                ),
-                case_count=Count("audit_cases", distinct=True),
-            )
+            center_analytics_queryset()
             .prefetch_related(
                 Prefetch("users", queryset=institutional_accounts, to_attr="institutional_accounts")
             )
@@ -789,6 +948,13 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
         queryset = self.center_queryset()
         query = self.request.GET.get("q", "").strip()
         access = self.request.GET.get("access", "")
+        department = self.request.GET.get("department", "").strip()
+        municipality = self.request.GET.get("municipality", "").strip()
+        district = self.request.GET.get("district", "").strip()
+        attention = self.request.GET.get("attention", "")
+        risk = self.request.GET.get("risk", "")
+        audits = self.request.GET.get("audits", "")
+        cde = self.request.GET.get("cde", "")
         if query:
             queryset = queryset.filter(
                 Q(code__icontains=query)
@@ -796,22 +962,262 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
                 | Q(department__icontains=query)
                 | Q(municipality__icontains=query)
             )
+        if department:
+            queryset = queryset.filter(department=department)
+        if municipality:
+            queryset = queryset.filter(municipality=municipality)
+        if district:
+            queryset = queryset.filter(district=district)
         if access == "active":
-            queryset = queryset.filter(active_user_count__gt=0)
+            queryset = queryset.filter(is_active=True, active_user_count__gt=0)
         elif access == "pending":
-            queryset = queryset.filter(active_user_count=0)
-        return queryset.order_by("name")
+            queryset = queryset.filter(Q(is_active=False) | Q(active_user_count=0))
+        if attention == "immediate":
+            queryset = queryset.filter(
+                Q(overdue_count__gt=0) | Q(critical_active_count__gt=0)
+            )
+        elif attention == "overdue":
+            queryset = queryset.filter(overdue_count__gt=0)
+        elif attention == "automatic":
+            queryset = queryset.filter(automatic_no_response_count__gt=0)
+        elif attention == "correction":
+            queryset = queryset.filter(correction_count__gt=0)
+        elif attention == "due_soon":
+            queryset = queryset.filter(due_soon_count__gt=0)
+        if risk == "critical":
+            queryset = queryset.filter(critical_active_count__gt=0)
+        elif risk == "high":
+            queryset = queryset.filter(
+                Q(critical_active_count__gt=0) | Q(high_active_count__gt=0)
+            )
+        if audits == "yes":
+            queryset = queryset.filter(case_count__gt=0)
+        elif audits == "no":
+            queryset = queryset.filter(case_count=0)
+        if cde == "current":
+            queryset = queryset.filter(has_current_cde=True)
+        elif cde == "pending":
+            queryset = queryset.filter(has_current_cde=False)
+        return queryset.order_by(
+            "-overdue_count",
+            "-critical_active_count",
+            "-automatic_no_response_count",
+            "-correction_count",
+            "-due_soon_count",
+            "-high_active_count",
+            "name",
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         all_centers = self.center_queryset()
+        centers = list(context["centers"])
+        enrich_centers(centers)
+        context["centers"] = centers
+        selected_department = self.request.GET.get("department", "").strip()
+        municipalities = Organization.objects.filter(
+            kind=Organization.Kind.EDUCATIONAL_CENTER
+        )
+        if selected_department:
+            municipalities = municipalities.filter(department=selected_department)
+        districts = Organization.objects.filter(
+            kind=Organization.Kind.EDUCATIONAL_CENTER
+        )
+        if selected_department:
+            districts = districts.filter(department=selected_department)
+        selected_municipality = self.request.GET.get("municipality", "").strip()
+        if selected_municipality:
+            districts = districts.filter(municipality=selected_municipality)
         context.update(
             {
                 "query": self.request.GET.get("q", "").strip(),
                 "selected_access": self.request.GET.get("access", ""),
+                "selected_department": selected_department,
+                "selected_municipality": selected_municipality,
+                "selected_district": self.request.GET.get("district", "").strip(),
+                "selected_attention": self.request.GET.get("attention", ""),
+                "selected_risk": self.request.GET.get("risk", ""),
+                "selected_audits": self.request.GET.get("audits", ""),
+                "selected_cde": self.request.GET.get("cde", ""),
+                "department_options": Organization.objects.filter(
+                    kind=Organization.Kind.EDUCATIONAL_CENTER
+                )
+                .exclude(department="")
+                .values_list("department", flat=True)
+                .distinct()
+                .order_by("department"),
+                "municipality_options": municipalities.exclude(municipality="")
+                .values_list("municipality", flat=True)
+                .distinct()
+                .order_by("municipality"),
+                "district_options": districts.exclude(district="")
+                .values_list("district", flat=True)
+                .distinct()
+                .order_by("district"),
                 "total_centers": all_centers.count(),
-                "active_centers": all_centers.filter(active_user_count__gt=0).count(),
-                "pending_centers": all_centers.filter(active_user_count=0).count(),
+                "audited_centers": all_centers.filter(case_count__gt=0).count(),
+                "immediate_attention_centers": all_centers.filter(
+                    Q(overdue_count__gt=0) | Q(critical_active_count__gt=0)
+                ).count(),
+                "overdue_centers": all_centers.filter(overdue_count__gt=0).count(),
+                "active_centers": all_centers.filter(
+                    is_active=True, active_user_count__gt=0
+                ).count(),
+                "pending_centers": all_centers.filter(
+                    Q(is_active=False) | Q(active_user_count=0)
+                ).count(),
+                "without_current_cde_centers": all_centers.filter(
+                    has_current_cde=False
+                ).count(),
+            }
+        )
+        return context
+
+
+class DirectorEducationalCenterDetailView(LoginRequiredMixin, TemplateView):
+    template_name = "audits/director_educational_center_detail.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not user_is_director(request.user):
+            raise PermissionDenied("Esta sección es exclusiva de la Dirección de Auditoría.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.localdate()
+        center = get_object_or_404(
+            center_analytics_queryset(today=today).prefetch_related(
+                Prefetch(
+                    "users",
+                    queryset=User.objects.filter(role=User.Role.INSTITUTION).order_by(
+                        "-is_active", "username"
+                    ),
+                    to_attr="institutional_accounts",
+                )
+            ),
+            pk=self.kwargs["pk"],
+        )
+        enrich_center(center, today=today)
+
+        audited_cases = (
+            AuditCase.objects.filter(
+                audited_organization=center,
+                status__in=CONSOLIDATED_CASE_STATUSES,
+            )
+            .select_related("assigned_auditor")
+            .annotate(
+                finding_total=Count("findings", distinct=True),
+                recommendation_total=Count("findings__recommendations", distinct=True),
+            )
+            .order_by("-report_date", "-updated_at")
+        )
+        provisional_cases = AuditCase.objects.filter(
+            audited_organization=center,
+            status__in=[AuditCase.Status.DRAFT, AuditCase.Status.PENDING_PUBLICATION],
+        ).select_related("assigned_auditor")
+
+        obligations = list(
+            with_effective_deadline(
+                Recommendation.objects.filter(
+                    responsible_organization=center,
+                    finding__case__status__in=CONSOLIDATED_CASE_STATUSES,
+                )
+            )
+            .select_related(
+                "finding__case__audited_organization",
+                "source_recommendation__source_document",
+                "carried_from__finding__case",
+            )
+            .prefetch_related(
+                Prefetch(
+                    "responses",
+                    queryset=Response.objects.select_related("review").prefetch_related(
+                        "evidence"
+                    ),
+                    to_attr="response_history",
+                )
+            )
+            .order_by("current_deadline", "finding__case__reference", "number")
+        )
+        for recommendation in obligations:
+            recommendation.latest_response = (
+                recommendation.response_history[0]
+                if recommendation.response_history
+                else None
+            )
+            recommendation.is_explicit_followup = bool(
+                recommendation.source_recommendation_id or recommendation.carried_from_id
+            )
+            if (
+                recommendation.current_deadline
+                and recommendation.current_deadline < today
+                and recommendation.status in RESPONSE_DUE_STATUSES
+            ):
+                recommendation.deadline_state = "overdue"
+                recommendation.deadline_state_label = "Vencida"
+            elif (
+                recommendation.current_deadline
+                and recommendation.current_deadline <= today + timedelta(days=7)
+                and recommendation.status in RESPONSE_DUE_STATUSES
+            ):
+                recommendation.deadline_state = "due_soon"
+                recommendation.deadline_state_label = "Próxima a vencer"
+            elif recommendation.current_deadline:
+                recommendation.deadline_state = "scheduled"
+                recommendation.deadline_state_label = "Con plazo"
+            else:
+                recommendation.deadline_state = "no_deadline"
+                recommendation.deadline_state_label = "Sin fecha límite"
+
+        high_risk_findings = Finding.objects.filter(
+            case__audited_organization=center,
+            case__status__in=ACTIVE_CASE_STATUSES,
+            risk_level__in=[Finding.RiskLevel.HIGH, Finding.RiskLevel.CRITICAL],
+        ).select_related("case")
+        recent_responses = Response.objects.filter(
+            recommendation__responsible_organization=center,
+            recommendation__finding__case__status__in=CONSOLIDATED_CASE_STATUSES,
+        ).select_related(
+            "recommendation__finding__case__audited_organization", "review", "submitted_by"
+        )[:10]
+        documents = AuditDocument.objects.filter(organization=center).select_related(
+            "case", "uploaded_by"
+        )
+        historical_recommendations = HistoricalRecommendation.objects.filter(
+            Q(source_document__organization=center) | Q(responsible_organization=center)
+        ).select_related("source_document", "responsible_organization").distinct()
+        cde_periods = list(
+            SchoolBoardPeriod.objects.filter(organization=center).prefetch_related("members")
+        )
+        for period in cde_periods:
+            active_members = [member for member in period.members.all() if member.is_active]
+            period.active_member_count = len(active_members)
+            period.legal_representative_count = sum(
+                member.is_legal_representative for member in active_members
+            )
+
+        context.update(
+            {
+                "center": center,
+                "audited_cases": audited_cases,
+                "provisional_cases": provisional_cases,
+                "obligations": obligations,
+                "high_risk_findings": high_risk_findings,
+                "recent_responses": recent_responses,
+                "documents": documents,
+                "historical_recommendations": historical_recommendations,
+                "cde_periods": cde_periods,
+                "current_cde": next(
+                    (
+                        period
+                        for period in cde_periods
+                        if period.is_current
+                        and period.start_date <= today <= period.end_date
+                    ),
+                    None,
+                ),
             }
         )
         return context

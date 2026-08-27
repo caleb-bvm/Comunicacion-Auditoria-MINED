@@ -15,9 +15,10 @@ Primera base funcional para registrar expedientes, hallazgos, recomendaciones, r
 - Flujo propio para crear borradores, registrar hallazgos y recomendaciones, revisar y publicar expedientes.
 - Perfil de Dirección de Auditoría con resumen ejecutivo, bandeja de decisiones, aprobación de publicaciones y cierres, y reasignación justificada de auditores.
 - Indicadores operativos en el inicio de cada auditor, limitados estrictamente a sus expedientes asignados, con alertas de revisión, vencimientos y riesgo.
-- Página analítica para Dirección con filtros por período, auditor, institución y estado, comparativos de carga, cumplimiento, riesgo y focos de atención.
-- Catálogo consultable de centros educativos para Dirección, con búsqueda, estado de acceso, activación y acceso directo a sus expedientes.
-- Importación validada del catálogo institucional desde CSV.
+- Página de Análisis para Dirección centrada en todos los centros educativos, con vista nacional o filtrada por departamento, municipio y distrito, situación vigente, actividad por período, comparación territorial y centros prioritarios.
+- Informe estadístico XLSX para Dirección que conserva los filtros aplicados e incluye resumen ejecutivo, gráficos, expedientes, hallazgos, recomendaciones, respuestas, prórrogas, análisis por auditor e institución, dependencias responsables, series mensuales, alertas, controles y metodología.
+- Inteligencia institucional de centros educativos para Dirección, con priorización explicable, filtros territoriales y de alerta, ficha analítica por centro, estado del CDE, acceso, riesgos, obligaciones, respuestas, documentos e historial de auditoría.
+- Importación validada del catálogo institucional desde CSV, incluido el distrito como dato territorial opcional.
 - Repositorio de informes anteriores en PDF y Word.
 - Copia controlada y sin duplicados de recomendaciones no cumplidas o parcialmente cumplidas.
 - Informes Word versionados, con aprobación directiva antes de su publicación.

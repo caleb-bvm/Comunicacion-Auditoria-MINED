@@ -1,11 +1,20 @@
+from datetime import date, timedelta
+
 from django.contrib.auth.hashers import check_password
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
 from apps.accounts.models import User
-from apps.audits.models import ActivityLog, AuditCase
+from apps.audits.models import (
+    ActivityLog,
+    AuditCase,
+    DeadlineExtension,
+    Finding,
+    Recommendation,
+)
 
-from .models import Organization
+from .models import Organization, SchoolBoardPeriod
 
 
 class DirectorEducationalCenterTests(TestCase):
@@ -191,3 +200,183 @@ class DirectorEducationalCenterTests(TestCase):
             ).count(),
             1,
         )
+
+    def _listed_center(self, response, center):
+        return next(item for item in response.context["centers"] if item.pk == center.pk)
+
+    def _published_recommendation(
+        self,
+        *,
+        audited_center,
+        responsible_center,
+        reference,
+        risk=Finding.RiskLevel.MEDIUM,
+        status=Recommendation.Status.PENDING,
+        deadline=None,
+    ):
+        case = AuditCase.objects.create(
+            reference=reference,
+            title=f"Auditoría {reference}",
+            audited_organization=audited_center,
+            status=AuditCase.Status.PUBLISHED,
+            assigned_auditor=self.auditor,
+            created_by=self.auditor,
+        )
+        finding = Finding.objects.create(
+            case=case,
+            number=1,
+            title="Hallazgo institucional de prueba",
+            risk_level=risk,
+        )
+        recommendation = Recommendation.objects.create(
+            finding=finding,
+            number=1,
+            text="Atender la condición identificada por Auditoría.",
+            responsible_organization=responsible_center,
+            status=status,
+            deadline=deadline,
+        )
+        return case, finding, recommendation
+
+    def test_directory_includes_centers_without_audits_and_marks_compliance_as_not_available(self):
+        self.client.force_login(self.director)
+
+        response = self.client.get(reverse("director_educational_centers"), {"audits": "no"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.center.name)
+        self.assertContains(response, self.other_center.name)
+        listed = self._listed_center(response, self.center)
+        self.assertEqual(listed.case_count, 0)
+        self.assertIsNone(listed.compliance_rate)
+        self.assertContains(response, "N/D")
+
+    def test_risk_is_attributed_to_audited_center_and_overdue_to_responsible_center(self):
+        self._published_recommendation(
+            audited_center=self.center,
+            responsible_center=self.other_center,
+            reference="IA-ATRIBUCION-001",
+            risk=Finding.RiskLevel.CRITICAL,
+            deadline=date.today() - timedelta(days=2),
+        )
+        self.client.force_login(self.director)
+
+        response = self.client.get(reverse("director_educational_centers"))
+        audited = self._listed_center(response, self.center)
+        responsible = self._listed_center(response, self.other_center)
+
+        self.assertEqual(audited.critical_active_count, 1)
+        self.assertEqual(audited.obligation_count, 0)
+        self.assertEqual(audited.overdue_count, 0)
+        self.assertEqual(responsible.critical_active_count, 0)
+        self.assertEqual(responsible.obligation_count, 1)
+        self.assertEqual(responsible.overdue_count, 1)
+
+    def test_drafts_do_not_affect_consolidated_center_indicators(self):
+        draft = AuditCase.objects.create(
+            reference="IA-BORRADOR-CENTRO",
+            title="Expediente aún no publicado",
+            audited_organization=self.center,
+            status=AuditCase.Status.DRAFT,
+            assigned_auditor=self.auditor,
+            created_by=self.auditor,
+        )
+        finding = Finding.objects.create(
+            case=draft,
+            number=1,
+            title="Riesgo crítico provisional",
+            risk_level=Finding.RiskLevel.CRITICAL,
+        )
+        Recommendation.objects.create(
+            finding=finding,
+            number=1,
+            text="Recomendación provisional.",
+            responsible_organization=self.center,
+            deadline=date.today() - timedelta(days=20),
+        )
+        self.client.force_login(self.director)
+
+        response = self.client.get(reverse("director_educational_centers"))
+        listed = self._listed_center(response, self.center)
+
+        self.assertEqual(listed.case_count, 0)
+        self.assertEqual(listed.provisional_case_count, 1)
+        self.assertEqual(listed.critical_active_count, 0)
+        self.assertEqual(listed.overdue_count, 0)
+        self.assertEqual(listed.obligation_count, 0)
+
+    def test_center_alerts_use_latest_deadline_extension(self):
+        _, _, recommendation = self._published_recommendation(
+            audited_center=self.center,
+            responsible_center=self.center,
+            reference="IA-PRORROGA-CENTRO",
+            deadline=date.today() - timedelta(days=2),
+        )
+        DeadlineExtension.objects.create(
+            recommendation=recommendation,
+            previous_deadline=recommendation.deadline,
+            business_days=5,
+            new_deadline=date.today() + timedelta(days=5),
+            reason="Prórroga vigente para completar las evidencias.",
+            granted_by=self.auditor,
+        )
+        self.client.force_login(self.director)
+
+        response = self.client.get(reverse("director_educational_centers"))
+        listed = self._listed_center(response, self.center)
+
+        self.assertEqual(listed.overdue_count, 0)
+        self.assertEqual(listed.due_soon_count, 1)
+
+    def test_cde_must_be_marked_current_and_inside_its_date_range(self):
+        SchoolBoardPeriod.objects.create(
+            organization=self.center,
+            start_date=date.today() - timedelta(days=400),
+            end_date=date.today() - timedelta(days=30),
+            school_year_start=date.today().year - 1,
+            school_year_end=date.today().year,
+            supporting_document=SimpleUploadedFile("cde.pdf", b"documento"),
+            supporting_document_name="cde.pdf",
+            is_current=True,
+            created_by=self.director,
+            updated_by=self.director,
+        )
+        self.client.force_login(self.director)
+
+        directory = self.client.get(reverse("director_educational_centers"))
+        detail = self.client.get(
+            reverse("director_educational_center_detail", args=[self.center.pk])
+        )
+        listed = self._listed_center(directory, self.center)
+
+        self.assertFalse(listed.has_current_cde)
+        self.assertEqual(listed.cde_state, "expired")
+        self.assertIsNone(detail.context["current_cde"])
+        self.assertContains(detail, "CDE vencido")
+
+    def test_center_detail_exposes_both_analytic_roles_and_is_director_only(self):
+        self._published_recommendation(
+            audited_center=self.center,
+            responsible_center=self.other_center,
+            reference="IA-FICHA-001",
+            risk=Finding.RiskLevel.HIGH,
+            deadline=date.today() - timedelta(days=1),
+        )
+        url = reverse("director_educational_center_detail", args=[self.other_center.pk])
+        self.client.force_login(self.director)
+
+        allowed = self.client.get(url)
+
+        self.assertEqual(allowed.status_code, 200)
+        self.assertContains(allowed, "Centro como sujeto auditado")
+        self.assertContains(allowed, "Centro como responsable")
+        self.assertContains(allowed, "IA-FICHA-001")
+        self.assertEqual(len(allowed.context["obligations"]), 1)
+
+        self.client.force_login(self.auditor)
+        forbidden = self.client.get(url)
+        self.assertEqual(forbidden.status_code, 403)
+
+        self.client.logout()
+        anonymous = self.client.get(url)
+        self.assertRedirects(anonymous, f"{reverse('login')}?next={url}")

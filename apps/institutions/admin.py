@@ -16,9 +16,17 @@ class ReadOnlyHistoryAdminMixin:
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ("code", "name", "kind", "department", "municipality", "is_active")
-    list_filter = ("kind", "department", "is_active")
-    search_fields = ("code", "name", "department", "municipality")
+    list_display = (
+        "code",
+        "name",
+        "kind",
+        "department",
+        "municipality",
+        "district",
+        "is_active",
+    )
+    list_filter = ("kind", "department", "municipality", "district", "is_active")
+    search_fields = ("code", "name", "department", "municipality", "district")
 
 
 class SchoolBoardMemberInline(admin.TabularInline):

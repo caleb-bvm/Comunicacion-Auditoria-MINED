@@ -4,96 +4,70 @@
 <div class="center-directory">
     <div class="page-heading heading-row">
         <div>
-            <p class="eyebrow">Directorio</p>
+            <p class="eyebrow">Inteligencia institucional</p>
             <h1>Centros educativos</h1>
-            <p>Busque un centro, consulte sus expedientes y gestione su acceso al sistema.</p>
+            <p>Identifique rápidamente qué centros requieren atención y consulte su situación auditada, obligaciones, respuestas y contexto institucional.</p>
         </div>
         <a class="button button-secondary" href="{% url 'director_dashboard' %}">Volver al inicio</a>
     </div>
 
-    <section class="executive-stats center-access-stats" aria-label="Resumen de centros educativos">
-        <article class="executive-stat"><span>Centros</span><strong>{{ total_centers }}</strong><small>registrados</small></article>
-        <article class="executive-stat executive-stat-success"><span>Con acceso</span><strong>{{ active_centers }}</strong><small>usuario activo</small></article>
-        <article class="executive-stat executive-stat-attention"><span>Sin acceso</span><strong>{{ pending_centers }}</strong><small>por activar</small></article>
+    <section class="executive-stats center-intelligence-stats" aria-label="Resumen de centros educativos">
+        <article class="executive-stat"><span>Centros registrados</span><strong>{{ total_centers }}</strong><small>universo institucional</small></article>
+        <article class="executive-stat"><span>Con auditorías</span><strong>{{ audited_centers }}</strong><small>incluye historial consolidado</small></article>
+        <article class="executive-stat executive-stat-risk"><span>Atención inmediata</span><strong>{{ immediate_attention_centers }}</strong><small>vencimientos o riesgo crítico</small></article>
+        <article class="executive-stat executive-stat-warning"><span>Con plazos vencidos</span><strong>{{ overdue_centers }}</strong><small>obligaciones abiertas</small></article>
+        <article class="executive-stat executive-stat-attention"><span>Sin CDE vigente</span><strong>{{ without_current_cde_centers }}</strong><small>según fechas registradas</small></article>
+        <article class="executive-stat"><span>Sin acceso</span><strong>{{ pending_centers }}</strong><small>cuenta institucional inactiva</small></article>
     </section>
 
-    <form method="get" class="filter-bar center-filter-bar" role="search">
-        <div class="field grow search-field">
+    <form method="get" class="filter-bar center-analytics-filter" role="search">
+        <div class="field field-wide search-field">
             <label for="q">Buscar centro</label>
             <input id="q" name="q" value="{{ query }}" placeholder="Código, nombre, departamento o municipio">
         </div>
-        <div class="field center-access-filter">
-            <label for="access">Estado de acceso</label>
-            <select id="access" name="access">
-                <option value="" {% if not selected_access %}selected{% endif %}>Todos</option>
-                <option value="active" {% if selected_access == 'active' %}selected{% endif %}>Con acceso</option>
-                <option value="pending" {% if selected_access == 'pending' %}selected{% endif %}>Sin acceso</option>
-            </select>
-        </div>
-        <button class="button button-tonal" type="submit">Buscar</button>
+        <div class="field"><label for="department">Departamento</label><select id="department" name="department"><option value="">Todos</option>{% for option in department_options %}<option value="{{ option }}" {% if selected_department == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="municipality">Municipio</label><select id="municipality" name="municipality"><option value="">Todos</option>{% for option in municipality_options %}<option value="{{ option }}" {% if selected_municipality == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="district">Distrito</label><select id="district" name="district"><option value="">Todos</option>{% for option in district_options %}<option value="{{ option }}" {% if selected_district == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="attention">Necesidad de atención</label><select id="attention" name="attention"><option value="">Todas</option><option value="immediate" {% if selected_attention == 'immediate' %}selected{% endif %}>Atención inmediata</option><option value="overdue" {% if selected_attention == 'overdue' %}selected{% endif %}>Plazos vencidos</option><option value="automatic" {% if selected_attention == 'automatic' %}selected{% endif %}>Incumplimiento automático</option><option value="correction" {% if selected_attention == 'correction' %}selected{% endif %}>Corrección requerida</option><option value="due_soon" {% if selected_attention == 'due_soon' %}selected{% endif %}>Vence en 7 días</option></select></div>
+        <div class="field"><label for="risk">Riesgo activo</label><select id="risk" name="risk"><option value="">Todos</option><option value="critical" {% if selected_risk == 'critical' %}selected{% endif %}>Crítico</option><option value="high" {% if selected_risk == 'high' %}selected{% endif %}>Alto o crítico</option></select></div>
+        <div class="field"><label for="audits">Historial de auditoría</label><select id="audits" name="audits"><option value="">Todos</option><option value="yes" {% if selected_audits == 'yes' %}selected{% endif %}>Con auditorías</option><option value="no" {% if selected_audits == 'no' %}selected{% endif %}>Sin auditorías</option></select></div>
+        <div class="field"><label for="cde">Consejo Directivo</label><select id="cde" name="cde"><option value="">Todos</option><option value="current" {% if selected_cde == 'current' %}selected{% endif %}>CDE vigente</option><option value="pending" {% if selected_cde == 'pending' %}selected{% endif %}>Sin CDE vigente</option></select></div>
+        <div class="field"><label for="access">Acceso al sistema</label><select id="access" name="access"><option value="">Todos</option><option value="active" {% if selected_access == 'active' %}selected{% endif %}>Con acceso</option><option value="pending" {% if selected_access == 'pending' %}selected{% endif %}>Sin acceso</option></select></div>
+        <div class="center-filter-actions"><button class="button button-primary" type="submit">Aplicar filtros</button><a class="button button-secondary" href="{% url 'director_educational_centers' %}">Limpiar</a></div>
     </form>
 
-    <section class="center-directory-grid" aria-label="Directorio de centros educativos">
+    <div class="directory-result-heading"><p>Ordenados por necesidad de atención. Las alertas actuales consideran todo el historial consolidado, no solo un período.</p><strong>{{ page_obj.paginator.count }} centro{{ page_obj.paginator.count|pluralize }}</strong></div>
+
+    <section class="center-directory-grid" aria-label="Directorio analítico de centros educativos">
         {% for center in centers %}
-        <article class="center-directory-card">
+        <article class="center-directory-card attention-{{ center.attention_level }}">
             <header class="center-card-header">
-                <div class="center-card-title">
-                    <span class="center-code">{{ center.code }}</span>
-                    <h2>{{ center.name }}</h2>
-                    <p>{{ center.municipality|default:"Municipio no registrado" }}{% if center.department %} · {{ center.department }}{% endif %}</p>
-                </div>
-                <div class="center-card-status">
-                    {% if center.active_user_count %}
-                        <span class="status status-approved">Con acceso</span>
-                    {% else %}
-                        <span class="status status-pending">Sin acceso</span>
-                    {% endif %}
-                    {% if not center.is_active %}<small>Inactivo en el catálogo</small>{% endif %}
-                </div>
+                <div class="center-card-title"><span class="center-code">{{ center.code }}</span><h2><a href="{% url 'director_educational_center_detail' center.pk %}">{{ center.name }}</a></h2><p>{% if center.district %}{{ center.district }} · {% endif %}{{ center.municipality|default:"Municipio no registrado" }}{% if center.department %} · {{ center.department }}{% endif %}</p></div>
+                <span class="attention-badge attention-badge-{{ center.attention_level }}">{{ center.attention_label }}</span>
             </header>
 
-            <div class="center-card-details">
-                <div class="center-detail">
-                    <span>Usuario institucional</span>
-                    {% if center.institutional_accounts %}
-                        <strong>{{ center.institutional_accounts.0.username }}</strong>
-                        <small>{{ center.institutional_user_count }} cuenta{{ center.institutional_user_count|pluralize }} registrada{{ center.institutional_user_count|pluralize }}</small>
-                    {% else %}
-                        <strong>Sin usuario asignado</strong>
-                        <small>Active el centro para crear su acceso.</small>
-                    {% endif %}
-                </div>
-                <div class="center-detail center-case-summary">
-                    <span>Expedientes</span>
-                    <strong>{{ center.case_count }}</strong>
-                    <small>asociado{{ center.case_count|pluralize }} al centro</small>
-                </div>
-            </div>
+            {% if center.attention_reasons %}<ul class="center-reason-list" aria-label="Razones de atención">{% for reason in center.attention_reasons|slice:":3" %}<li class="reason-{{ reason.kind }}">{{ reason.label }}</li>{% endfor %}</ul>{% else %}<p class="center-no-alerts">No presenta alertas abiertas con los datos consolidados disponibles.</p>{% endif %}
+
+            <dl class="center-metric-grid">
+                <div><dt>Expedientes</dt><dd>{{ center.case_count }}</dd><small>{{ center.active_case_count }} activo{{ center.active_case_count|pluralize }}</small></div>
+                <div><dt>Obligaciones</dt><dd>{{ center.obligation_count }}</dd><small>{{ center.overdue_count }} vencida{{ center.overdue_count|pluralize }}</small></div>
+                <div><dt>Riesgo alto/crítico</dt><dd>{{ center.high_active_count|add:center.critical_active_count }}</dd><small>en casos activos</small></div>
+                <div><dt>Cumplimiento</dt><dd>{% if center.compliance_rate is not None %}{{ center.compliance_rate }}%{% else %}N/D{% endif %}</dd><small>{% if center.terminal_count %}{{ center.complied_count }} de {{ center.terminal_count }} definitivas{% else %}sin resultados definitivos{% endif %}</small></div>
+            </dl>
+
+            <div class="center-context-row"><span class="context-state {% if center.access_active %}is-ok{% else %}is-warning{% endif %}">{% if center.access_active %}Acceso activo{% else %}Sin acceso activo{% endif %}</span><span class="context-state {% if center.has_current_cde %}is-ok{% else %}is-warning{% endif %}">{{ center.cde_state_label }}</span><small>{% if center.latest_activity_at %}Actividad: {{ center.latest_activity_at|date:"d/m/Y H:i" }}{% else %}Sin actividad auditora consolidada{% endif %}</small></div>
 
             <footer class="center-card-actions">
-                <a class="button button-secondary" href="{% url 'cde_detail' center.pk %}">Ver CDE</a>
-                <a class="button button-secondary center-cases-button" href="{% url 'case_list' %}?organization={{ center.pk }}">
-                    Ver expedientes <span class="button-count">{{ center.case_count }}</span>
-                </a>
-                {% if not center.active_user_count %}
-                <form method="post" action="{% url 'director_activate_educational_center' center.pk %}" onsubmit="return confirm('¿Activar el acceso para {{ center.name|escapejs }}?');">
-                    {% csrf_token %}
-                    <button class="button button-primary center-action-button" type="submit">{% if center.institutional_user_count %}Reactivar acceso{% else %}Activar centro{% endif %}</button>
-                </form>
-                {% endif %}
+                <a class="button button-primary" href="{% url 'director_educational_center_detail' center.pk %}">Ver ficha analítica</a>
+                <a class="button button-secondary center-cases-button" href="{% url 'case_list' %}?organization={{ center.pk }}">Expedientes <span class="button-count">{{ center.case_count }}</span></a>
+                {% if not center.active_user_count %}<form method="post" action="{% url 'director_activate_educational_center' center.pk %}" onsubmit="return confirm('¿Activar el acceso para {{ center.name|escapejs }}?');">{% csrf_token %}<button class="button button-tonal center-action-button" type="submit">{% if center.institutional_user_count %}Reactivar acceso{% else %}Activar centro{% endif %}</button></form>{% endif %}
             </footer>
         </article>
         {% empty %}
-        <div class="empty-state card center-directory-empty"><h2>No se encontraron centros</h2><p>Pruebe con otro nombre, código o ubicación.</p></div>
+        <div class="empty-state card center-directory-empty"><h2>No se encontraron centros</h2><p>Pruebe con otra ubicación o combinación de indicadores.</p><a class="button button-secondary" href="{% url 'director_educational_centers' %}">Limpiar filtros</a></div>
         {% endfor %}
     </section>
 
-    {% if is_paginated %}
-    <nav class="pagination" aria-label="Paginación">
-        {% if page_obj.has_previous %}<a href="?q={{ query|urlencode }}&amp;access={{ selected_access|urlencode }}&amp;page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
-        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}<a href="?q={{ query|urlencode }}&amp;access={{ selected_access|urlencode }}&amp;page={{ page_obj.next_page_number }}">Siguiente</a>{% endif %}
-    </nav>
-    {% endif %}
+    {% if is_paginated %}<nav class="pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;municipality={{ selected_municipality|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;attention={{ selected_attention|urlencode }}&amp;risk={{ selected_risk|urlencode }}&amp;audits={{ selected_audits|urlencode }}&amp;cde={{ selected_cde|urlencode }}&amp;access={{ selected_access|urlencode }}&amp;page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;municipality={{ selected_municipality|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;attention={{ selected_attention|urlencode }}&amp;risk={{ selected_risk|urlencode }}&amp;audits={{ selected_audits|urlencode }}&amp;cde={{ selected_cde|urlencode }}&amp;access={{ selected_access|urlencode }}&amp;page={{ page_obj.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
 </div>
 {% endblock %}

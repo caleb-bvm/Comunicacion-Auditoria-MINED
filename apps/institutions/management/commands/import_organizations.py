@@ -66,6 +66,7 @@ class Command(BaseCommand):
             reader = csv.DictReader(handle)
             if not reader.fieldnames or not {"code", "name"}.issubset(reader.fieldnames):
                 raise CommandError("El CSV debe incluir como mínimo las columnas code y name.")
+            includes_district = "district" in reader.fieldnames
             rows = []
             seen_codes = set()
             valid_kinds = set(Organization.Kind.values)
@@ -82,17 +83,18 @@ class Command(BaseCommand):
                         f"Fila {line_number}: tipo inválido. Use uno de: {', '.join(sorted(valid_kinds))}."
                     )
                 seen_codes.add(code)
-                rows.append(
-                    {
-                        "code": code,
-                        "name": name,
-                        "kind": kind,
-                        "department": (raw.get("department") or "").strip(),
-                        "municipality": (raw.get("municipality") or "").strip(),
-                        "address": (raw.get("address") or "").strip(),
-                        "is_active": self.parse_active(raw.get("is_active"), line_number),
-                    }
-                )
+                row = {
+                    "code": code,
+                    "name": name,
+                    "kind": kind,
+                    "department": (raw.get("department") or "").strip(),
+                    "municipality": (raw.get("municipality") or "").strip(),
+                    "address": (raw.get("address") or "").strip(),
+                    "is_active": self.parse_active(raw.get("is_active"), line_number),
+                }
+                if includes_district:
+                    row["district"] = (raw.get("district") or "").strip()
+                rows.append(row)
             return rows
 
     def parse_active(self, value, line_number):

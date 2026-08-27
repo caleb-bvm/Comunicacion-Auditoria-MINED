@@ -13,9 +13,19 @@ urlpatterns = [
         name="director_statistics",
     ),
     path(
+        "direccion/estadisticas/exportar.xlsx",
+        views.DirectorStatisticsXlsxView.as_view(),
+        name="director_statistics_xlsx",
+    ),
+    path(
         "direccion/centros-educativos/",
         views.DirectorEducationalCenterListView.as_view(),
         name="director_educational_centers",
+    ),
+    path(
+        "direccion/centros-educativos/<int:pk>/",
+        views.DirectorEducationalCenterDetailView.as_view(),
+        name="director_educational_center_detail",
     ),
     path(
         "direccion/centros-educativos/<int:pk>/activar/",

@@ -29,6 +29,7 @@ class Organization(models.Model):
     kind = models.CharField("tipo", max_length=30, choices=Kind.choices)
     department = models.CharField("departamento", max_length=100, blank=True)
     municipality = models.CharField("municipio", max_length=100, blank=True)
+    district = models.CharField("distrito", max_length=100, blank=True)
     address = models.TextField("dirección", blank=True)
     is_active = models.BooleanField("activa", default=True)
     created_at = models.DateTimeField("creada", auto_now_add=True)

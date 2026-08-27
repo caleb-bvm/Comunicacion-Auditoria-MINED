@@ -1,8 +1,11 @@
+import hashlib
 import shutil
 import tempfile
 from datetime import date, timedelta
 from io import BytesIO, StringIO
 from zipfile import ZIP_DEFLATED, ZipFile
+
+from openpyxl import load_workbook
 
 from django.contrib.auth.hashers import identify_hasher
 from django.core.exceptions import ValidationError
@@ -936,6 +939,135 @@ class AccessAndWorkflowTests(TestCase):
         self.client.force_login(self.auditor)
         forbidden = self.client.get(reverse("director_statistics"))
         self.assertEqual(forbidden.status_code, 403)
+
+    def test_director_can_download_complete_statistics_xlsx(self):
+        self.case.title = "=HYPERLINK(\"https://example.invalid\",\"texto\")"
+        self.case.save(update_fields=["title"])
+
+        self.client.force_login(self.director)
+        result = self.client.get(
+            reverse("director_statistics_xlsx"),
+            {"period": "all", "auditor": self.auditor.pk},
+        )
+
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(
+            result["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIn(".xlsx", result["Content-Disposition"])
+        self.assertEqual(result["Cache-Control"], "private, no-store")
+        content = b"".join(result.streaming_content)
+        workbook = load_workbook(BytesIO(content), data_only=False)
+
+        self.assertEqual(
+            workbook.sheetnames,
+            [
+                "Resumen",
+                "Expedientes",
+                "Hallazgos",
+                "Recomendaciones",
+                "Respuestas y revisiones",
+                "Prórrogas",
+                "Auditores",
+                "Instituciones",
+                "Dependencias responsables",
+                "Series mensuales",
+                "Alertas y calidad",
+                "Controles",
+                "Metodología",
+            ],
+        )
+        self.assertEqual(
+            workbook["Resumen"]["A1"].value,
+            "Informe estadístico y analítico de Auditoría Interna",
+        )
+        self.assertEqual(workbook["Resumen"]["D13"].value, "N/D")
+        self.assertGreaterEqual(len(workbook["Resumen"]._charts), 3)
+        self.assertEqual(workbook["Expedientes"]["A5"].value, self.case.reference)
+        self.assertTrue(workbook["Expedientes"]["B5"].value.startswith("'="))
+        self.assertEqual(workbook["Expedientes"]["B5"].data_type, "s")
+        self.assertEqual(workbook["Recomendaciones"]["A5"].value, self.case.reference)
+        self.assertIsNone(workbook["Auditores"]["N5"].value)
+        self.assertIsNone(workbook["Instituciones"]["O5"].value)
+        self.assertTrue(
+            all(
+                workbook["Controles"].cell(row=row, column=4).value == "OK"
+                for row in range(5, workbook["Controles"].max_row + 1)
+            )
+        )
+
+        log = ActivityLog.objects.get(action="director_statistics_xlsx_exported")
+        self.assertEqual(log.actor, self.director)
+        self.assertEqual(log.details["filters"]["auditor_id"], self.auditor.pk)
+        self.assertEqual(log.details["rows"]["cases"], 1)
+        self.assertEqual(log.details["sha256"], hashlib.sha256(content).hexdigest())
+
+    def test_statistics_xlsx_uses_effective_deadline_and_responsible_dependency(self):
+        original_deadline = date.today() - timedelta(days=2)
+        new_deadline = date.today() + timedelta(days=3)
+        self.recommendation.deadline = original_deadline
+        self.recommendation.responsible_organization = self.other_center
+        self.recommendation.save(
+            update_fields=["deadline", "responsible_organization"]
+        )
+        DeadlineExtension.objects.create(
+            recommendation=self.recommendation,
+            previous_deadline=original_deadline,
+            business_days=4,
+            new_deadline=new_deadline,
+            reason="Prórroga de prueba para completar la documentación.",
+            granted_by=self.director,
+        )
+
+        self.client.force_login(self.director)
+        result = self.client.get(
+            reverse("director_statistics_xlsx"), {"period": "all"}
+        )
+        content = b"".join(result.streaming_content)
+        workbook = load_workbook(BytesIO(content), data_only=False)
+
+        recommendation_row = workbook["Recomendaciones"][5]
+        self.assertEqual(recommendation_row[12].value.date(), original_deadline)
+        self.assertEqual(recommendation_row[13].value.date(), new_deadline)
+        self.assertEqual(recommendation_row[14].value, 0)
+        self.assertEqual(recommendation_row[15].value, 3)
+        self.assertEqual(recommendation_row[17].value, 1)
+        responsible_codes = {
+            workbook["Dependencias responsables"].cell(row=row, column=1).value
+            for row in range(5, workbook["Dependencias responsables"].max_row + 1)
+        }
+        self.assertIn(self.other_center.code, responsible_codes)
+
+    def test_statistics_xlsx_rejects_invalid_filters_without_logging(self):
+        self.client.force_login(self.director)
+        result = self.client.get(
+            reverse("director_statistics_xlsx"),
+            {"period": "custom", "start": "2026-08-20", "end": "2026-08-10"},
+        )
+
+        self.assertEqual(result.status_code, 400)
+        self.assertContains(
+            result,
+            "La fecha inicial no puede ser posterior a la fecha final.",
+            status_code=400,
+        )
+        self.assertFalse(
+            ActivityLog.objects.filter(
+                action="director_statistics_xlsx_exported"
+            ).exists()
+        )
+
+    def test_statistics_xlsx_is_exclusive_to_director(self):
+        for user in (self.auditor, self.technical_admin, self.institution_user):
+            self.client.force_login(user)
+            result = self.client.get(reverse("director_statistics_xlsx"))
+            self.assertEqual(result.status_code, 403)
+
+        self.client.logout()
+        anonymous = self.client.get(reverse("director_statistics_xlsx"))
+        self.assertEqual(anonymous.status_code, 302)
+        self.assertIn("/ingresar/", anonymous.url)
 
     def test_director_can_return_publication_with_justification(self):
         draft_case = AuditCase.objects.create(
