@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Estadísticas | Dirección de Auditoría{% endblock %}
+{% block content %}
+<header class="page-heading heading-row analytics-heading">
+    <div><p class="eyebrow">Dirección de Auditoría Interna</p><h1>Estadísticas</h1><p>Analice el desempeño, los riesgos y la carga del equipo. Todos los indicadores respetan los filtros seleccionados.</p></div>
+    <a class="button button-secondary" href="{% url 'director_dashboard' %}">Volver al inicio</a>
+</header>
+
+<form class="filter-bar analytics-filter" method="get" aria-label="Filtros de estadísticas">
+    <div class="field"><label for="period">Período de registro</label><select id="period" name="period">{% for value, label in period_choices %}<option value="{{ value }}" {% if selected_period == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    <div class="field custom-date-field"><label for="start">Desde</label><input id="start" name="start" type="date" value="{{ start_date|date:'Y-m-d' }}" aria-describedby="custom-date-help"></div>
+    <div class="field custom-date-field"><label for="end">Hasta</label><input id="end" name="end" type="date" value="{{ end_date|date:'Y-m-d' }}" aria-describedby="custom-date-help"></div>
+    <div class="field"><label for="auditor">Auditor</label><select id="auditor" name="auditor"><option value="">Todos</option>{% for auditor in auditor_options %}<option value="{{ auditor.pk }}" {% if selected_auditor.pk == auditor.pk %}selected{% endif %}>{{ auditor.get_full_name|default:auditor.username }}</option>{% endfor %}</select></div>
+    <div class="field"><label for="organization">Institución auditada</label><select id="organization" name="organization"><option value="">Todas</option>{% for organization in organization_options %}<option value="{{ organization.pk }}" {% if selected_organization.pk == organization.pk %}selected{% endif %}>{{ organization.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label for="status">Estado</label><select id="status" name="status"><option value="">Todos</option>{% for value, label in status_choices %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    <div class="analytics-filter-actions"><button class="button button-primary" type="submit">Aplicar filtros</button><a class="button button-ghost" href="{% url 'director_statistics' %}?period=year">Restablecer</a></div>
+    <small id="custom-date-help" class="filter-help">Las fechas se aplican cuando selecciona “Rango personalizado”.</small>
+</form>
+
+{% if filter_errors %}<div class="message message-error" role="alert">{% for error in filter_errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
+
+<section class="analytics-kpis" aria-label="Indicadores principales">
+    <article class="executive-stat"><span>Expedientes</span><strong>{{ total_cases }}</strong><small>{{ open_cases }} en gestión · {{ closed_cases }} cerrados</small></article>
+    <article class="executive-stat executive-stat-success"><span>Cumplimiento</span><strong>{{ compliance_rate }}%</strong><small>{{ complied_recommendations }} de {{ terminal_recommendations }} resultados definitivos</small></article>
+    <article class="executive-stat executive-stat-attention"><span>Respuestas por revisar</span><strong>{{ pending_reviews }}</strong><small>pendientes de dictamen</small></article>
+    <article class="executive-stat executive-stat-warning"><span>Plazos vencidos</span><strong>{{ overdue_recommendations }}</strong><small>sin respuesta vigente</small></article>
+    <article class="executive-stat executive-stat-risk"><span>Hallazgos críticos</span><strong>{{ critical_findings }}</strong><small>{{ high_risk_findings }} de riesgo alto o crítico</small></article>
+    <article class="executive-stat"><span>Resolución</span><strong>{{ resolution_rate }}%</strong><small>de {{ total_recommendations }} recomendaciones</small></article>
+    <article class="executive-stat"><span>Instituciones</span><strong>{{ organizations_count }}</strong><small>incluidas en la selección</small></article>
+    <article class="executive-stat"><span>Tiempo de revisión</span><strong>{% if average_review_days is not None %}{{ average_review_days }}{% else %}—{% endif %}</strong><small>{% if average_review_days is not None %}días promedio{% else %}sin revisiones resueltas{% endif %}</small></article>
+</section>
+
+<section class="analytics-dashboard-grid" aria-label="Distribuciones estadísticas">
+    <article class="card analytics-panel">
+        <div class="section-heading"><div><p class="eyebrow">Expedientes</p><h2>Distribución por estado</h2></div><span class="muted">{{ total_cases }} en total</span></div>
+        {% if case_status_distribution %}<div class="distribution-list">{% for item in case_status_distribution %}<div class="distribution-row"><div><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div><progress class="progress-{{ item.value }}" max="{{ total_cases }}" value="{{ item.count }}">{{ item.percentage }}%</progress><small>{{ item.percentage }}%</small></div>{% endfor %}</div>{% else %}<div class="compact-empty"><strong>Sin expedientes</strong><p>Ajuste los filtros para ampliar la selección.</p></div>{% endif %}
+    </article>
+
+    <article class="card analytics-panel">
+        <div class="section-heading"><div><p class="eyebrow">Recomendaciones</p><h2>Distribución por resultado</h2></div><span class="muted">{{ total_recommendations }} en total</span></div>
+        {% if recommendation_status_distribution %}<div class="distribution-list">{% for item in recommendation_status_distribution %}<div class="distribution-row"><div><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div><progress class="progress-{{ item.value }}" max="{{ total_recommendations }}" value="{{ item.count }}">{{ item.percentage }}%</progress><small>{{ item.percentage }}%</small></div>{% endfor %}</div>{% else %}<div class="compact-empty"><strong>Sin recomendaciones</strong><p>No hay recomendaciones en la selección.</p></div>{% endif %}
+    </article>
+
+    <article class="card analytics-panel">
+        <div class="section-heading"><div><p class="eyebrow">Riesgo</p><h2>Perfil de hallazgos</h2></div><span class="muted">{{ total_findings }} en total</span></div>
+        {% if risk_distribution %}<div class="distribution-list">{% for item in risk_distribution %}<div class="distribution-row"><div><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div><progress class="progress-risk-{{ item.value }}" max="{{ total_findings }}" value="{{ item.count }}">{{ item.percentage }}%</progress><small>{{ item.percentage }}%</small></div>{% endfor %}</div>{% else %}<div class="compact-empty"><strong>Sin hallazgos</strong><p>No hay hallazgos en la selección.</p></div>{% endif %}
+    </article>
+
+    <article class="card analytics-panel">
+        <div class="section-heading"><div><p class="eyebrow">Tendencia</p><h2>Expedientes registrados</h2></div><span class="muted">Hasta 12 meses</span></div>
+        {% if monthly_cases %}<div class="trend-list">{% for item in monthly_cases %}<div class="trend-row"><time datetime="{{ item.month|date:'Y-m' }}">{{ item.month|date:"M Y" }}</time><progress max="{{ monthly_cases_max }}" value="{{ item.count }}">{{ item.count }}</progress><strong>{{ item.count }}</strong></div>{% endfor %}</div>{% else %}<div class="compact-empty"><strong>Sin actividad en el período</strong><p>La tendencia aparecerá al existir expedientes registrados.</p></div>{% endif %}
+    </article>
+</section>
+
+<section class="section-block">
+    <div class="section-heading"><div><p class="eyebrow">Equipo auditor</p><h2>Carga y resultados</h2></div><span class="muted">Comparativo según la selección</span></div>
+    <div class="card table-card">{% if auditor_statistics %}<div class="table-responsive"><table><thead><tr><th>Auditor</th><th>Expedientes activos</th><th>Recomendaciones</th><th>Por revisar</th><th>Vencidas</th><th>Cumplimiento</th></tr></thead><tbody>{% for row in auditor_statistics %}<tr><td><strong>{{ row.auditor.get_full_name|default:row.auditor.username }}</strong><small>{{ row.cases_count }} expediente{{ row.cases_count|pluralize }} en la selección</small></td><td>{{ row.open_cases_count }}</td><td>{{ row.recommendation_count }}</td><td>{{ row.pending_reviews_count }}</td><td>{% if row.overdue_count %}<span class="metric-danger">{{ row.overdue_count }}</span>{% else %}0{% endif %}</td><td><strong>{{ row.compliance_rate }}%</strong></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="compact-empty"><strong>Sin auditores</strong><p>No hay carga asociada a la selección.</p></div>{% endif %}</div>
+</section>
+
+<section class="section-block">
+    <div class="section-heading"><div><p class="eyebrow">Instituciones</p><h2>Principales focos de atención</h2></div><span class="muted">Priorizadas por vencimientos y riesgo</span></div>
+    <div class="card table-card">{% if organization_statistics %}<div class="table-responsive"><table><thead><tr><th>Institución</th><th>Expedientes activos</th><th>Recomendaciones</th><th>Vencidas</th><th>Hallazgos críticos</th><th>Cumplimiento</th><th></th></tr></thead><tbody>{% for row in organization_statistics %}<tr><td><strong>{{ row.name }}</strong><small>{{ row.code }} · {{ row.cases_count }} expediente{{ row.cases_count|pluralize }} en la selección</small></td><td>{{ row.open_cases_count }}</td><td>{{ row.recommendation_count }}</td><td>{% if row.overdue_count %}<span class="metric-danger">{{ row.overdue_count }}</span>{% else %}0{% endif %}</td><td>{{ row.critical_count }}</td><td><strong>{{ row.compliance_rate }}%</strong></td><td><a class="icon-link" aria-label="Ver expedientes de {{ row.name }}" href="{% url 'case_list' %}?organization={{ row.organization_id }}">→</a></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="compact-empty"><strong>Sin instituciones</strong><p>No hay instituciones asociadas a la selección.</p></div>{% endif %}</div>
+</section>
+{% endblock %}

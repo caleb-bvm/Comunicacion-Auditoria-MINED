@@ -8,6 +8,11 @@ urlpatterns = [
     path("mi-historial/", views.institution_history, name="institution_history"),
     path("direccion/", views.DirectorDashboardView.as_view(), name="director_dashboard"),
     path(
+        "direccion/estadisticas/",
+        views.DirectorStatisticsView.as_view(),
+        name="director_statistics",
+    ),
+    path(
         "direccion/centros-educativos/",
         views.DirectorEducationalCenterListView.as_view(),
         name="director_educational_centers",

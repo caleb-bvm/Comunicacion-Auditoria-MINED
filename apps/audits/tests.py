@@ -848,6 +848,95 @@ class AccessAndWorkflowTests(TestCase):
         forbidden = self.client.get(reverse("director_dashboard"))
         self.assertEqual(forbidden.status_code, 403)
 
+    def test_auditor_dashboard_statistics_only_include_assigned_cases(self):
+        other_auditor = User.objects.create_user(
+            username="auditor-otro",
+            password="UnaClaveDePrueba!2026",
+            role=User.Role.AUDITOR,
+            organization=self.audit_unit,
+            must_change_password=False,
+        )
+        other_case = AuditCase.objects.create(
+            reference="IA-FUERA-SCOPE",
+            title="Expediente fuera del alcance",
+            audited_organization=self.other_center,
+            status=AuditCase.Status.UNDER_REVIEW,
+            assigned_auditor=other_auditor,
+            created_by=other_auditor,
+        )
+        other_finding = Finding.objects.create(
+            case=other_case,
+            number=1,
+            title="Hallazgo crítico fuera del alcance",
+            risk_level=Finding.RiskLevel.CRITICAL,
+        )
+        Recommendation.objects.create(
+            finding=other_finding,
+            number=1,
+            text="Recomendación fuera del alcance.",
+            responsible_organization=self.other_center,
+            deadline=date.today() - timedelta(days=10),
+        )
+
+        self.client.force_login(self.auditor)
+        result = self.client.get(reverse("dashboard"))
+
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.context["total_cases"], 1)
+        self.assertEqual(result.context["total_recommendations"], 1)
+        self.assertEqual(result.context["critical_findings"], 0)
+        self.assertEqual(result.context["overdue_recommendations"], 0)
+        self.assertNotContains(result, "IA-FUERA-SCOPE")
+
+    def test_auditor_dashboard_uses_extended_deadline_for_alerts(self):
+        self.recommendation.deadline = date.today() - timedelta(days=2)
+        self.recommendation.save(update_fields=["deadline"])
+        DeadlineExtension.objects.create(
+            recommendation=self.recommendation,
+            previous_deadline=self.recommendation.deadline,
+            business_days=5,
+            new_deadline=date.today() + timedelta(days=5),
+            reason="Prórroga válida para completar las evidencias requeridas.",
+            granted_by=self.auditor,
+        )
+
+        self.client.force_login(self.auditor)
+        result = self.client.get(reverse("dashboard"))
+
+        self.assertEqual(result.context["overdue_recommendations"], 0)
+        self.assertEqual(result.context["due_soon_recommendations"], 1)
+
+    def test_director_statistics_are_restricted_and_filter_by_auditor(self):
+        other_auditor = User.objects.create_user(
+            username="auditor-estadisticas",
+            password="UnaClaveDePrueba!2026",
+            role=User.Role.AUDITOR,
+            organization=self.audit_unit,
+            must_change_password=False,
+        )
+        AuditCase.objects.create(
+            reference="IA-STATS-002",
+            title="Segundo expediente estadístico",
+            audited_organization=self.other_center,
+            status=AuditCase.Status.DRAFT,
+            assigned_auditor=other_auditor,
+            created_by=other_auditor,
+        )
+
+        self.client.force_login(self.director)
+        result = self.client.get(
+            reverse("director_statistics"),
+            {"period": "all", "auditor": self.auditor.pk},
+        )
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.context["total_cases"], 1)
+        self.assertEqual(result.context["selected_auditor"], self.auditor)
+        self.assertContains(result, "Estadísticas")
+
+        self.client.force_login(self.auditor)
+        forbidden = self.client.get(reverse("director_statistics"))
+        self.assertEqual(forbidden.status_code, 403)
+
     def test_director_can_return_publication_with_justification(self):
         draft_case = AuditCase.objects.create(
             reference="IA-RETURN-001",

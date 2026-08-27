@@ -3,13 +3,13 @@
 {% block content %}
 <section class="executive-hero">
     <div><p class="eyebrow">Dirección de Auditoría Interna</p><h1>Inicio</h1><p>Consulte el estado de los expedientes, las solicitudes pendientes y la carga de trabajo del equipo.</p></div>
-    <a class="button button-primary button-large" href="{% url 'director_decisions' %}">Solicitudes <span class="count-badge">{{ pending_decisions_count }}</span></a>
+    <div class="button-group executive-actions"><a class="button button-primary button-large" href="{% url 'director_decisions' %}">Solicitudes <span class="count-badge">{{ pending_decisions_count }}</span></a><a class="button button-light button-large" href="{% url 'director_statistics' %}">Ver estadísticas <span aria-hidden="true">→</span></a></div>
 </section>
 
 <section class="executive-stats" aria-label="Resumen de expedientes">
     <a class="executive-stat executive-stat-attention" href="{% url 'director_decisions' %}"><span>Solicitudes pendientes</span><strong>{{ pending_decisions_count }}</strong><small>por resolver</small></a>
     <a class="executive-stat" href="{% url 'case_list' %}"><span>Expedientes activos</span><strong>{{ open_cases }}</strong><small>de {{ total_cases }} registrados</small></a>
-    <article class="executive-stat executive-stat-warning"><span>Recomendaciones vencidas</span><strong>{{ overdue_recommendations }}</strong><small>sin resultado definitivo</small></article>
+    <article class="executive-stat executive-stat-warning"><span>Plazos vencidos</span><strong>{{ overdue_recommendations }}</strong><small>sin respuesta vigente</small></article>
     <article class="executive-stat executive-stat-risk"><span>Hallazgos críticos</span><strong>{{ critical_findings }}</strong><small>en expedientes abiertos</small></article>
     <article class="executive-stat executive-stat-success"><span>Cumplimiento</span><strong>{{ compliance_rate }}%</strong><small>de resultados definitivos</small></article>
 </section>

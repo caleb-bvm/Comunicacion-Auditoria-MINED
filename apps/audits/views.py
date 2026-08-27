@@ -1,4 +1,5 @@
 import hashlib
+from datetime import date, timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -51,6 +52,13 @@ from .services import (
     copy_historical_recommendations,
     create_audit_document,
     next_document_version,
+    with_effective_deadline,
+)
+from .statistics import (
+    RESPONSE_DUE_STATUSES,
+    TERMINAL_RECOMMENDATION_STATUSES,
+    build_case_statistics,
+    percentage,
 )
 
 
@@ -231,8 +239,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         cases = accessible_cases(self.request.user)
         context["recent_cases"] = cases[:6]
-        context["total_cases"] = cases.count()
-        context["open_cases"] = cases.exclude(status=AuditCase.Status.CLOSED).count()
+        statistics = build_case_statistics(cases)
+        context.update(statistics)
         if self.request.user.is_audit_staff:
             context["pending_recommendations"] = Recommendation.objects.filter(
                 finding__case__in=cases,
@@ -248,6 +256,65 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             ).count()
         else:
             context["pending_recommendations"] = 0
+
+        if self.request.user.role == User.Role.AUDITOR:
+            today = timezone.localdate()
+            pending_responses = (
+                Response.objects.filter(
+                    recommendation__finding__case__in=cases,
+                    review__isnull=True,
+                )
+                .select_related(
+                    "recommendation__finding__case__audited_organization"
+                )
+                .order_by("submitted_at")[:6]
+            )
+            urgent_recommendations = list(
+                with_effective_deadline(
+                    Recommendation.objects.filter(
+                        finding__case__in=cases,
+                        status__in=RESPONSE_DUE_STATUSES,
+                    ).select_related("finding__case__audited_organization")
+                )
+                .filter(current_deadline__lte=today + timedelta(days=7))
+                .order_by("current_deadline")[:6]
+            )
+            attention_items = [
+                {
+                    "kind": "review",
+                    "label": "Respuesta por revisar",
+                    "case": response.recommendation.finding.case,
+                    "organization": response.recommendation.finding.case.audited_organization,
+                    "date": response.submitted_at,
+                    "response": response,
+                    "sort_key": (1, response.submitted_at),
+                }
+                for response in pending_responses
+            ]
+            attention_items.extend(
+                {
+                    "kind": (
+                        "overdue" if recommendation.current_deadline < today else "due_soon"
+                    ),
+                    "label": (
+                        "Plazo vencido"
+                        if recommendation.current_deadline < today
+                        else "Plazo próximo"
+                    ),
+                    "case": recommendation.finding.case,
+                    "organization": recommendation.finding.case.audited_organization,
+                    "date": recommendation.current_deadline,
+                    "recommendation": recommendation,
+                    "sort_key": (
+                        0 if recommendation.current_deadline < today else 2,
+                        recommendation.current_deadline,
+                    ),
+                }
+                for recommendation in urgent_recommendations
+            )
+            context["attention_items"] = sorted(
+                attention_items, key=lambda item: item["sort_key"]
+            )[:6]
         return context
 
 
@@ -308,12 +375,6 @@ class DirectorDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         today = timezone.localdate()
         cases = AuditCase.objects.all()
-        open_recommendation_statuses = [
-            Recommendation.Status.PENDING,
-            Recommendation.Status.SUBMITTED,
-            Recommendation.Status.UNDER_REVIEW,
-            Recommendation.Status.CORRECTION_REQUIRED,
-        ]
         pending_decisions = CaseDecision.objects.filter(status=CaseDecision.Status.PENDING)
         terminal_recommendations = Recommendation.objects.filter(
             status__in=[
@@ -373,9 +434,9 @@ class DirectorDashboardView(LoginRequiredMixin, TemplateView):
                 "pending_decisions": pending_decisions.select_related(
                     "case__audited_organization", "case__assigned_auditor", "requested_by"
                 )[:6],
-                "overdue_recommendations": Recommendation.objects.filter(
-                    deadline__lt=today,
-                    status__in=open_recommendation_statuses,
+                "overdue_recommendations": with_effective_deadline().filter(
+                    current_deadline__lt=today,
+                    status__in=RESPONSE_DUE_STATUSES,
                 ).count(),
                 "critical_findings": Finding.objects.filter(
                     risk_level=Finding.RiskLevel.CRITICAL
@@ -390,6 +451,298 @@ class DirectorDashboardView(LoginRequiredMixin, TemplateView):
                 "recent_decisions": CaseDecision.objects.exclude(
                     status=CaseDecision.Status.PENDING
                 ).select_related("case", "decided_by")[:5],
+            }
+        )
+        return context
+
+
+class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
+    template_name = "audits/director_statistics.html"
+
+    PERIOD_CHOICES = (
+        ("year", "Año actual"),
+        ("30", "Últimos 30 días"),
+        ("90", "Últimos 90 días"),
+        ("previous_year", "Año anterior"),
+        ("all", "Todo el historial"),
+        ("custom", "Rango personalizado"),
+    )
+
+    def dispatch(self, request, *args, **kwargs):
+        if not user_is_director(request.user):
+            raise PermissionDenied("Esta sección es exclusiva de la Dirección de Auditoría.")
+        return super().dispatch(request, *args, **kwargs)
+
+    @staticmethod
+    def _date_value(raw_value):
+        try:
+            return date.fromisoformat(raw_value) if raw_value else None
+        except ValueError:
+            return None
+
+    def _filtered_cases(self):
+        today = timezone.localdate()
+        period = self.request.GET.get("period", "year")
+        valid_periods = {value for value, _label in self.PERIOD_CHOICES}
+        errors = []
+        if period not in valid_periods:
+            period = "year"
+
+        start_date = end_date = None
+        if period == "year":
+            start_date = date(today.year, 1, 1)
+            end_date = today
+        elif period == "30":
+            start_date = today - timedelta(days=29)
+            end_date = today
+        elif period == "90":
+            start_date = today - timedelta(days=89)
+            end_date = today
+        elif period == "previous_year":
+            start_date = date(today.year - 1, 1, 1)
+            end_date = date(today.year - 1, 12, 31)
+        elif period == "custom":
+            start_date = self._date_value(self.request.GET.get("start"))
+            end_date = self._date_value(self.request.GET.get("end"))
+            if not start_date or not end_date:
+                errors.append("Indique una fecha inicial y una fecha final válidas.")
+            elif start_date > end_date:
+                errors.append("La fecha inicial no puede ser posterior a la fecha final.")
+
+        cases = AuditCase.objects.select_related(
+            "audited_organization", "assigned_auditor"
+        )
+        if errors:
+            cases = cases.none()
+        if start_date and end_date and start_date <= end_date:
+            cases = cases.filter(created_at__date__range=(start_date, end_date))
+
+        selected_auditor = None
+        auditor_id = self.request.GET.get("auditor", "")
+        if auditor_id:
+            selected_auditor = (
+                User.objects.filter(pk=int(auditor_id), role=User.Role.AUDITOR).first()
+                if auditor_id.isdigit()
+                else None
+            )
+            if selected_auditor:
+                cases = cases.filter(assigned_auditor=selected_auditor)
+            else:
+                errors.append("El auditor seleccionado no es válido.")
+                cases = cases.none()
+
+        selected_organization = None
+        organization_id = self.request.GET.get("organization", "")
+        if organization_id:
+            selected_organization = (
+                Organization.objects.filter(pk=int(organization_id)).first()
+                if organization_id.isdigit()
+                else None
+            )
+            if selected_organization:
+                cases = cases.filter(audited_organization=selected_organization)
+            else:
+                errors.append("La institución seleccionada no es válida.")
+                cases = cases.none()
+
+        selected_status = self.request.GET.get("status", "")
+        valid_statuses = {value for value, _label in AuditCase.Status.choices}
+        if selected_status in valid_statuses:
+            cases = cases.filter(status=selected_status)
+        else:
+            if selected_status:
+                errors.append("El estado seleccionado no es válido.")
+                cases = cases.none()
+            selected_status = ""
+
+        return cases, {
+            "selected_period": period,
+            "start_date": start_date,
+            "end_date": end_date,
+            "selected_auditor": selected_auditor,
+            "selected_organization": selected_organization,
+            "selected_status": selected_status,
+            "filter_errors": errors,
+        }
+
+    @staticmethod
+    def _auditor_rows(cases, selected_auditor=None):
+        recommendations = Recommendation.objects.filter(finding__case__in=cases)
+        responses = Response.objects.filter(recommendation__in=recommendations)
+        overdue = with_effective_deadline(recommendations).filter(
+            current_deadline__lt=timezone.localdate(),
+            status__in=RESPONSE_DUE_STATUSES,
+        )
+        case_counts = {
+            row["assigned_auditor_id"]: row
+            for row in cases.values("assigned_auditor_id").annotate(
+                cases_count=Count("pk"),
+                open_cases_count=Count(
+                    "pk", filter=~Q(status=AuditCase.Status.CLOSED)
+                ),
+            )
+        }
+        recommendation_counts = {
+            row["finding__case__assigned_auditor_id"]: row
+            for row in recommendations.values(
+                "finding__case__assigned_auditor_id"
+            ).annotate(
+                recommendation_count=Count("pk"),
+                terminal_count=Count(
+                    "pk", filter=Q(status__in=TERMINAL_RECOMMENDATION_STATUSES)
+                ),
+                complied_count=Count(
+                    "pk", filter=Q(status=Recommendation.Status.COMPLIED)
+                ),
+            )
+        }
+        pending_review_counts = dict(
+            responses.filter(review__isnull=True)
+            .values("recommendation__finding__case__assigned_auditor_id")
+            .annotate(total=Count("pk"))
+            .values_list(
+                "recommendation__finding__case__assigned_auditor_id", "total"
+            )
+        )
+        overdue_counts = dict(
+            overdue.values("finding__case__assigned_auditor_id")
+            .annotate(total=Count("pk"))
+            .values_list("finding__case__assigned_auditor_id", "total")
+        )
+        auditor_ids = set(case_counts)
+        if selected_auditor:
+            auditors = User.objects.filter(pk=selected_auditor.pk)
+        else:
+            auditors = User.objects.filter(
+                Q(role=User.Role.AUDITOR, is_active=True) | Q(pk__in=auditor_ids)
+            ).distinct()
+        rows = []
+        for auditor in auditors:
+            case_row = case_counts.get(auditor.pk, {})
+            recommendation_row = recommendation_counts.get(auditor.pk, {})
+            rows.append(
+                {
+                    "auditor": auditor,
+                    "cases_count": case_row.get("cases_count", 0),
+                    "open_cases_count": case_row.get("open_cases_count", 0),
+                    "recommendation_count": recommendation_row.get(
+                        "recommendation_count", 0
+                    ),
+                    "pending_reviews_count": pending_review_counts.get(auditor.pk, 0),
+                    "overdue_count": overdue_counts.get(auditor.pk, 0),
+                    "compliance_rate": percentage(
+                        recommendation_row.get("complied_count", 0),
+                        recommendation_row.get("terminal_count", 0),
+                    ),
+                }
+            )
+        return sorted(
+            rows,
+            key=lambda row: (
+                -row["overdue_count"],
+                -row["pending_reviews_count"],
+                -row["open_cases_count"],
+                row["auditor"].get_full_name() or row["auditor"].username,
+            ),
+        )
+
+    @staticmethod
+    def _organization_rows(cases):
+        recommendations = Recommendation.objects.filter(finding__case__in=cases)
+        findings = Finding.objects.filter(case__in=cases)
+        overdue = with_effective_deadline(recommendations).filter(
+            current_deadline__lt=timezone.localdate(),
+            status__in=RESPONSE_DUE_STATUSES,
+        )
+        case_rows = list(
+            cases.values(
+                "audited_organization_id",
+                "audited_organization__code",
+                "audited_organization__name",
+            ).annotate(
+                cases_count=Count("pk"),
+                open_cases_count=Count(
+                    "pk", filter=~Q(status=AuditCase.Status.CLOSED)
+                ),
+            )
+        )
+        recommendation_counts = {
+            row["finding__case__audited_organization_id"]: row
+            for row in recommendations.values(
+                "finding__case__audited_organization_id"
+            ).annotate(
+                recommendation_count=Count("pk"),
+                terminal_count=Count(
+                    "pk", filter=Q(status__in=TERMINAL_RECOMMENDATION_STATUSES)
+                ),
+                complied_count=Count(
+                    "pk", filter=Q(status=Recommendation.Status.COMPLIED)
+                ),
+            )
+        }
+        overdue_counts = dict(
+            overdue.values("finding__case__audited_organization_id")
+            .annotate(total=Count("pk"))
+            .values_list("finding__case__audited_organization_id", "total")
+        )
+        critical_counts = dict(
+            findings.filter(risk_level=Finding.RiskLevel.CRITICAL)
+            .values("case__audited_organization_id")
+            .annotate(total=Count("pk"))
+            .values_list("case__audited_organization_id", "total")
+        )
+        rows = []
+        for case_row in case_rows:
+            organization_id = case_row["audited_organization_id"]
+            recommendation_row = recommendation_counts.get(organization_id, {})
+            rows.append(
+                {
+                    "organization_id": organization_id,
+                    "code": case_row["audited_organization__code"],
+                    "name": case_row["audited_organization__name"],
+                    "cases_count": case_row["cases_count"],
+                    "open_cases_count": case_row["open_cases_count"],
+                    "recommendation_count": recommendation_row.get(
+                        "recommendation_count", 0
+                    ),
+                    "overdue_count": overdue_counts.get(organization_id, 0),
+                    "critical_count": critical_counts.get(organization_id, 0),
+                    "compliance_rate": percentage(
+                        recommendation_row.get("complied_count", 0),
+                        recommendation_row.get("terminal_count", 0),
+                    ),
+                }
+            )
+        return sorted(
+            rows,
+            key=lambda row: (
+                -row["overdue_count"],
+                -row["critical_count"],
+                -row["open_cases_count"],
+                row["name"],
+            ),
+        )[:10]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cases, filters = self._filtered_cases()
+        statistics = build_case_statistics(cases)
+        context.update(statistics)
+        context.update(filters)
+        context.update(
+            {
+                "period_choices": self.PERIOD_CHOICES,
+                "auditor_options": User.objects.filter(
+                    role=User.Role.AUDITOR
+                ).order_by("first_name", "last_name", "username"),
+                "organization_options": Organization.objects.filter(
+                    audit_cases__isnull=False
+                ).distinct().order_by("name"),
+                "status_choices": AuditCase.Status.choices,
+                "auditor_statistics": self._auditor_rows(
+                    cases, filters["selected_auditor"]
+                ),
+                "organization_statistics": self._organization_rows(cases),
             }
         )
         return context

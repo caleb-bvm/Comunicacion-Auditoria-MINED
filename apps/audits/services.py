@@ -61,6 +61,22 @@ def add_business_days(start_date, business_days):
     return current
 
 
+def with_effective_deadline(queryset=None):
+    """Annotate recommendations with the latest granted deadline, when present."""
+    queryset = queryset if queryset is not None else Recommendation.objects.all()
+    latest_extension_deadline = (
+        DeadlineExtension.objects.filter(recommendation_id=OuterRef("pk"))
+        .order_by("-granted_at", "-pk")
+        .values("new_deadline")[:1]
+    )
+    return queryset.annotate(
+        current_deadline=Coalesce(
+            Subquery(latest_extension_deadline),
+            F("deadline"),
+        )
+    )
+
+
 @transaction.atomic
 def copy_historical_recommendations(case, historical_recommendations):
     source_ids = [item.pk for item in historical_recommendations]
@@ -115,19 +131,9 @@ def copy_historical_recommendations(case, historical_recommendations):
 @transaction.atomic
 def mark_overdue_recommendations(today=None):
     today = today or timezone.localdate()
-    latest_extension_deadline = (
-        DeadlineExtension.objects.filter(recommendation_id=OuterRef("pk"))
-        .order_by("-granted_at", "-pk")
-        .values("new_deadline")[:1]
-    )
     overdue = list(
-        Recommendation.objects.select_for_update()
-        .select_related("finding__case")
-        .annotate(
-            current_deadline=Coalesce(
-                Subquery(latest_extension_deadline),
-                F("deadline"),
-            )
+        with_effective_deadline(
+            Recommendation.objects.select_for_update().select_related("finding__case")
         )
         .filter(
             current_deadline__lt=today,

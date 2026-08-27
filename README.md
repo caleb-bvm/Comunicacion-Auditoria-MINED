@@ -14,6 +14,8 @@ Primera base funcional para registrar expedientes, hallazgos, recomendaciones, r
 - Panel administrativo y panel web para instituciones.
 - Flujo propio para crear borradores, registrar hallazgos y recomendaciones, revisar y publicar expedientes.
 - Perfil de Dirección de Auditoría con resumen ejecutivo, bandeja de decisiones, aprobación de publicaciones y cierres, y reasignación justificada de auditores.
+- Indicadores operativos en el inicio de cada auditor, limitados estrictamente a sus expedientes asignados, con alertas de revisión, vencimientos y riesgo.
+- Página analítica para Dirección con filtros por período, auditor, institución y estado, comparativos de carga, cumplimiento, riesgo y focos de atención.
 - Catálogo consultable de centros educativos para Dirección, con búsqueda, estado de acceso, activación y acceso directo a sus expedientes.
 - Importación validada del catálogo institucional desde CSV.
 - Repositorio de informes anteriores en PDF y Word.

@@ -7,7 +7,7 @@
     <meta name="description" content="Sistema institucional de seguimiento de recomendaciones de Auditoría Interna">
     <title>{% block title %}Sistema de Seguimiento de Auditoría Interna{% endblock %}</title>
     <meta name="theme-color" content="#0b4a7d">
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260820-5">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260827-3">
 </head>
 <body>
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -24,6 +24,7 @@
                 <symbol id="nav-council" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="10" r="2.5"/><path d="M3.5 20v-2a5.5 5.5 0 0 1 11 0v2M14 15.5a4.5 4.5 0 0 1 6.5 4"/></symbol>
                 <symbol id="nav-new-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 14h6M12 11v6"/></symbol>
                 <symbol id="nav-admin" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M4 12h16"/><circle cx="8" cy="7" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+                <symbol id="nav-statistics" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
                 <symbol id="nav-logout" viewBox="0 0 24 24"><path d="M10 4H5v16h5M14 8l4 4-4 4M8 12h10"/></symbol>
             </svg>
             <div class="nav-label">{% if user.is_audit_staff %}Auditoría Interna{% else %}Portal institucional{% endif %}</div>
@@ -33,6 +34,9 @@
             </a>
             <a href="{% url 'director_decisions' %}" class="nav-item {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-requests"></use></svg></span><span>Solicitudes</span>
+            </a>
+            <a href="{% url 'director_statistics' %}" class="nav-item {% if request.resolver_match.url_name == 'director_statistics' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_statistics' %}aria-current="page"{% endif %}>
+                <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-statistics"></use></svg></span><span>Estadísticas</span>
             </a>
             <a href="{% url 'director_educational_centers' %}" class="nav-item {% if request.resolver_match.url_name == 'director_educational_centers' or 'cde_' in request.resolver_match.url_name %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_educational_centers' or 'cde_' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-centers"></use></svg></span><span>Centros educativos</span>
