@@ -4,7 +4,7 @@
 <nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'director_dashboard' %}">Inicio</a><span>/</span><a href="{% url 'director_decisions' %}">Solicitudes</a><span>/</span><span>{{ case.reference }}</span></nav>
 <div class="page-heading heading-row"><div><p class="eyebrow">Solicitud de {{ decision.get_kind_display|lower }}</p><h1>{{ case.reference }}</h1><p>{{ case.audited_organization.name }} · {{ case.title }}</p></div><span class="status status-large status-{{ decision.status }}">{{ decision.get_status_display }}</span></div>
 
-<section class="decision-context card">
+<section class="decision-context">
     <dl class="summary-grid"><div><dt>Solicitada por</dt><dd>{{ decision.requested_by.get_full_name|default:decision.requested_by.username }}</dd></div><div><dt>Fecha de solicitud</dt><dd>{{ decision.requested_at|date:"d/m/Y H:i" }}</dd></div><div><dt>Auditor responsable</dt><dd>{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}</dd></div><div><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"d/m/Y"|default:"Sin definir" }}</dd></div></dl>
     {% if decision.request_note %}<div class="request-note"><strong>Fundamento de la solicitud</strong><p>{{ decision.request_note|linebreaksbr }}</p></div>{% endif %}
     {% if decision.document %}<div class="document-bar"><div><span aria-hidden="true">DOC</span><div><strong>{{ decision.document.title }} · versión {{ decision.document.version }}</strong><small>{{ decision.document.original_filename }}</small></div></div><a class="button button-secondary" href="{% url 'download_audit_document' decision.document.pk %}">Revisar documento</a></div>{% endif %}

@@ -8,11 +8,6 @@
         <p>{% if user.is_audit_staff %}Consulte los expedientes y las respuestas pendientes de revisión.{% else %}Consulte sus expedientes y las recomendaciones pendientes.{% endif %}</p>
         <div class="button-group"><a class="button button-primary" href="{% url 'case_list' %}">Ver expedientes <span aria-hidden="true">→</span></a>{% if user.role == 'auditor' %}<a class="button button-secondary" href="{% url 'case_create' %}">Nuevo expediente</a>{% endif %}</div>
     </div>
-    <div class="welcome-visual" aria-hidden="true">
-        <span class="visual-ring"></span>
-        <span class="visual-card visual-card-back"></span>
-        <span class="visual-card visual-card-front"><b>✓</b><i></i><i></i><i></i></span>
-    </div>
 </section>
 
 {% if user.role == 'auditor' %}

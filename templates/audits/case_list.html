@@ -18,15 +18,18 @@
     <div class="field"><label for="status">Estado</label><select id="status" name="status"><option value="">Todos</option>{% for value, label in statuses %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
     <button class="button button-tonal" type="submit">Filtrar resultados</button>
 </form>
-<div class="case-grid">
+<div class="case-grid" role="list">
     {% for case in cases %}
-    <article class="case-card">
-        <div class="case-card-accent" aria-hidden="true"></div>
-        <div class="case-card-top"><span class="status status-{{ case.status }}">{{ case.get_status_display }}</span><span class="case-reference">{{ case.reference }}</span></div>
-        <h2>{{ case.audited_organization.name }}</h2>
-        <p>{{ case.title }}</p>
-        <dl class="meta-list"><div><dt>Código</dt><dd>{{ case.audited_organization.code }}</dd></div><div><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"d/m/Y"|default:"Por definir" }}</dd></div></dl>
-        <a class="button button-tonal button-block" href="{% url 'case_detail' case.pk %}">Ver expediente <span aria-hidden="true">→</span></a>
+    <article class="case-card" role="listitem">
+        <div class="case-card-primary">
+            <span class="case-reference">{{ case.reference }}</span>
+            <h2>{{ case.audited_organization.name }}</h2>
+            <p>{{ case.title }}</p>
+        </div>
+        <div class="case-card-meta"><span>Código</span><strong>{{ case.audited_organization.code }}</strong></div>
+        <div class="case-card-meta"><span>Fecha límite</span><strong>{{ case.response_deadline|date:"d/m/Y"|default:"Por definir" }}</strong></div>
+        <span class="status status-{{ case.status }}">{{ case.get_status_display }}</span>
+        <a class="button button-ghost button-compact" href="{% url 'case_detail' case.pk %}">Abrir <span aria-hidden="true">→</span></a>
     </article>
     {% empty %}<div class="empty-state card"><h2>{% if invalid_organization_filter %}No se encontró el centro educativo{% else %}No se encontraron expedientes{% endif %}</h2><p>{% if invalid_organization_filter %}El enlace no identifica un centro válido. Regrese al directorio para seleccionar uno.{% else %}Pruebe con otros criterios de búsqueda.{% endif %}</p>{% if invalid_organization_filter and user.role == 'audit_manager' %}<a class="button button-secondary" href="{% url 'director_educational_centers' %}">Volver a centros</a>{% endif %}</div>{% endfor %}
 </div>
