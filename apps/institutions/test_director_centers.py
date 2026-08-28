@@ -56,15 +56,53 @@ class DirectorEducationalCenterTests(TestCase):
             must_change_password=False,
         )
 
-    def test_director_can_search_centers_by_official_data(self):
+    def test_director_can_search_centers_by_name_or_code(self):
         self.client.force_login(self.director)
 
-        response = self.client.get(reverse("director_educational_centers"), {"q": "CE-104"})
+        by_code = self.client.get(
+            reverse("director_educational_centers"), {"q": "CE-104"}
+        )
+        by_name = self.client.get(
+            reverse("director_educational_centers"), {"q": "Nacional Central"}
+        )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Instituto Nacional Central")
-        self.assertNotContains(response, "Centro Escolar Las Flores")
-        self.assertContains(response, "Activar")
+        for response in (by_code, by_name):
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "Instituto Nacional Central")
+            self.assertNotContains(response, "Centro Escolar Las Flores")
+            self.assertContains(response, "Activar")
+
+    def test_center_search_does_not_duplicate_geographic_filters(self):
+        self.client.force_login(self.director)
+        url = reverse("director_educational_centers")
+
+        text_search = self.client.get(url, {"q": "San Salvador"})
+        geographic_search = self.client.get(
+            url, {"department": "San Salvador", "municipality": "San Salvador"}
+        )
+
+        self.assertNotContains(text_search, self.center.name)
+        self.assertContains(geographic_search, self.center.name)
+        self.assertNotContains(geographic_search, self.other_center.name)
+
+    def test_center_directory_exposes_three_search_controls_and_priority_shortcuts(self):
+        self.client.force_login(self.director)
+
+        response = self.client.get(reverse("director_educational_centers"))
+
+        self.assertContains(response, 'name="q"')
+        self.assertContains(response, 'name="department"')
+        self.assertContains(response, 'name="municipality"')
+        for removed_filter in ("district", "attention", "risk", "audits", "cde", "access"):
+            self.assertNotContains(response, f'name="{removed_filter}"')
+        self.assertContains(response, "Atención inmediata")
+        self.assertContains(response, "Próximos a vencer")
+        self.assertContains(response, "Sin acceso")
+        self.assertContains(response, "Sin CDE vigente")
+        self.assertContains(response, "attention=immediate")
+        self.assertContains(response, "attention=due_soon")
+        self.assertContains(response, "access=pending")
+        self.assertContains(response, "cde=pending")
 
     def test_director_can_open_cases_filtered_by_center(self):
         center_case = AuditCase.objects.create(
@@ -323,10 +361,15 @@ class DirectorEducationalCenterTests(TestCase):
         self.client.force_login(self.director)
 
         response = self.client.get(reverse("director_educational_centers"))
+        due_soon = self.client.get(
+            reverse("director_educational_centers"), {"attention": "due_soon"}
+        )
         listed = self._listed_center(response, self.center)
 
         self.assertEqual(listed.overdue_count, 0)
         self.assertEqual(listed.due_soon_count, 1)
+        self.assertContains(due_soon, self.center.name)
+        self.assertNotContains(due_soon, self.other_center.name)
 
     def test_cde_must_be_marked_current_and_inside_its_date_range(self):
         SchoolBoardPeriod.objects.create(

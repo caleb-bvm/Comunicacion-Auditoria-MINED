@@ -959,8 +959,6 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(
                 Q(code__icontains=query)
                 | Q(name__icontains=query)
-                | Q(department__icontains=query)
-                | Q(municipality__icontains=query)
             )
         if department:
             queryset = queryset.filter(department=department)
@@ -1020,14 +1018,7 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
         )
         if selected_department:
             municipalities = municipalities.filter(department=selected_department)
-        districts = Organization.objects.filter(
-            kind=Organization.Kind.EDUCATIONAL_CENTER
-        )
-        if selected_department:
-            districts = districts.filter(department=selected_department)
         selected_municipality = self.request.GET.get("municipality", "").strip()
-        if selected_municipality:
-            districts = districts.filter(municipality=selected_municipality)
         context.update(
             {
                 "query": self.request.GET.get("q", "").strip(),
@@ -1050,16 +1041,15 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
                 .values_list("municipality", flat=True)
                 .distinct()
                 .order_by("municipality"),
-                "district_options": districts.exclude(district="")
-                .values_list("district", flat=True)
-                .distinct()
-                .order_by("district"),
                 "total_centers": all_centers.count(),
                 "audited_centers": all_centers.filter(case_count__gt=0).count(),
                 "immediate_attention_centers": all_centers.filter(
                     Q(overdue_count__gt=0) | Q(critical_active_count__gt=0)
                 ).count(),
                 "overdue_centers": all_centers.filter(overdue_count__gt=0).count(),
+                "due_soon_centers": all_centers.filter(
+                    due_soon_count__gt=0
+                ).count(),
                 "active_centers": all_centers.filter(
                     is_active=True, active_user_count__gt=0
                 ).count(),

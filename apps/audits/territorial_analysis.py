@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import date, timedelta
+from urllib.parse import urlencode
 
 from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
@@ -36,6 +37,51 @@ GROUP_CHOICES = (
     ("department", "Departamento"),
     ("municipality", "Municipio"),
     ("district", "Distrito"),
+)
+
+QUICK_FILTER_DEFINITIONS = (
+    {
+        "value": "immediate",
+        "label": "Atención inmediata",
+        "description": "Vencimientos o riesgo crítico",
+        "tone": "danger",
+    },
+    {
+        "value": "overdue",
+        "label": "Plazos vencidos",
+        "description": "Obligaciones abiertas fuera de plazo",
+        "tone": "danger",
+    },
+    {
+        "value": "critical",
+        "label": "Riesgo crítico",
+        "description": "Hallazgos críticos en expedientes activos",
+        "tone": "danger",
+    },
+    {
+        "value": "not_complied",
+        "label": "Incumplimientos",
+        "description": "Recomendaciones declaradas no cumplidas",
+        "tone": "danger",
+    },
+    {
+        "value": "correction",
+        "label": "Por corregir",
+        "description": "Respuestas devueltas por Auditoría",
+        "tone": "warning",
+    },
+    {
+        "value": "due_soon",
+        "label": "Vencen en 7 días",
+        "description": "Seguimiento preventivo de plazos",
+        "tone": "warning",
+    },
+    {
+        "value": "never_audited",
+        "label": "Nunca auditados",
+        "description": "Brechas de cobertura institucional",
+        "tone": "neutral",
+    },
 )
 
 
@@ -124,6 +170,22 @@ def _geography_options(params):
 
 
 def _matches_center_filters(center, filters):
+    quick_filter = filters["selected_quick_filter"]
+    if quick_filter == "immediate" and center.attention_level != "immediate":
+        return False
+    if quick_filter == "overdue" and not center.overdue_count:
+        return False
+    if quick_filter == "critical" and not center.critical_active_count:
+        return False
+    if quick_filter == "not_complied" and not center.not_complied_count:
+        return False
+    if quick_filter == "correction" and not center.correction_count:
+        return False
+    if quick_filter == "due_soon" and not center.due_soon_count:
+        return False
+    if quick_filter == "never_audited" and center.case_count:
+        return False
+
     attention = filters["selected_attention"]
     if attention and center.attention_level != attention:
         return False
@@ -172,6 +234,79 @@ def _matches_center_filters(center, filters):
     if compliance == "complete" and center.compliance_rate != 100:
         return False
     return True
+
+
+def _quick_filter_matches(center, value):
+    if value == "immediate":
+        return center.attention_level == "immediate"
+    if value == "overdue":
+        return bool(center.overdue_count)
+    if value == "critical":
+        return bool(center.critical_active_count)
+    if value == "not_complied":
+        return bool(center.not_complied_count)
+    if value == "correction":
+        return bool(center.correction_count)
+    if value == "due_soon":
+        return bool(center.due_soon_count)
+    if value == "never_audited":
+        return not center.case_count
+    return True
+
+
+def _quick_filters(centers, filters):
+    query_params = {
+        "mode": "current",
+        "department": filters["selected_department"],
+        "municipality": filters["selected_municipality"],
+        "district": filters["selected_district"],
+        "group_by": filters["selected_group_by"],
+        "period": filters["selected_period"],
+    }
+    if filters["selected_period"] == "custom":
+        if filters["start_date"]:
+            query_params["start"] = filters["start_date"].isoformat()
+        if filters["end_date"]:
+            query_params["end"] = filters["end_date"].isoformat()
+
+    has_complex_condition = any(
+        filters[name]
+        for name in (
+            "selected_attention",
+            "selected_coverage",
+            "selected_risk",
+            "selected_cde",
+            "selected_access",
+            "selected_compliance",
+        )
+    )
+    rows = [
+        {
+            "value": "",
+            "label": "Vista general",
+            "description": "Todos los centros del territorio",
+            "tone": "neutral",
+            "count": len(centers),
+            "url": f"?{urlencode(query_params)}",
+            "is_active": not filters["selected_quick_filter"]
+            and not has_complex_condition,
+        }
+    ]
+    for definition in QUICK_FILTER_DEFINITIONS:
+        shortcut_params = {**query_params, "quick": definition["value"]}
+        rows.append(
+            {
+                **definition,
+                "count": sum(
+                    _quick_filter_matches(center, definition["value"])
+                    for center in centers
+                ),
+                "url": f"?{urlencode(shortcut_params)}",
+                "is_active": filters["selected_quick_filter"]
+                == definition["value"],
+            }
+        )
+    return rows
 
 
 def _territory_label(field):
@@ -391,15 +526,31 @@ def build_territorial_analysis(params, today=None):
     if selected_mode not in {"current", "activity"}:
         selected_mode = "current"
 
+    if params.get("municipality") and hasattr(Organization, "district"):
+        default_group = "district"
+    elif params.get("department"):
+        default_group = "municipality"
+    else:
+        default_group = "department"
+
     selected_group = params.get("group_by", "")
     valid_groups = {value for value, _label in GROUP_CHOICES}
     if selected_group not in valid_groups:
-        if params.get("municipality") and hasattr(Organization, "district"):
-            selected_group = "district"
-        elif params.get("department"):
-            selected_group = "municipality"
-        else:
-            selected_group = "department"
+        selected_group = default_group
+
+    selected_quick_filter = params.get("quick", "")
+    valid_quick_filters = {
+        definition["value"] for definition in QUICK_FILTER_DEFINITIONS
+    }
+    if selected_quick_filter not in valid_quick_filters:
+        selected_quick_filter = ""
+
+    advanced_filter_count = sum(
+        bool(params.get(name, "").strip())
+        for name in ("coverage", "risk", "cde", "access", "compliance")
+    )
+    advanced_filter_count += selected_group != default_group
+    advanced_filter_count += period != "year"
 
     filters = {
         "selected_mode": selected_mode,
@@ -412,6 +563,7 @@ def build_territorial_analysis(params, today=None):
         "selected_district": params.get("district", "").strip(),
         "selected_group_by": selected_group,
         "selected_group_label": _territory_label(selected_group),
+        "selected_quick_filter": selected_quick_filter,
         "selected_attention": params.get("attention", ""),
         "selected_coverage": params.get("coverage", ""),
         "selected_risk": params.get("risk", ""),
@@ -419,6 +571,8 @@ def build_territorial_analysis(params, today=None):
         "selected_access": params.get("access", ""),
         "selected_compliance": params.get("compliance", ""),
         "filter_errors": errors,
+        "advanced_filter_count": advanced_filter_count,
+        "advanced_filters_open": bool(advanced_filter_count or errors),
     }
 
     center_queryset = center_analytics_queryset(today=today)
@@ -433,9 +587,10 @@ def build_territorial_analysis(params, today=None):
     if filters["selected_district"] and hasattr(Organization, "district"):
         center_queryset = center_queryset.filter(district=filters["selected_district"])
 
-    centers = enrich_centers(list(center_queryset), today=today)
+    scoped_centers = enrich_centers(list(center_queryset), today=today)
+    quick_filters = _quick_filters(scoped_centers, filters)
     centers = [
-        center for center in centers if _matches_center_filters(center, filters)
+        center for center in scoped_centers if _matches_center_filters(center, filters)
     ]
     center_ids = [center.pk for center in centers]
     center_count = len(centers)
@@ -514,6 +669,7 @@ def build_territorial_analysis(params, today=None):
         "municipality_options": municipalities,
         "district_options": districts,
         "district_supported": hasattr(Organization, "district"),
+        "quick_filters": quick_filters,
         "centers": centers,
         "selected_center_ids": center_ids,
         "center_count": center_count,

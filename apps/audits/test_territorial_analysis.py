@@ -113,6 +113,93 @@ class TerritorialAnalysisTests(TestCase):
         self.assertEqual(allowed.status_code, 200)
         self.assertContains(allowed, "Análisis de centros educativos")
 
+    def test_secondary_filters_are_collapsed_until_one_is_active(self):
+        self.client.force_login(self.director)
+        url = reverse("director_statistics")
+
+        default = self.client.get(url)
+        filtered = self.client.get(url, {"coverage": "not_audited", "period": "30"})
+
+        self.assertEqual(default.context["advanced_filter_count"], 0)
+        self.assertFalse(default.context["advanced_filters_open"])
+        self.assertContains(default, '<details class="territorial-advanced-filters" >')
+        self.assertEqual(filtered.context["advanced_filter_count"], 2)
+        self.assertTrue(filtered.context["advanced_filters_open"])
+        self.assertContains(
+            filtered, '<details class="territorial-advanced-filters" open>'
+        )
+        self.assertContains(filtered, "2 activos")
+
+    def test_advanced_filters_open_to_expose_period_errors(self):
+        self.client.force_login(self.director)
+
+        response = self.client.get(
+            reverse("director_statistics"), {"period": "custom"}
+        )
+
+        self.assertTrue(response.context["filter_errors"])
+        self.assertTrue(response.context["advanced_filters_open"])
+        self.assertContains(
+            response, '<details class="territorial-advanced-filters" open>'
+        )
+
+    def test_quick_filters_prioritize_actionable_audit_signals(self):
+        self._recommendation(
+            audited=self.center_a,
+            responsible=self.center_a,
+            reference="IA-TERR-QUICK-OVERDUE",
+            deadline=date.today() - timedelta(days=2),
+        )
+        self._recommendation(
+            audited=self.center_b,
+            responsible=self.center_b,
+            reference="IA-TERR-QUICK-CRITICAL",
+            risk=Finding.RiskLevel.CRITICAL,
+            status=Recommendation.Status.NOT_COMPLIED,
+        )
+        self.client.force_login(self.director)
+
+        response = self.client.get(reverse("director_statistics"))
+        quick_filters = {
+            item["value"]: item for item in response.context["quick_filters"]
+        }
+
+        self.assertEqual(quick_filters["immediate"]["count"], 2)
+        self.assertEqual(quick_filters["overdue"]["count"], 1)
+        self.assertEqual(quick_filters["critical"]["count"], 1)
+        self.assertEqual(quick_filters["not_complied"]["count"], 1)
+        self.assertEqual(quick_filters["never_audited"]["count"], 1)
+        self.assertNotIn("cde", quick_filters)
+        self.assertContains(response, "Accesos rápidos de Auditoría")
+        self.assertContains(response, "Plazos vencidos")
+        self.assertContains(response, "Nunca auditados")
+
+    def test_quick_filter_limits_centers_and_preserves_geographic_scope(self):
+        self._recommendation(
+            audited=self.center_a,
+            responsible=self.center_a,
+            reference="IA-TERR-QUICK-SCOPE",
+            deadline=date.today() - timedelta(days=2),
+        )
+        self.client.force_login(self.director)
+
+        response = self.client.get(
+            reverse("director_statistics"),
+            {"department": "Departamento A", "quick": "overdue"},
+        )
+
+        self.assertEqual(response.context["selected_quick_filter"], "overdue")
+        self.assertEqual(response.context["center_count"], 1)
+        self.assertEqual(response.context["centers"], [self.center_a])
+        overdue_filter = next(
+            item
+            for item in response.context["quick_filters"]
+            if item["value"] == "overdue"
+        )
+        self.assertTrue(overdue_filter["is_active"])
+        self.assertIn("department=Departamento+A", overdue_filter["url"])
+        self.assertContains(response, 'name="quick" value="overdue"')
+
     def test_universe_includes_never_audited_centers_and_groups_by_territory(self):
         self._recommendation(
             audited=self.center_a,

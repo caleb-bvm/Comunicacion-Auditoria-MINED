@@ -21,19 +21,28 @@
     </section>
 
     <form method="get" class="filter-bar center-analytics-filter" role="search">
-        <div class="field field-wide search-field">
+        {% if selected_attention %}<input type="hidden" name="attention" value="{{ selected_attention }}">{% endif %}
+        {% if selected_risk %}<input type="hidden" name="risk" value="{{ selected_risk }}">{% endif %}
+        {% if selected_audits %}<input type="hidden" name="audits" value="{{ selected_audits }}">{% endif %}
+        {% if selected_cde %}<input type="hidden" name="cde" value="{{ selected_cde }}">{% endif %}
+        {% if selected_access %}<input type="hidden" name="access" value="{{ selected_access }}">{% endif %}
+        <div class="field center-search-field">
             <label for="q">Buscar centro</label>
-            <input id="q" name="q" value="{{ query }}" placeholder="Código, nombre, departamento o municipio">
+            <input id="q" name="q" type="search" value="{{ query }}" placeholder="Nombre o código del centro" enterkeyhint="search">
         </div>
         <div class="field"><label for="department">Departamento</label><select id="department" name="department"><option value="">Todos</option>{% for option in department_options %}<option value="{{ option }}" {% if selected_department == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
         <div class="field"><label for="municipality">Municipio</label><select id="municipality" name="municipality"><option value="">Todos</option>{% for option in municipality_options %}<option value="{{ option }}" {% if selected_municipality == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
-        <div class="field"><label for="district">Distrito</label><select id="district" name="district"><option value="">Todos</option>{% for option in district_options %}<option value="{{ option }}" {% if selected_district == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
-        <div class="field"><label for="attention">Necesidad de atención</label><select id="attention" name="attention"><option value="">Todas</option><option value="immediate" {% if selected_attention == 'immediate' %}selected{% endif %}>Atención inmediata</option><option value="overdue" {% if selected_attention == 'overdue' %}selected{% endif %}>Plazos vencidos</option><option value="automatic" {% if selected_attention == 'automatic' %}selected{% endif %}>Incumplimiento automático</option><option value="correction" {% if selected_attention == 'correction' %}selected{% endif %}>Corrección requerida</option><option value="due_soon" {% if selected_attention == 'due_soon' %}selected{% endif %}>Vence en 7 días</option></select></div>
-        <div class="field"><label for="risk">Riesgo activo</label><select id="risk" name="risk"><option value="">Todos</option><option value="critical" {% if selected_risk == 'critical' %}selected{% endif %}>Crítico</option><option value="high" {% if selected_risk == 'high' %}selected{% endif %}>Alto o crítico</option></select></div>
-        <div class="field"><label for="audits">Historial de auditoría</label><select id="audits" name="audits"><option value="">Todos</option><option value="yes" {% if selected_audits == 'yes' %}selected{% endif %}>Con auditorías</option><option value="no" {% if selected_audits == 'no' %}selected{% endif %}>Sin auditorías</option></select></div>
-        <div class="field"><label for="cde">Consejo Directivo</label><select id="cde" name="cde"><option value="">Todos</option><option value="current" {% if selected_cde == 'current' %}selected{% endif %}>CDE vigente</option><option value="pending" {% if selected_cde == 'pending' %}selected{% endif %}>Sin CDE vigente</option></select></div>
-        <div class="field"><label for="access">Acceso al sistema</label><select id="access" name="access"><option value="">Todos</option><option value="active" {% if selected_access == 'active' %}selected{% endif %}>Con acceso</option><option value="pending" {% if selected_access == 'pending' %}selected{% endif %}>Sin acceso</option></select></div>
-        <div class="center-filter-actions"><button class="button button-primary" type="submit">Aplicar filtros</button><a class="button button-secondary" href="{% url 'director_educational_centers' %}">Limpiar</a></div>
+        <div class="center-filter-actions"><button class="button button-primary" type="submit">Buscar</button><a class="button button-secondary" href="{% url 'director_educational_centers' %}">Limpiar</a></div>
+        <nav class="center-quick-filters" aria-label="Filtros rápidos de centros">
+            <span class="center-quick-filter-label">Prioridades</span>
+            <div class="center-quick-filter-options">
+                <a class="center-quick-filter{% if not selected_attention and not selected_risk and not selected_audits and not selected_cde and not selected_access %} is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;municipality={{ selected_municipality|urlencode }}"{% if not selected_attention and not selected_risk and not selected_audits and not selected_cde and not selected_access %} aria-current="page"{% endif %}>Todos</a>
+                <a class="center-quick-filter center-quick-filter-danger{% if selected_attention == 'immediate' %} is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;municipality={{ selected_municipality|urlencode }}&amp;attention=immediate"{% if selected_attention == 'immediate' %} aria-current="page"{% endif %}>Atención inmediata <span>{{ immediate_attention_centers }}</span></a>
+                <a class="center-quick-filter center-quick-filter-warning{% if selected_attention == 'due_soon' %} is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;municipality={{ selected_municipality|urlencode }}&amp;attention=due_soon"{% if selected_attention == 'due_soon' %} aria-current="page"{% endif %}>Próximos a vencer <span>{{ due_soon_centers }}</span></a>
+                <a class="center-quick-filter{% if selected_access == 'pending' %} is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;municipality={{ selected_municipality|urlencode }}&amp;access=pending"{% if selected_access == 'pending' %} aria-current="page"{% endif %}>Sin acceso <span>{{ pending_centers }}</span></a>
+                <a class="center-quick-filter{% if selected_cde == 'pending' %} is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;municipality={{ selected_municipality|urlencode }}&amp;cde=pending"{% if selected_cde == 'pending' %} aria-current="page"{% endif %}>Sin CDE vigente <span>{{ without_current_cde_centers }}</span></a>
+            </div>
+        </nav>
     </form>
 
     <div class="directory-result-heading"><p>Ordenados por necesidad de atención. Las alertas actuales consideran todo el historial consolidado, no solo un período.</p><strong>{{ page_obj.paginator.count }} centro{{ page_obj.paginator.count|pluralize }}</strong></div>
@@ -64,7 +73,7 @@
             </footer>
         </article>
         {% empty %}
-        <div class="empty-state card center-directory-empty"><h2>No se encontraron centros</h2><p>Pruebe con otra ubicación o combinación de indicadores.</p><a class="button button-secondary" href="{% url 'director_educational_centers' %}">Limpiar filtros</a></div>
+        <div class="empty-state card center-directory-empty"><h2>No se encontraron centros</h2><p>Pruebe con otro nombre, código o ubicación.</p><a class="button button-secondary" href="{% url 'director_educational_centers' %}">Limpiar búsqueda</a></div>
         {% endfor %}
     </section>
 

@@ -3,7 +3,6 @@
 {% block content %}
 <section class="executive-hero">
     <div><p class="eyebrow">Dirección de Auditoría Interna</p><h1>Situación de los centros educativos</h1><p>Localice un centro y conozca rápidamente sus riesgos, obligaciones, respuestas, auditorías y condiciones institucionales.</p></div>
-    <form class="executive-center-search" method="get" action="{% url 'director_educational_centers' %}" role="search"><label for="dashboard-center-q">Buscar centro educativo</label><div><input id="dashboard-center-q" name="q" placeholder="Código, nombre o ubicación"><button class="button button-primary" type="submit">Buscar</button></div><a href="{% url 'director_educational_centers' %}">Explorar todos los centros <span aria-hidden="true">→</span></a></form>
 </section>
 
 <section class="executive-stats center-dashboard-stats" aria-label="Resumen institucional de centros educativos">
