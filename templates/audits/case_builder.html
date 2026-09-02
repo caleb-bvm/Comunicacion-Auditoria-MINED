@@ -4,20 +4,20 @@
 <nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'case_list' %}">Expedientes</a><span>/</span><span>{{ case.reference }}</span></nav>
 
 <ol class="workflow-steps" aria-label="Progreso del expediente">
-    <li class="is-complete"><span>✓</span><div><strong>Datos generales</strong><small>Informe y asignación</small></div></li>
-    <li class="is-active"><span>2</span><div><strong>Contenido</strong><small>Hallazgos y recomendaciones</small></div></li>
-    <li><span>3</span><div><strong>Aprobación</strong><small>Revisión final</small></div></li>
+    <li class="is-complete"><span>✓</span><strong>Datos generales</strong></li>
+    <li class="is-active" aria-current="step"><span>2</span><strong>Contenido</strong></li>
+    <li><span>3</span><strong>Aprobación</strong></li>
 </ol>
 
 <div class="page-heading heading-row">
-    <div><p class="eyebrow">Borrador · {{ case.reference }}</p><h1>Hallazgos y recomendaciones</h1><p>{{ case.audited_organization.name }} · {{ case.title }}</p></div>
+    <div><span class="case-reference">{{ case.reference }} · Borrador</span><h1>Hallazgos y recomendaciones</h1><p class="page-context">{{ case.audited_organization.name }} · {{ case.title }}</p></div>
     <div class="button-group"><a class="button button-secondary" href="{% url 'case_edit' case.pk %}">Editar datos generales</a><a class="button button-secondary" href="{% url 'case_import_recommendations' case.pk %}">Importar anteriores</a><a class="button button-primary" href="{% url 'finding_create' case.pk %}">Agregar hallazgo</a></div>
 </div>
 
-<div class="draft-notice"><span aria-hidden="true">i</span><div><strong>Este expediente aún no es visible para las instituciones.</strong><p>Puede modificarlo mientras permanezca en borrador.</p></div></div>
+<div class="draft-notice" role="status"><span aria-hidden="true">i</span><div><strong>El borrador no es visible para las instituciones.</strong></div></div>
 
-<section class="card document-workspace">
-    <div class="section-heading"><div><p class="eyebrow">Informe</p><h2>Versiones</h2></div><a class="button button-primary" href="{% url 'case_report_upload' case.pk %}">Cargar informe</a></div>
+<section class="card document-workspace" aria-labelledby="report-versions-title">
+    <div class="section-heading"><h2 id="report-versions-title">Informe</h2><a class="button button-primary" href="{% url 'case_report_upload' case.pk %}">Cargar informe</a></div>
     {% for document in documents %}
     <div class="builder-recommendation"><div class="builder-recommendation-copy"><strong>Versión {{ document.version }} · {{ document.title }}</strong><small>{{ document.reference|default:"Sin referencia" }} · {{ document.get_status_display }} · {{ document.uploaded_at|date:"d/m/Y H:i" }}</small></div><a class="button button-ghost button-compact" href="{% url 'download_audit_document' document.pk %}">Descargar</a></div>
     {% empty %}<div class="inline-empty"><p>Cargue el informe elaborado en Word antes de solicitar aprobación.</p></div>{% endfor %}
@@ -44,7 +44,7 @@
                 </div>
             </div>
             {% empty %}<div class="inline-empty"><p>Este hallazgo todavía no tiene recomendaciones.</p></div>{% endfor %}
-            <a class="button button-secondary" href="{% url 'recommendation_create' finding.pk %}">+ Agregar recomendación</a>
+            <a class="button button-secondary" href="{% url 'recommendation_create' finding.pk %}">Agregar recomendación</a>
         </div>
     </article>
     {% empty %}
@@ -53,7 +53,7 @@
 </section>
 
 <section class="builder-next card">
-    <div><p class="eyebrow">Aprobación</p><h2>Revisar expediente</h2><p>{% if publication_issues %}Falta completar {{ publication_issues|length }} requisito{{ publication_issues|length|pluralize }}.{% else %}El expediente está listo para la revisión final.{% endif %}</p></div>
+    <div><h2>Revisión final</h2><p>{% if publication_issues %}Falta completar {{ publication_issues|length }} requisito{{ publication_issues|length|pluralize }}.{% else %}El expediente está listo para solicitar aprobación.{% endif %}</p></div>
     <a class="button button-primary button-large" href="{% url 'case_publish' case.pk %}">Revisar expediente <span aria-hidden="true">→</span></a>
 </section>
 {% endblock %}

@@ -934,7 +934,7 @@ class AccessAndWorkflowTests(TestCase):
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.context["total_cases"], 1)
         self.assertEqual(result.context["selected_auditor"], self.auditor)
-        self.assertContains(result, "Estadísticas")
+        self.assertContains(result, "Análisis de centros educativos")
 
         self.client.force_login(self.auditor)
         forbidden = self.client.get(reverse("director_statistics"))

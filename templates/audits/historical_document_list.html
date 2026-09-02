@@ -2,18 +2,14 @@
 {% block title %}Informes | Auditoría Interna{% endblock %}
 {% block content %}
 <div class="page-heading heading-row">
-    <div>
-        <p class="eyebrow">Auditoría Interna</p>
-        <h1>Informes</h1>
-        <p>Consulte los informes de expedientes y los informes anteriores en un solo lugar.</p>
-    </div>
+    <div><h1>Informes</h1></div>
     <a class="button button-primary" href="{% url 'historical_document_create' %}">Registrar informe anterior</a>
 </div>
 
-<form method="get" class="filter-bar" role="search">
+<form method="get" class="filter-bar" role="search" aria-label="Buscar informes">
     <div class="field grow search-field">
         <label for="q">Buscar</label>
-        <input id="q" name="q" value="{{ request.GET.q }}" placeholder="Referencia, centro o texto de recomendación">
+        <input id="q" name="q" value="{{ request.GET.q }}" placeholder="Referencia, centro o recomendación">
     </div>
     <div class="field">
         <label for="type">Tipo</label>
@@ -32,63 +28,59 @@
             {% endfor %}
         </select>
     </div>
-    <button class="button button-secondary" type="submit">Filtrar</button>
+    <button class="button button-secondary" type="submit">Aplicar filtros</button>
 </form>
 
-<section class="card table-card">
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>Informe</th>
-                    <th>Institución</th>
-                    <th>Tipo</th>
-                    <th>Fecha</th>
-                    <th>Estado</th>
-                    <th>Recomendaciones</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for document in documents %}
-                <tr>
-                    <td>
-                        <strong>{{ document.reference|default:"Sin referencia" }}</strong>
-                        <small>{{ document.title }}{% if document.document_type == 'report' %} · versión {{ document.version }}{% endif %}</small>
-                    </td>
-                    <td>{{ document.organization.name }}</td>
-                    <td>{{ document.get_document_type_display }}</td>
-                    <td>{{ document.document_date|date:"d/m/Y"|default:"Sin fecha" }}</td>
-                    <td><span class="status status-{{ document.status }}">{{ document.get_status_display }}</span></td>
-                    <td>
-                        {% if document.document_type == 'historical_report' %}
-                            {{ document.previous_recommendation_count }}
-                        {% else %}
-                            {{ document.case_recommendation_count }}
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if document.document_type == 'historical_report' %}
-                        <a class="icon-link" href="{% url 'historical_document_detail' document.pk %}" aria-label="Abrir informe anterior {{ document.reference }}">→</a>
-                        {% elif document.case_id %}
-                        <a class="icon-link" href="{% url 'case_detail' document.case_id %}" aria-label="Abrir expediente del informe {{ document.reference }}">→</a>
-                        {% else %}
-                        <a class="icon-link" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar informe {{ document.reference }}">↓</a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7">
-                        <div class="empty-state">
-                            <h2>No se encontraron informes</h2>
-                            <p>Pruebe con otros criterios o registre un informe anterior.</p>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<section aria-labelledby="report-results-title">
+    <div class="section-heading">
+        <div><h2 id="report-results-title">Resultados</h2></div>
+        <span class="muted">{{ documents|length }} informe{{ documents|length|pluralize }}</span>
+    </div>
+    <div class="card table-card">
+        {% if documents %}
+        <div class="table-responsive">
+            <table>
+                <caption class="sr-only">Informes disponibles</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Informe</th>
+                        <th scope="col">Institución</th>
+                        <th scope="col">Tipo</th>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Recomendaciones</th>
+                        <th scope="col"><span class="sr-only">Acciones</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for document in documents %}
+                    <tr>
+                        <td>
+                            <strong>{{ document.reference|default:"Sin referencia" }}</strong>
+                            <small>{{ document.title }}{% if document.document_type == 'report' %} · versión {{ document.version }}{% endif %}</small>
+                        </td>
+                        <td>{{ document.organization.name }}</td>
+                        <td>{{ document.get_document_type_display }}</td>
+                        <td>{{ document.document_date|date:"d/m/Y"|default:"Sin fecha" }}</td>
+                        <td><span class="status status-{{ document.status }}">{{ document.get_status_display }}</span></td>
+                        <td>{% if document.document_type == 'historical_report' %}{{ document.previous_recommendation_count }}{% else %}{{ document.case_recommendation_count }}{% endif %}</td>
+                        <td>
+                            {% if document.document_type == 'historical_report' %}
+                            <a class="icon-link" href="{% url 'historical_document_detail' document.pk %}" aria-label="Abrir informe {{ document.reference|default:document.title }}">→</a>
+                            {% elif document.case_id %}
+                            <a class="icon-link" href="{% url 'case_detail' document.case_id %}" aria-label="Abrir expediente del informe {{ document.reference|default:document.title }}">→</a>
+                            {% else %}
+                            <a class="icon-link" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar informe {{ document.reference|default:document.title }}">↓</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state"><h3>No se encontraron informes</h3>{% if request.GET.q or selected_document_type or selected_organization %}<p>Modifique los filtros para ampliar los resultados.</p>{% endif %}</div>
+        {% endif %}
     </div>
 </section>
 {% endblock %}

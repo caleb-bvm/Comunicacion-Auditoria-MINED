@@ -2,83 +2,108 @@
 {% block title %}Historial | {{ organization.name }}{% endblock %}
 {% block content %}
 <div class="page-heading">
-    <p class="eyebrow">Centro educativo</p>
     <h1>Historial</h1>
     <p>{{ organization.code }} · {{ organization.name }}</p>
 </div>
 
 <section class="stats-grid" aria-label="Resumen del historial">
-    <article class="stat-card stat-primary"><div><span>Expedientes</span><strong>{{ cases.count }}</strong><small>publicados o cerrados</small></div></article>
-    <article class="stat-card stat-secondary"><div><span>Documentos</span><strong>{{ documents.count }}</strong><small>disponibles para consulta</small></div></article>
-    <article class="stat-card stat-tertiary"><div><span>Recomendaciones</span><strong>{{ recommendation_count }}</strong><small>anteriores y actuales</small></div></article>
+    <article class="stat-card stat-primary"><div><span>Expedientes</span><strong>{{ cases.count }}</strong></div></article>
+    <article class="stat-card stat-secondary"><div><span>Informes</span><strong>{{ documents.count }}</strong></div></article>
+    <article class="stat-card stat-tertiary"><div><span>Recomendaciones</span><strong>{{ recommendation_count }}</strong></div></article>
 </section>
 
-<section class="section-block">
-    <div class="section-heading"><div><p class="eyebrow">Documentos</p><h2>Informes</h2></div></div>
-    <div class="card table-card"><div class="table-responsive"><table>
-        <thead><tr><th>Referencia</th><th>Documento</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
-        <tbody>
-        {% for document in documents %}
-            <tr>
-                <td><strong>{{ document.reference|default:"Sin referencia" }}</strong></td>
-                <td>{{ document.title }}<small>Versión {{ document.version }}</small></td>
-                <td>{{ document.document_date|date:"d/m/Y"|default:"Sin fecha" }}</td>
-                <td>{{ document.get_status_display }}</td>
-                <td><div class="item-actions">
-                    {% if document.document_type == 'historical_report' %}<a class="text-link" href="{% url 'historical_document_detail' document.pk %}">Ver recomendaciones</a>{% endif %}
-                    <a class="icon-link" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar {{ document.title }}">↓</a>
-                </div></td>
-            </tr>
-        {% empty %}
-            <tr><td colspan="5">No hay documentos publicados.</td></tr>
-        {% endfor %}
-        </tbody>
-    </table></div></div>
-</section>
-
-<section class="section-block">
-    <div class="section-heading"><div><p class="eyebrow">Informes anteriores</p><h2>Recomendaciones anteriores</h2></div></div>
-    {% for recommendation in historical_recommendations %}
-    <article class="recommendation-card">
-        <div class="recommendation-header">
-            <span class="recommendation-number">{{ recommendation.source_document.reference|default:recommendation.source_document.title }} · {{ recommendation.number }}</span>
-            <span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span>
+<section class="section-block" aria-labelledby="history-reports-title">
+    <div class="section-heading"><div><h2 id="history-reports-title">Informes</h2></div></div>
+    <div class="card table-card">
+        {% if documents %}
+        <div class="table-responsive">
+            <table>
+                <caption class="sr-only">Informes de la institución</caption>
+                <thead><tr><th scope="col">Referencia</th><th scope="col">Documento</th><th scope="col">Fecha</th><th scope="col">Estado</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+                <tbody>
+                {% for document in documents %}
+                    <tr>
+                        <td><strong>{{ document.reference|default:"Sin referencia" }}</strong></td>
+                        <td>{{ document.title }}<small>Versión {{ document.version }}</small></td>
+                        <td>{{ document.document_date|date:"d/m/Y"|default:"Sin fecha" }}</td>
+                        <td><span class="status status-{{ document.status }}">{{ document.get_status_display }}</span></td>
+                        <td>
+                            <div class="item-actions">
+                                {% if document.document_type == 'historical_report' %}<a class="text-link" href="{% url 'historical_document_detail' document.pk %}">Ver recomendaciones</a>{% endif %}
+                                <a class="icon-link" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar {{ document.title }}">↓</a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
-        <p>{{ recommendation.text|linebreaksbr }}</p>
-        <small>Responsable: {{ recommendation.responsible_organization.name|default:recommendation.responsible_description|default:"No identificado" }} · Límite original: {{ recommendation.original_deadline|date:"d/m/Y"|default:"Sin fecha" }}</small>
-        {% if recommendation.comments %}<div class="review-result"><strong>Comentario anterior</strong><p>{{ recommendation.comments|linebreaksbr }}</p></div>{% endif %}
-        <p><a class="text-link" href="{% url 'historical_document_detail' recommendation.source_document_id %}">Abrir informe de origen</a></p>
-    </article>
-    {% empty %}
-    <div class="empty-state card"><h2>No hay recomendaciones anteriores</h2></div>
-    {% endfor %}
+        {% else %}<div class="empty-state"><h3>No hay informes disponibles</h3></div>{% endif %}
+    </div>
 </section>
 
-<section class="section-block">
-    <div class="section-heading"><div><p class="eyebrow">Expedientes actuales</p><h2>Recomendaciones actuales</h2></div></div>
-    {% for recommendation in recommendations %}
-    <article class="recommendation-card">
-        <div class="recommendation-header"><span class="recommendation-number">{{ recommendation.finding.case.reference }} · {{ recommendation.finding.number }}.{{ recommendation.number }}</span><span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span></div>
-        <p>{{ recommendation.text|truncatechars:380 }}</p>
-        <small>Responsable: {{ recommendation.responsible_organization.name }} · Límite: {{ recommendation.deadline|date:"d/m/Y"|default:"Sin definir" }}</small>
-        <p><a class="text-link" href="{% url 'case_detail' recommendation.finding.case_id %}">Abrir expediente</a></p>
-    </article>
-    {% empty %}
-    <div class="empty-state card"><h2>No hay recomendaciones actuales</h2></div>
-    {% endfor %}
+<section class="section-block" aria-labelledby="history-recommendations-title">
+    <div class="section-heading"><div><h2 id="history-recommendations-title">Recomendaciones</h2></div></div>
+    <div class="history-recommendation-groups">
+        <section class="history-recommendation-group" aria-labelledby="previous-recommendations-title">
+            <h3 id="previous-recommendations-title">De informes anteriores</h3>
+            {% for recommendation in historical_recommendations %}
+            <article class="recommendation-card">
+                <div class="recommendation-header">
+                    <span class="recommendation-number">{{ recommendation.source_document.reference|default:recommendation.source_document.title }} · {{ recommendation.number }}</span>
+                    <span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span>
+                </div>
+                <p>{{ recommendation.text|linebreaksbr }}</p>
+                <dl class="meta-list horizontal">
+                    <div><dt>Responsable</dt><dd>{{ recommendation.responsible_organization.name|default:recommendation.responsible_description|default:"No identificado" }}</dd></div>
+                    <div><dt>Fecha límite original</dt><dd>{{ recommendation.original_deadline|date:"d/m/Y"|default:"Sin fecha" }}</dd></div>
+                </dl>
+                {% if recommendation.comments %}<div class="review-result"><strong>Comentario registrado</strong><p>{{ recommendation.comments|linebreaksbr }}</p></div>{% endif %}
+                <a class="text-link" href="{% url 'historical_document_detail' recommendation.source_document_id %}">Abrir informe</a>
+            </article>
+            {% empty %}
+            <div class="compact-empty"><strong>No hay recomendaciones de informes anteriores</strong></div>
+            {% endfor %}
+        </section>
+
+        <section class="history-recommendation-group" aria-labelledby="current-recommendations-title">
+            <h3 id="current-recommendations-title">De expedientes</h3>
+            {% for recommendation in recommendations %}
+            <article class="recommendation-card">
+                <div class="recommendation-header">
+                    <span class="recommendation-number">{{ recommendation.finding.case.reference }} · {{ recommendation.finding.number }}.{{ recommendation.number }}</span>
+                    <span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span>
+                </div>
+                <p>{{ recommendation.text|truncatechars:380 }}</p>
+                <dl class="meta-list horizontal">
+                    <div><dt>Responsable</dt><dd>{{ recommendation.responsible_organization.name }}</dd></div>
+                    <div><dt>Fecha límite</dt><dd>{{ recommendation.deadline|date:"d/m/Y"|default:"Sin definir" }}</dd></div>
+                </dl>
+                <a class="text-link" href="{% url 'case_detail' recommendation.finding.case_id %}">Abrir expediente</a>
+            </article>
+            {% empty %}
+            <div class="compact-empty"><strong>No hay recomendaciones de expedientes</strong></div>
+            {% endfor %}
+        </section>
+    </div>
 </section>
 
-<section class="section-block">
-    <div class="section-heading"><div><p class="eyebrow">Respuestas</p><h2>Respuestas enviadas</h2></div></div>
-    <div class="card table-card"><div class="table-responsive"><table>
-        <thead><tr><th>Expediente</th><th>Versión</th><th>Fecha</th><th>Documentos</th><th></th></tr></thead>
-        <tbody>
-        {% for response in responses %}
-            <tr><td>{{ response.recommendation.finding.case.reference }}</td><td>Versión {{ response.version }}</td><td>{{ response.submitted_at|date:"d/m/Y H:i" }}</td><td>{{ response.evidence.count }}</td><td><a class="text-link" href="{% url 'response_receipt' response.pk %}">Constancia</a></td></tr>
-        {% empty %}
-            <tr><td colspan="5">No se han presentado respuestas.</td></tr>
-        {% endfor %}
-        </tbody>
-    </table></div></div>
+<section class="section-block" aria-labelledby="history-responses-title">
+    <div class="section-heading"><div><h2 id="history-responses-title">Respuestas enviadas</h2></div></div>
+    <div class="card table-card">
+        {% if responses %}
+        <div class="table-responsive">
+            <table>
+                <caption class="sr-only">Respuestas enviadas por la institución</caption>
+                <thead><tr><th scope="col">Expediente</th><th scope="col">Versión</th><th scope="col">Fecha</th><th scope="col">Documentos</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+                <tbody>
+                {% for response in responses %}
+                    <tr><td>{{ response.recommendation.finding.case.reference }}</td><td>Versión {{ response.version }}</td><td>{{ response.submitted_at|date:"d/m/Y H:i" }}</td><td>{{ response.evidence.count }}</td><td><a class="text-link" href="{% url 'response_receipt' response.pk %}">Ver constancia</a></td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}<div class="empty-state"><h3>No hay respuestas enviadas</h3></div>{% endif %}
+    </div>
 </section>
 {% endblock %}

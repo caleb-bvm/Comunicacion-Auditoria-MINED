@@ -163,7 +163,7 @@ class DirectorEducationalCenterTests(TestCase):
 
         for response in (malformed, missing):
             self.assertEqual(response.status_code, 200)
-            self.assertContains(response, "No se encontró el centro educativo")
+            self.assertContains(response, "Centro educativo no encontrado")
             self.assertNotContains(response, "IA-NO-DEBE-MOSTRARSE")
 
     def test_center_list_and_activation_are_restricted_to_director(self):
@@ -411,8 +411,8 @@ class DirectorEducationalCenterTests(TestCase):
         allowed = self.client.get(url)
 
         self.assertEqual(allowed.status_code, 200)
-        self.assertContains(allowed, "Centro como sujeto auditado")
-        self.assertContains(allowed, "Centro como responsable")
+        self.assertContains(allowed, "Situación auditada")
+        self.assertContains(allowed, "Obligaciones y cumplimiento")
         self.assertContains(allowed, "IA-FICHA-001")
         self.assertEqual(len(allowed.context["obligations"]), 1)
 

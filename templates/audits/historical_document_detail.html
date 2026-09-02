@@ -1,7 +1,42 @@
 {% extends "base.html" %}
-{% block title %}{{ document.reference }} | Informes{% endblock %}
+{% block title %}{{ document.reference|default:"Informe" }} | Informes{% endblock %}
 {% block content %}
 <nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'historical_document_list' %}">Informes</a><span>/</span><span>{{ document.reference|default:document.pk }}</span></nav>
-<div class="page-heading heading-row"><div><p class="eyebrow">{{ document.reference|default:"Informe" }}</p><h1>{{ document.title }}</h1><p>{{ document.organization.name }} · {{ document.document_date|date:"d/m/Y"|default:"Sin fecha" }}</p></div><div class="button-group"><a class="button button-secondary" href="{% url 'download_audit_document' document.pk %}">Descargar original</a>{% if user.is_audit_staff %}<a class="button button-primary" href="{% url 'historical_recommendation_create' document.pk %}">Agregar recomendación</a>{% endif %}</div></div>
-<section class="section-block"><div class="section-heading"><div><p class="eyebrow">Recomendaciones</p><h2>Pendientes</h2></div></div>{% for recommendation in document.historical_recommendations.all %}<article class="recommendation-card"><div class="recommendation-header"><span class="recommendation-number">Recomendación {{ recommendation.number }}</span><span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span></div><p class="recommendation-text">{{ recommendation.text|linebreaksbr }}</p><dl class="meta-list horizontal"><div><dt>Responsable</dt><dd>{{ recommendation.responsible_organization.name|default:recommendation.responsible_description|default:"No identificado" }}</dd></div><div><dt>Fecha límite original</dt><dd>{{ recommendation.original_deadline|date:"d/m/Y"|default:"Sin fecha" }}</dd></div></dl>{% if recommendation.comments %}<div class="review-result"><strong>Comentario anterior</strong><p>{{ recommendation.comments|linebreaksbr }}</p></div>{% endif %}</article>{% empty %}<div class="empty-state card"><h2>No hay recomendaciones</h2><p>Agregue las recomendaciones pendientes que aparecen en el informe.</p></div>{% endfor %}</section>
+
+<div class="page-heading heading-row">
+    <div>
+        <h1>{{ document.title }}</h1>
+        <p>{{ document.reference|default:"Sin referencia" }} · {{ document.organization.name }} · {{ document.document_date|date:"d/m/Y"|default:"Sin fecha" }}</p>
+    </div>
+    <div class="button-group">
+        <a class="button button-secondary" href="{% url 'download_audit_document' document.pk %}">Descargar original</a>
+        {% if user.is_audit_staff %}<a class="button button-primary" href="{% url 'historical_recommendation_create' document.pk %}">Agregar recomendación</a>{% endif %}
+    </div>
+</div>
+
+<section class="section-block" aria-labelledby="historical-recommendations-title">
+    <div class="section-heading">
+        <div><h2 id="historical-recommendations-title">Recomendaciones</h2></div>
+        <span class="muted">{{ document.historical_recommendations.count }} registrada{{ document.historical_recommendations.count|pluralize }}</span>
+    </div>
+    {% for recommendation in document.historical_recommendations.all %}
+    <article class="recommendation-card">
+        <div class="recommendation-header">
+            <span class="recommendation-number">Recomendación {{ recommendation.number }}</span>
+            <span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span>
+        </div>
+        <p class="recommendation-text">{{ recommendation.text|linebreaksbr }}</p>
+        <dl class="meta-list horizontal">
+            <div><dt>Responsable</dt><dd>{{ recommendation.responsible_organization.name|default:recommendation.responsible_description|default:"No identificado" }}</dd></div>
+            <div><dt>Fecha límite original</dt><dd>{{ recommendation.original_deadline|date:"d/m/Y"|default:"Sin fecha" }}</dd></div>
+        </dl>
+        {% if recommendation.comments %}<div class="review-result"><strong>Comentario registrado</strong><p>{{ recommendation.comments|linebreaksbr }}</p></div>{% endif %}
+    </article>
+    {% empty %}
+    <div class="empty-state card">
+        <h3>No hay recomendaciones registradas</h3>
+        {% if user.is_audit_staff %}<a class="button button-primary" href="{% url 'historical_recommendation_create' document.pk %}">Agregar recomendación</a>{% endif %}
+    </div>
+    {% endfor %}
+</section>
 {% endblock %}

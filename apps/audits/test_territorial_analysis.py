@@ -170,7 +170,7 @@ class TerritorialAnalysisTests(TestCase):
         self.assertEqual(quick_filters["not_complied"]["count"], 1)
         self.assertEqual(quick_filters["never_audited"]["count"], 1)
         self.assertNotIn("cde", quick_filters)
-        self.assertContains(response, "Accesos rápidos de Auditoría")
+        self.assertContains(response, "Prioridades")
         self.assertContains(response, "Plazos vencidos")
         self.assertContains(response, "Nunca auditados")
 

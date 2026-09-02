@@ -4,21 +4,21 @@
 <nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'case_list' %}">Expedientes</a><span>/</span><span>{{ form_title }}</span></nav>
 
 <ol class="workflow-steps" aria-label="Progreso del expediente">
-    <li class="is-active"><span>1</span><div><strong>Datos generales</strong><small>Informe y asignación</small></div></li>
-    <li><span>2</span><div><strong>Contenido</strong><small>Hallazgos y recomendaciones</small></div></li>
-    <li><span>3</span><div><strong>Aprobación</strong><small>Revisión final</small></div></li>
+    <li class="is-active" aria-current="step"><span>1</span><strong>Datos generales</strong></li>
+    <li><span>2</span><strong>Contenido</strong></li>
+    <li><span>3</span><strong>Aprobación</strong></li>
 </ol>
 
 <div class="page-heading">
-    <p class="eyebrow">Expedientes</p>
     <h1>{{ form_title }}</h1>
-    <p>Complete los datos del informe. El expediente se guardará como borrador hasta su aprobación.</p>
+    <p>El expediente se guardará como borrador hasta su aprobación.</p>
 </div>
 
 <form method="post" enctype="multipart/form-data" class="editor-form card">
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
-    <div class="form-section-heading"><div><span>01</span><h2>Datos del expediente</h2></div><p>Información necesaria para identificar el informe.</p></div>
+    <fieldset class="form-section">
+    <legend>Datos del expediente</legend>
     <div class="form-grid form-grid-two">
         {% for field in form %}
         <div class="field {% if field.errors %}field-error{% endif %} {% if field.name == 'title' or field.name == 'report_file' %}field-wide{% endif %}">
@@ -29,8 +29,8 @@
         </div>
         {% endfor %}
     </div>
+    </fieldset>
     <div class="submit-panel">
-        <p>Después podrá agregar los hallazgos y sus recomendaciones.</p>
         <div class="button-group">
             <a class="button button-ghost" href="{% if case %}{% url 'case_builder' case.pk %}{% else %}{% url 'case_list' %}{% endif %}">Cancelar</a>
             <button class="button button-primary" type="submit">Guardar y continuar <span aria-hidden="true">→</span></button>

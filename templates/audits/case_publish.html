@@ -4,24 +4,23 @@
 <nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'case_list' %}">Expedientes</a><span>/</span><a href="{% url 'case_builder' case.pk %}">{{ case.reference }}</a><span>/</span><span>Aprobación</span></nav>
 
 <ol class="workflow-steps" aria-label="Progreso del expediente">
-    <li class="is-complete"><span>✓</span><div><strong>Datos generales</strong><small>Informe y asignación</small></div></li>
-    <li class="is-complete"><span>✓</span><div><strong>Contenido</strong><small>Hallazgos y recomendaciones</small></div></li>
-    <li class="is-active"><span>3</span><div><strong>Aprobación</strong><small>Revisión final</small></div></li>
+    <li class="is-complete"><span>✓</span><strong>Datos generales</strong></li>
+    <li class="is-complete"><span>✓</span><strong>Contenido</strong></li>
+    <li class="is-active" aria-current="step"><span>3</span><strong>Aprobación</strong></li>
 </ol>
 
 <div class="page-heading">
-    <p class="eyebrow">Aprobación · {{ case.reference }}</p>
+    <span class="case-reference">{{ case.reference }}</span>
     <h1>Solicitar aprobación</h1>
-    <p>Verifique los datos y el contenido antes de enviar el expediente a la Dirección de Auditoría.</p>
 </div>
 
 {% if publication_issues %}
 <section class="publication-check publication-check-warning" aria-labelledby="requisitos-pendientes">
     <div class="publication-check-icon" aria-hidden="true">!</div>
-    <div><h2 id="requisitos-pendientes">Faltan requisitos para publicar</h2><ul>{% for issue in publication_issues %}<li>{{ issue }}</li>{% endfor %}</ul><a class="button button-secondary" href="{% url 'case_edit' case.pk %}">Completar datos generales</a></div>
+    <div><h2 id="requisitos-pendientes">Faltan requisitos</h2><ul>{% for issue in publication_issues %}<li>{{ issue }}</li>{% endfor %}</ul><a class="button button-secondary" href="{% url 'case_edit' case.pk %}">Completar datos generales</a></div>
 </section>
 {% else %}
-<section class="publication-check publication-check-ready"><div class="publication-check-icon" aria-hidden="true">✓</div><div><h2>Expediente listo para aprobación</h2><p>Todos los requisitos están completos.</p></div></section>
+<section class="publication-check publication-check-ready" role="status"><div class="publication-check-icon" aria-hidden="true">✓</div><div><h2>Requisitos completos</h2></div></section>
 {% endif %}
 
 <section class="publish-summary card">
@@ -34,7 +33,7 @@
     </dl>
     <div class="publish-content-summary">
         <div class="form-section-heading"><div><span>02</span><h2>Informe Word</h2></div><a class="text-link" href="{% url 'case_report_upload' case.pk %}">Cargar nueva versión</a></div>
-        {% if report_document %}<div class="publish-finding"><strong>Versión {{ report_document.version }} · {{ report_document.title }}</strong><span>{{ report_document.original_filename }}</span></div>{% elif case.report_file %}<div class="publish-finding"><strong>Informe heredado en PDF</strong><span>Se conservará durante la migración.</span></div>{% else %}<p class="muted">No hay un informe cargado.</p>{% endif %}
+        {% if report_document %}<div class="publish-finding"><strong>Versión {{ report_document.version }} · {{ report_document.title }}</strong><span>{{ report_document.original_filename }}</span></div>{% elif case.report_file %}<div class="publish-finding"><strong>Informe heredado en PDF</strong></div>{% else %}<p class="muted">No hay un informe cargado.</p>{% endif %}
     </div>
     <div class="publish-content-summary">
         <div class="form-section-heading"><div><span>03</span><h2>Contenido</h2></div><a class="text-link" href="{% url 'case_builder' case.pk %}">Editar</a></div>
@@ -44,7 +43,7 @@
 
 <form method="post" class="publish-action card">
     {% csrf_token %}
-    <div><strong>Enviar solicitud</strong><p>No podrá editar el borrador mientras la solicitud esté pendiente. Si se devuelve, podrá corregirlo.</p></div>
+    <div><p><strong>No podrá editar el borrador mientras la solicitud esté pendiente.</strong> Si se devuelve, podrá corregirlo.</p></div>
     <div class="button-group"><a class="button button-ghost" href="{% url 'case_builder' case.pk %}">Volver al contenido</a><button class="button button-primary button-large" type="submit" {% if publication_issues %}disabled{% endif %}>Enviar para aprobación</button></div>
 </form>
 {% endblock %}

@@ -1,35 +1,57 @@
 {% extends "base.html" %}
 {% block title %}Inicio | Auditoría Interna{% endblock %}
 {% block content %}
-<section class="welcome-panel">
-    <div class="welcome-copy">
-        <p class="eyebrow">Auditoría Interna</p>
-        <h1>Inicio</h1>
-        <p>{% if user.is_audit_staff %}Consulte los expedientes y las respuestas pendientes de revisión.{% else %}Consulte sus expedientes y las recomendaciones pendientes.{% endif %}</p>
-        <div class="button-group"><a class="button button-primary" href="{% url 'case_list' %}">Ver expedientes <span aria-hidden="true">→</span></a>{% if user.role == 'auditor' %}<a class="button button-secondary" href="{% url 'case_create' %}">Nuevo expediente</a>{% endif %}</div>
+<div class="page-heading heading-row">
+    <div><h1>Inicio</h1></div>
+    {% if user.role == 'auditor' %}<a class="button button-primary" href="{% url 'case_create' %}">Nuevo expediente</a>{% endif %}
+</div>
+
+{% if user.role == 'auditor' %}
+<section class="stats-grid dashboard-priority-stats" aria-label="Indicadores prioritarios">
+    <article class="stat-card stat-tertiary"><div><span>Respuestas por revisar</span><strong>{{ pending_reviews }}</strong></div></article>
+    <article class="stat-card stat-danger"><div><span>Plazos vencidos</span><strong>{{ overdue_recommendations }}</strong></div></article>
+    <article class="stat-card stat-warning"><div><span>Próximos 7 días</span><strong>{{ due_soon_recommendations }}</strong></div></article>
+    <article class="stat-card stat-secondary"><div><span>Expedientes activos</span><strong>{{ open_cases }}</strong></div></article>
+</section>
+
+<section class="section-block" aria-labelledby="attention-title">
+    <div class="section-heading">
+        <div><h2 id="attention-title">Trabajo pendiente</h2></div>
+    </div>
+    <div class="card dashboard-task-panel">
+        {% if attention_items %}
+        <div class="attention-list">
+            {% for item in attention_items %}
+            <a class="attention-row" href="{% if item.kind == 'review' %}{% url 'review_response' item.response.pk %}{% else %}{% url 'case_detail' item.case.pk %}{% endif %}">
+                <span class="attention-kind attention-kind-{{ item.kind }}">{{ item.label }}</span>
+                <div>
+                    <strong>{{ item.case.reference }} · {{ item.organization.name }}</strong>
+                    <small>{% if item.kind == 'review' %}Recibida{% else %}Fecha límite{% endif %}: {{ item.date|date:"d/m/Y" }}</small>
+                </div>
+                <span aria-hidden="true">→</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="compact-empty"><strong>No hay tareas urgentes</strong></div>
+        {% endif %}
     </div>
 </section>
 
-{% if user.role == 'auditor' %}
-<section class="stats-grid auditor-stats" aria-label="Indicadores de mi cartera asignada">
-    <article class="stat-card stat-primary"><div class="stat-icon" aria-hidden="true">▤</div><div><span>Expedientes</span><strong>{{ total_cases }}</strong><small>asignados a usted</small></div></article>
-    <article class="stat-card stat-secondary"><div class="stat-icon" aria-hidden="true">◔</div><div><span>Expedientes activos</span><strong>{{ open_cases }}</strong><small>en gestión</small></div></article>
-    <article class="stat-card stat-tertiary"><div class="stat-icon" aria-hidden="true">✓</div><div><span>Respuestas por revisar</span><strong>{{ pending_reviews }}</strong><small>{% if pending_reviews %}requieren dictamen{% else %}al día{% endif %}</small></div></article>
-    <article class="stat-card stat-danger"><div class="stat-icon" aria-hidden="true">!</div><div><span>Plazos vencidos</span><strong>{{ overdue_recommendations }}</strong><small>sin respuesta vigente</small></div></article>
-    <article class="stat-card stat-warning"><div class="stat-icon" aria-hidden="true">7</div><div><span>Próximos 7 días</span><strong>{{ due_soon_recommendations }}</strong><small>recomendaciones por vencer</small></div></article>
-    <article class="stat-card stat-success"><div class="stat-icon" aria-hidden="true">%</div><div><span>Cumplimiento</span><strong>{{ compliance_rate }}%</strong><small>sobre resultados definitivos</small></div></article>
-</section>
-
-<section class="analytics-overview" aria-label="Resumen estadístico de mi cartera">
+<section class="analytics-overview" aria-label="Resumen estadístico">
     <article class="card analytics-panel">
-        <div class="section-heading"><div> <h2>Estado de recomendaciones</h2></div><span class="muted">{{ total_recommendations }} en total</span></div>
+        <div class="section-heading"><div><h2>Estado de recomendaciones</h2></div><span class="muted">{{ total_recommendations }} en total</span></div>
         {% if recommendation_status_distribution %}
         <div class="distribution-list">
             {% for item in recommendation_status_distribution %}
-            <div class="distribution-row"><div><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div><progress class="progress-{{ item.value }}" max="{{ total_recommendations }}" value="{{ item.count }}">{{ item.percentage }}%</progress><small>{{ item.percentage }}%</small></div>
+            <div class="distribution-row">
+                <div><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div>
+                <progress class="progress-{{ item.value }}" max="{{ total_recommendations }}" value="{{ item.count }}" aria-label="{{ item.label }}: {{ item.percentage }} %">{{ item.percentage }}%</progress>
+                <small>{{ item.percentage }}%</small>
+            </div>
             {% endfor %}
         </div>
-        {% else %}<div class="compact-empty"><strong>Sin recomendaciones</strong><p>Los estados aparecerán al registrar recomendaciones.</p></div>{% endif %}
+        {% else %}<div class="compact-empty"><strong>Sin recomendaciones</strong></div>{% endif %}
     </article>
 
     <article class="card analytics-panel">
@@ -37,45 +59,35 @@
         {% if risk_distribution %}
         <div class="distribution-list">
             {% for item in risk_distribution %}
-            <div class="distribution-row"><div><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div><progress class="progress-risk-{{ item.value }}" max="{{ total_findings }}" value="{{ item.count }}">{{ item.percentage }}%</progress><small>{{ item.percentage }}%</small></div>
+            <div class="distribution-row">
+                <div><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div>
+                <progress class="progress-risk-{{ item.value }}" max="{{ total_findings }}" value="{{ item.count }}" aria-label="{{ item.label }}: {{ item.percentage }} %">{{ item.percentage }}%</progress>
+                <small>{{ item.percentage }}%</small>
+            </div>
             {% endfor %}
         </div>
-        {% else %}<div class="compact-empty"><strong>Sin hallazgos</strong><p>El perfil de riesgo aparecerá al registrar hallazgos.</p></div>{% endif %}
-    </article>
-
-    <article class="card analytics-panel analytics-panel-wide">
-        <div class="section-heading"><div><p class="eyebrow">Prioridades</p><h2>Requieren atención</h2></div><span class="muted">Ordenadas por urgencia</span></div>
-        {% if attention_items %}
-        <div class="attention-list">
-            {% for item in attention_items %}
-            <a class="attention-row" href="{% if item.kind == 'review' %}{% url 'review_response' item.response.pk %}{% else %}{% url 'case_detail' item.case.pk %}{% endif %}">
-                <span class="attention-kind attention-kind-{{ item.kind }}">{{ item.label }}</span>
-                <div><strong>{{ item.case.reference }} · {{ item.organization.name }}</strong><small>{% if item.kind == 'review' %}Recibida{% else %}Fecha límite{% endif %}: {{ item.date|date:"d/m/Y" }}</small></div>
-                <span aria-hidden="true">→</span>
-            </a>
-            {% endfor %}
-        </div>
-        {% else %}<div class="compact-empty"><strong>No hay alertas inmediatas</strong><p>No existen revisiones pendientes ni plazos vencidos o próximos.</p></div>{% endif %}
+        {% else %}<div class="compact-empty"><strong>Sin hallazgos</strong></div>{% endif %}
     </article>
 </section>
 {% else %}
 <section class="stats-grid" aria-label="Indicadores">
-    <article class="stat-card stat-primary"><div class="stat-icon" aria-hidden="true">▤</div><div><span>Expedientes</span><strong>{{ total_cases }}</strong><small>asignados</small></div></article>
-    <article class="stat-card stat-secondary"><div class="stat-icon" aria-hidden="true">◔</div><div><span>Expedientes activos</span><strong>{{ open_cases }}</strong><small>en seguimiento</small></div></article>
-    <article class="stat-card stat-tertiary"><div class="stat-icon" aria-hidden="true">!</div><div><span>{% if user.is_audit_staff %}Respuestas por revisar{% else %}Recomendaciones pendientes{% endif %}</span><strong>{{ pending_recommendations }}</strong><small>{% if pending_recommendations %}requieren atención{% else %}ninguna pendiente{% endif %}</small></div></article>
+    <article class="stat-card stat-primary"><div><span>Expedientes</span><strong>{{ total_cases }}</strong></div></article>
+    <article class="stat-card stat-secondary"><div><span>Expedientes activos</span><strong>{{ open_cases }}</strong></div></article>
+    <article class="stat-card stat-tertiary"><div><span>{% if user.is_audit_staff %}Respuestas por revisar{% else %}Recomendaciones pendientes{% endif %}</span><strong>{{ pending_recommendations }}</strong></div></article>
 </section>
 {% endif %}
 
-<section class="section-block">
+<section class="section-block" aria-labelledby="recent-cases-title">
     <div class="section-heading">
-        <div><p class="eyebrow">Expedientes</p><h2>Últimos expedientes</h2></div>
+        <div><h2 id="recent-cases-title">Últimos expedientes</h2></div>
         <a class="text-link arrow-link" href="{% url 'case_list' %}">Ver todos <span aria-hidden="true">→</span></a>
     </div>
     <div class="card table-card">
         {% if recent_cases %}
         <div class="table-responsive">
             <table>
-                <thead><tr><th>Referencia</th><th>Institución</th><th>Estado</th><th>Fecha límite</th><th></th></tr></thead>
+                <caption class="sr-only">Últimos expedientes asignados</caption>
+                <thead><tr><th scope="col">Referencia</th><th scope="col">Institución</th><th scope="col">Estado</th><th scope="col">Fecha límite</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
                 <tbody>
                 {% for case in recent_cases %}
                 <tr>
@@ -83,13 +95,13 @@
                     <td>{{ case.audited_organization.name }}</td>
                     <td><span class="status status-{{ case.status }}">{{ case.get_status_display }}</span></td>
                     <td>{{ case.response_deadline|date:"d/m/Y"|default:"Por definir" }}</td>
-                    <td><a class="icon-link" aria-label="Abrir {{ case.reference }}" href="{% url 'case_detail' case.pk %}">→</a></td>
+                    <td><a class="icon-link" aria-label="Abrir expediente {{ case.reference }}" href="{% url 'case_detail' case.pk %}">→</a></td>
                 </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
-        {% else %}<div class="empty-state"><h3>No hay expedientes</h3><p>Los expedientes asignados aparecerán aquí.</p></div>{% endif %}
+        {% else %}<div class="empty-state"><h3>No hay expedientes</h3></div>{% endif %}
     </div>
 </section>
 {% endblock %}

@@ -2,11 +2,12 @@
 {% block title %}Reasignar {{ case.reference }} | Dirección de Auditoría{% endblock %}
 {% block content %}
 <nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'director_dashboard' %}">Inicio</a><span>/</span><a href="{% url 'case_detail' case.pk %}">{{ case.reference }}</a><span>/</span><span>Reasignar</span></nav>
-<div class="page-heading"><p class="eyebrow">Expediente {{ case.reference }}</p><h1>Reasignar expediente</h1><p>Seleccione al nuevo auditor e indique el motivo del cambio.</p></div>
-<section class="assignment-current card"><span>Auditor responsable actual</span><strong>{{ previous_auditor.get_full_name|default:previous_auditor.username }}</strong><small>{{ case.reference }} · {{ case.audited_organization.name }}</small></section>
+<div class="page-heading"><span class="case-reference">{{ case.reference }}</span><h1>Reasignar expediente</h1><p class="page-context">{{ case.audited_organization.name }}</p></div>
+<section class="assignment-current card" aria-labelledby="current-auditor-title"><span id="current-auditor-title">Auditor responsable actual</span><strong>{{ previous_auditor.get_full_name|default:previous_auditor.username }}</strong></section>
 <form method="post" class="editor-form card">
     {% csrf_token %}
-    {% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}
-    <div class="submit-panel"><p>El auditor anterior, el nuevo responsable y la justificación quedarán registrados.</p><div class="button-group"><a class="button button-ghost" href="{% url 'case_detail' case.pk %}">Cancelar</a><button class="button button-primary" type="submit">Confirmar reasignación</button></div></div>
+    {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+    <fieldset class="form-section"><legend>Nueva asignación</legend>{% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</fieldset>
+    <div class="submit-panel"><p>La reasignación quedará registrada en la bitácora.</p><div class="button-group"><a class="button button-ghost" href="{% url 'case_detail' case.pk %}">Cancelar</a><button class="button button-primary" type="submit">Confirmar reasignación</button></div></div>
 </form>
 {% endblock %}

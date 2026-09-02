@@ -3,35 +3,39 @@
 {% block content %}
 <div class="page-heading heading-row">
     {% if selected_organization %}
-    <div><p class="eyebrow">Expedientes del centro</p><h1>{{ selected_organization.name }}</h1><p>Código {{ selected_organization.code }}{% if selected_organization.municipality %} · {{ selected_organization.municipality }}{% endif %}{% if selected_organization.department %} · {{ selected_organization.department }}{% endif %}</p></div>
+    <div><h1>Expedientes</h1><p class="page-context"><strong>{{ selected_organization.name }}</strong> · Código {{ selected_organization.code }}{% if selected_organization.municipality %} · {{ selected_organization.municipality }}{% endif %}{% if selected_organization.department %} · {{ selected_organization.department }}{% endif %}</p></div>
     {% else %}
-    <div><p class="eyebrow">Auditoría Interna</p><h1>Expedientes</h1><p>Consulte expedientes, recomendaciones, respuestas y resultados de revisión.</p></div>
+    <div><h1>Expedientes</h1></div>
     {% endif %}
     <div class="heading-actions">
         {% if selected_organization and user.role == 'audit_manager' %}<a class="button button-secondary" href="{% url 'director_educational_centers' %}">Volver a centros</a>{% endif %}
-        {% if user.role == 'auditor' %}<a class="button button-primary" href="{% url 'case_create' %}">+ Nuevo expediente</a>{% endif %}
+        {% if user.role == 'auditor' %}<a class="button button-primary" href="{% url 'case_create' %}">Nuevo expediente</a>{% endif %}
     </div>
 </div>
-<form method="get" class="filter-bar" role="search">
+<form method="get" class="filter-bar" role="search" aria-label="Buscar expedientes">
     {% if selected_organization_id %}<input type="hidden" name="organization" value="{{ selected_organization_id }}">{% endif %}
     <div class="field grow search-field"><label for="q">Buscar</label><div class="input-with-icon"><span aria-hidden="true">⌕</span><input id="q" name="q" value="{{ request.GET.q }}" placeholder="Referencia, institución o código"></div></div>
     <div class="field"><label for="status">Estado</label><select id="status" name="status"><option value="">Todos</option>{% for value, label in statuses %}<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-    <button class="button button-tonal" type="submit">Filtrar resultados</button>
+    <button class="button button-tonal" type="submit">Aplicar filtros</button>
 </form>
-<div class="case-grid" role="list">
+<div class="results-heading" aria-live="polite">
+    <h2>Resultados</h2>
+    <span>{% if is_paginated %}{{ page_obj.paginator.count }} expediente{{ page_obj.paginator.count|pluralize }}{% else %}{{ cases|length }} expediente{{ cases|length|pluralize }}{% endif %}</span>
+</div>
+<div class="case-grid" role="list" aria-label="Expedientes encontrados">
     {% for case in cases %}
-    <article class="case-card" role="listitem">
+    <article class="case-card" role="listitem" aria-labelledby="case-{{ case.pk }}-title">
         <div class="case-card-primary">
             <span class="case-reference">{{ case.reference }}</span>
-            <h2>{{ case.audited_organization.name }}</h2>
+            <h2 id="case-{{ case.pk }}-title">{{ case.audited_organization.name }}</h2>
             <p>{{ case.title }}</p>
         </div>
         <div class="case-card-meta"><span>Código</span><strong>{{ case.audited_organization.code }}</strong></div>
         <div class="case-card-meta"><span>Fecha límite</span><strong>{{ case.response_deadline|date:"d/m/Y"|default:"Por definir" }}</strong></div>
         <span class="status status-{{ case.status }}">{{ case.get_status_display }}</span>
-        <a class="button button-ghost button-compact" href="{% url 'case_detail' case.pk %}">Abrir <span aria-hidden="true">→</span></a>
+        <a class="button button-ghost button-compact" href="{% url 'case_detail' case.pk %}" aria-label="Ver detalle de {{ case.reference }}">Ver detalle <span aria-hidden="true">→</span></a>
     </article>
-    {% empty %}<div class="empty-state card"><h2>{% if invalid_organization_filter %}No se encontró el centro educativo{% else %}No se encontraron expedientes{% endif %}</h2><p>{% if invalid_organization_filter %}El enlace no identifica un centro válido. Regrese al directorio para seleccionar uno.{% else %}Pruebe con otros criterios de búsqueda.{% endif %}</p>{% if invalid_organization_filter and user.role == 'audit_manager' %}<a class="button button-secondary" href="{% url 'director_educational_centers' %}">Volver a centros</a>{% endif %}</div>{% endfor %}
+    {% empty %}<div class="empty-state card"><h2>{% if invalid_organization_filter %}Centro educativo no encontrado{% else %}No hay expedientes con estos filtros{% endif %}</h2>{% if invalid_organization_filter %}<p>Seleccione un centro desde el directorio.</p>{% endif %}{% if invalid_organization_filter and user.role == 'audit_manager' %}<a class="button button-secondary" href="{% url 'director_educational_centers' %}">Volver a centros</a>{% endif %}</div>{% endfor %}
 </div>
 {% if is_paginated %}<nav class="pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a href="?organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;status={{ request.GET.status|urlencode }}&amp;page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;status={{ request.GET.status|urlencode }}&amp;page={{ page_obj.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
 {% endblock %}

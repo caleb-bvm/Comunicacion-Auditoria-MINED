@@ -2,14 +2,39 @@
 {% block title %}Responder recomendación{% endblock %}
 {% block content %}
 <nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'case_detail' case.pk %}">{{ case.reference }}</a><span>/</span><span>Respuesta</span></nav>
-<div class="page-heading"><p class="eyebrow">Hallazgo {{ recommendation.finding.number }} · Recomendación {{ recommendation.number }}</p><h1>Presentar respuesta</h1><p>Describa las acciones realizadas y adjunte los documentos de respaldo.</p></div>
+<div class="page-heading"><span class="case-reference">{{ case.reference }} · Recomendación {{ recommendation.finding.number }}.{{ recommendation.number }}</span><h1>Presentar respuesta</h1></div>
 <div class="two-column">
-    <aside class="card sticky-card"><h2>Recomendación emitida</h2><p>{{ recommendation.text|linebreaksbr }}</p>{% if recommendation.evidence_requirements %}<div class="requirement-box"><strong>Documentación requerida</strong><p>{{ recommendation.evidence_requirements|linebreaksbr }}</p></div>{% endif %}<p><strong>Fecha límite:</strong> {{ recommendation.deadline|date:"d/m/Y"|default:"Por definir" }}</p></aside>
-    <form method="post" enctype="multipart/form-data" class="card stacked-form response-form">
+    <aside class="card sticky-card" aria-labelledby="response-recommendation-title"><h2 id="response-recommendation-title">Recomendación</h2><p>{{ recommendation.text|linebreaksbr }}</p>{% if recommendation.evidence_requirements %}<div class="requirement-box"><strong>Documentación requerida</strong><p>{{ recommendation.evidence_requirements|linebreaksbr }}</p></div>{% endif %}<dl class="meta-list"><div><dt>Fecha límite</dt><dd>{{ recommendation.deadline|date:"d/m/Y"|default:"Por definir" }}</dd></div></dl></aside>
+    <form method="post" enctype="multipart/form-data" class="card stacked-form response-form" data-response-form>
         {% csrf_token %}
         {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
-        {% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}
-        <div class="submit-panel"><p>Una vez enviada, la respuesta quedará registrada y no podrá modificarse. Las correcciones deberán presentarse en una versión nueva.</p><button class="button button-primary" type="submit">Enviar respuesta</button></div>
+        <fieldset class="form-section response-form-section">
+            <legend>Estado y acciones</legend>
+            <div class="field {% if form.declared_status.errors %}field-error{% endif %}" data-response-field="declared_status">{{ form.declared_status.label_tag }}{{ form.declared_status }}{% if form.declared_status.help_text %}<small>{{ form.declared_status.help_text }}</small>{% endif %}{{ form.declared_status.errors }}</div>
+            <div class="field {% if form.action_description.errors %}field-error{% endif %}" data-response-field="action_description">{{ form.action_description.label_tag }}{{ form.action_description }}{% if form.action_description.help_text %}<small>{{ form.action_description.help_text }}</small>{% endif %}{{ form.action_description.errors }}</div>
+            <div class="field {% if form.action_date.errors %}field-error{% endif %}" data-response-field="action_date" data-visible-for-status="completed">{{ form.action_date.label_tag }}{{ form.action_date }}{% if form.action_date.help_text %}<small>{{ form.action_date.help_text }}</small>{% endif %}{{ form.action_date.errors }}</div>
+            <div class="response-conditional-fields" data-visible-for-status="unable" aria-labelledby="pending-plan-title">
+                <h3 id="pending-plan-title">Incumplimiento y plan de acción</h3>
+                <div class="field {% if form.non_compliance_reason.errors %}field-error{% endif %}" data-response-field="non_compliance_reason">{{ form.non_compliance_reason.label_tag }}{{ form.non_compliance_reason }}{% if form.non_compliance_reason.help_text %}<small>{{ form.non_compliance_reason.help_text }}</small>{% endif %}{{ form.non_compliance_reason.errors }}</div>
+                <div class="field {% if form.action_plan.errors %}field-error{% endif %}" data-response-field="action_plan">{{ form.action_plan.label_tag }}{{ form.action_plan }}{% if form.action_plan.help_text %}<small>{{ form.action_plan.help_text }}</small>{% endif %}{{ form.action_plan.errors }}</div>
+                <div class="field {% if form.expected_completion_date.errors %}field-error{% endif %}" data-response-field="expected_completion_date">{{ form.expected_completion_date.label_tag }}{{ form.expected_completion_date }}{% if form.expected_completion_date.help_text %}<small>{{ form.expected_completion_date.help_text }}</small>{% endif %}{{ form.expected_completion_date.errors }}</div>
+            </div>
+        </fieldset>
+        <fieldset class="form-section response-form-section">
+            <legend>Responsable</legend>
+            <div class="form-grid form-grid-two">
+                <div class="field {% if form.responsible_name.errors %}field-error{% endif %}">{{ form.responsible_name.label_tag }}{{ form.responsible_name }}{% if form.responsible_name.help_text %}<small>{{ form.responsible_name.help_text }}</small>{% endif %}{{ form.responsible_name.errors }}</div>
+                <div class="field {% if form.responsible_job_title.errors %}field-error{% endif %}">{{ form.responsible_job_title.label_tag }}{{ form.responsible_job_title }}{% if form.responsible_job_title.help_text %}<small>{{ form.responsible_job_title.help_text }}</small>{% endif %}{{ form.responsible_job_title.errors }}</div>
+            </div>
+        </fieldset>
+        <fieldset class="form-section response-form-section">
+            <legend>Documentos de respaldo</legend>
+            <div class="field {% if form.evidence_category.errors %}field-error{% endif %}">{{ form.evidence_category.label_tag }}{{ form.evidence_category }}{% if form.evidence_category.help_text %}<small>{{ form.evidence_category.help_text }}</small>{% endif %}{{ form.evidence_category.errors }}</div>
+            <div class="field {% if form.evidence_description.errors %}field-error{% endif %}">{{ form.evidence_description.label_tag }}{{ form.evidence_description }}{% if form.evidence_description.help_text %}<small>{{ form.evidence_description.help_text }}</small>{% endif %}{{ form.evidence_description.errors }}</div>
+            <div class="field {% if form.files.errors %}field-error{% endif %}">{{ form.files.label_tag }}{{ form.files }}{% if form.files.help_text %}<small>{{ form.files.help_text }}</small>{% endif %}{{ form.files.errors }}</div>
+        </fieldset>
+        <div class="field checkbox-field {% if form.accuracy_declaration.errors %}field-error{% endif %}"><label for="{{ form.accuracy_declaration.id_for_label }}">{{ form.accuracy_declaration }}<span>{{ form.accuracy_declaration.label }}</span></label>{% if form.accuracy_declaration.help_text %}<small>{{ form.accuracy_declaration.help_text }}</small>{% endif %}{{ form.accuracy_declaration.errors }}</div>
+        <div class="submit-panel"><p>Después de enviar, la respuesta no podrá editarse. Las correcciones se presentarán como una versión nueva.</p><div class="button-group"><a class="button button-ghost" href="{% url 'case_detail' case.pk %}">Cancelar</a><button class="button button-primary" type="submit">Enviar respuesta</button></div></div>
     </form>
 </div>
 {% endblock %}

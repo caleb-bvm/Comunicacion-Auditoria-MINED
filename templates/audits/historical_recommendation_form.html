@@ -2,6 +2,20 @@
 {% block title %}Agregar recomendación{% endblock %}
 {% block content %}
 <nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'historical_document_detail' document.pk %}">{{ document.reference|default:"Informe" }}</a><span>/</span><span>Nueva recomendación</span></nav>
-<div class="page-heading"><p class="eyebrow">{{ document.organization.name }}</p><h1>Agregar recomendación</h1><p>Copie el texto del informe e indique su último resultado conocido.</p></div>
-<form method="post" class="editor-form card">{% csrf_token %}<div class="form-grid form-grid-two">{% for field in form %}<div class="field {% if field.errors %}field-error{% endif %} {% if field.name == 'text' or field.name == 'comments' %}field-wide{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</div><div class="submit-panel"><a class="button button-ghost" href="{% url 'historical_document_detail' document.pk %}">Cancelar</a><button class="button button-primary" type="submit">Guardar recomendación</button></div></form>
+<div class="page-heading"><h1>Agregar recomendación</h1><p>{{ document.organization.name }} · {{ document.reference|default:document.title }}</p></div>
+<form method="post" class="editor-form card" aria-label="Agregar recomendación">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="form-grid form-grid-two">
+        {% for field in form %}
+        <div class="field {% if field.errors %}field-error{% endif %} {% if field.name == 'text' or field.name == 'comments' %}field-wide{% endif %}">
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            {{ field.errors }}
+        </div>
+        {% endfor %}
+    </div>
+    <div class="submit-panel"><a class="button button-secondary" href="{% url 'historical_document_detail' document.pk %}">Cancelar</a><button class="button button-primary" type="submit">Guardar recomendación</button></div>
+</form>
 {% endblock %}

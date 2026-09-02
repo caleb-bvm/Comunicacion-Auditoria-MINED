@@ -2,6 +2,20 @@
 {% block title %}Registrar informe anterior{% endblock %}
 {% block content %}
 <nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'historical_document_list' %}">Informes</a><span>/</span><span>Nuevo</span></nav>
-<div class="page-heading"><p class="eyebrow">Informes anteriores</p><h1>Registrar informe anterior</h1><p>Adjunte el informe original en PDF o Word. Luego podrá agregar sus recomendaciones pendientes.</p></div>
-<form method="post" enctype="multipart/form-data" class="editor-form card">{% csrf_token %}<div class="form-grid form-grid-two">{% for field in form %}<div class="field {% if field.errors %}field-error{% endif %} {% if field.name == 'title' or field.name == 'file' %}field-wide{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</div><div class="submit-panel"><a class="button button-ghost" href="{% url 'historical_document_list' %}">Cancelar</a><button class="button button-primary" type="submit">Registrar informe anterior</button></div></form>
+<div class="page-heading"><h1>Registrar informe anterior</h1><p>Adjunte el informe original. Después podrá registrar las recomendaciones que continúan pendientes.</p></div>
+<form method="post" enctype="multipart/form-data" class="editor-form card" aria-label="Registrar informe anterior">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="form-grid form-grid-two">
+        {% for field in form %}
+        <div class="field {% if field.errors %}field-error{% endif %} {% if field.name == 'title' or field.name == 'file' %}field-wide{% endif %}">
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            {{ field.errors }}
+        </div>
+        {% endfor %}
+    </div>
+    <div class="submit-panel"><a class="button button-secondary" href="{% url 'historical_document_list' %}">Cancelar</a><button class="button button-primary" type="submit">Registrar informe</button></div>
+</form>
 {% endblock %}

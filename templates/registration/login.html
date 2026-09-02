@@ -2,12 +2,10 @@
 {% block title %}Ingresar | Auditoría Interna{% endblock %}
 {% block content %}
 <section class="login-page">
-    <div class="login-card">
-        <p class="eyebrow">Auditoría Interna</p>
-        <h1>Iniciar sesión</h1>
-        <p>Utilice las credenciales asignadas a su institución.</p>
-        {% if form.errors %}<div class="form-error">Las credenciales ingresadas no son válidas.</div>{% endif %}
-        <form method="post" class="stacked-form">
+    <div class="login-card" aria-labelledby="login-title">
+        <h1 id="login-title">Iniciar sesión</h1>
+        {% if form.errors %}<div class="form-error" role="alert">El usuario o la contraseña no son válidos.</div>{% endif %}
+        <form method="post" class="stacked-form" aria-label="Acceso al sistema">
             {% csrf_token %}
             <div class="field">
                 <label for="id_username">Usuario</label>
@@ -18,9 +16,9 @@
                 {{ form.password }}
             </div>
             {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-            <button class="button button-primary button-block button-large" type="submit">Iniciar sesión <span aria-hidden="true">→</span></button>
+            <button class="button button-primary button-block button-large" type="submit">Iniciar sesión</button>
         </form>
-        <p class="help-text">Si tiene problemas para ingresar, comuníquese con el administrador de Auditoría Interna.</p>
+        <p class="help-text">¿Problemas para ingresar? Comuníquese con el administrador de Auditoría Interna.</p>
     </div>
 </section>
 {% endblock %}

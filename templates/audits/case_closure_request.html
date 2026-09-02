@@ -2,14 +2,14 @@
 {% block title %}Solicitar cierre | {{ case.reference }}{% endblock %}
 {% block content %}
 <nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'case_list' %}">Expedientes</a><span>/</span><a href="{% url 'case_detail' case.pk %}">{{ case.reference }}</a><span>/</span><span>Solicitar cierre</span></nav>
-<div class="page-heading"><p class="eyebrow">Expediente {{ case.reference }}</p><h1>Solicitar cierre</h1><p>{{ case.audited_organization.name }} · La Dirección de Auditoría revisará la solicitud.</p></div>
+<div class="page-heading"><span class="case-reference">{{ case.reference }}</span><h1>Solicitar cierre</h1><p class="page-context">{{ case.audited_organization.name }}</p></div>
 
-{% if closure_issues %}<section class="publication-check publication-check-warning"><div class="publication-check-icon" aria-hidden="true">!</div><div><h2>El expediente todavía no puede cerrarse</h2><ul>{% for issue in closure_issues %}<li>{{ issue }}</li>{% endfor %}</ul></div></section>{% else %}<section class="publication-check publication-check-ready"><div class="publication-check-icon" aria-hidden="true">✓</div><div><h2>El expediente puede cerrarse</h2><p>Puede enviar la solicitud a la Dirección de Auditoría.</p></div></section>{% endif %}
+{% if closure_issues %}<section class="publication-check publication-check-warning" aria-labelledby="closure-issues-title"><div class="publication-check-icon" aria-hidden="true">!</div><div><h2 id="closure-issues-title">El expediente todavía no puede cerrarse</h2><ul>{% for issue in closure_issues %}<li>{{ issue }}</li>{% endfor %}</ul></div></section>{% else %}<section class="publication-check publication-check-ready" role="status"><div class="publication-check-icon" aria-hidden="true">✓</div><div><h2>Listo para solicitar el cierre</h2></div></section>{% endif %}
 
 <form method="post" class="editor-form card">
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
-    {% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}
-    <div class="submit-panel"><p>La solicitud y su fundamento quedarán registrados en la bitácora.</p><div class="button-group"><a class="button button-ghost" href="{% url 'case_detail' case.pk %}">Cancelar</a><button class="button button-primary" type="submit" {% if closure_issues %}disabled{% endif %}>Enviar solicitud de cierre</button></div></div>
+    <fieldset class="form-section"><legend>Fundamento</legend>{% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</fieldset>
+    <div class="submit-panel"><p>La Dirección de Auditoría deberá aprobar el cierre.</p><div class="button-group"><a class="button button-ghost" href="{% url 'case_detail' case.pk %}">Cancelar</a><button class="button button-primary" type="submit" {% if closure_issues %}disabled{% endif %}>Enviar solicitud de cierre</button></div></div>
 </form>
 {% endblock %}
