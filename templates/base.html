@@ -7,7 +7,7 @@
     <meta name="description" content="Sistema institucional de seguimiento de recomendaciones de Auditoría Interna">
     <title>{% block title %}Sistema de Seguimiento de Auditoría Interna{% endblock %}</title>
     <meta name="theme-color" content="#f7f9fc">
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260828-8">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260902-8">
 </head>
 <body>
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -28,10 +28,6 @@
                 <symbol id="nav-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></symbol>
                 <symbol id="nav-logout" viewBox="0 0 24 24"><path d="M10 4H5v16h5M14 8l4 4-4 4M8 12h10"/></symbol>
             </svg>
-            <div class="nav-brand">
-                <span class="nav-brand-mark" aria-hidden="true">AI</span>
-                <span><strong>Auditoría Interna</strong><small>{% if user.role == 'audit_manager' %}Dirección{% elif user.role == 'institution' %}Portal institucional{% else %}Seguimiento{% endif %}</small></span>
-            </div>
             <div class="nav-section-label">Navegación</div>
             {% if user.role == 'audit_manager' %}
             <a href="{% url 'director_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'director_dashboard' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_dashboard' %}aria-current="page"{% endif %}>
@@ -132,7 +128,7 @@
             <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit"><svg aria-hidden="true"><use href="#nav-logout"></use></svg>Cerrar sesión</button></form>
         </aside>
     </div>
-    <script src="{% static 'js/app.js' %}?v=20260828-1" defer></script>
+    <script src="{% static 'js/app.js' %}?v=20260902-1" defer></script>
     {% endif %}
 </body>
 </html>

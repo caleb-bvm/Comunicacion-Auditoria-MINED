@@ -51,11 +51,24 @@
         {% for center in centers %}
         <article class="center-directory-card attention-{{ center.attention_level }}">
             <header class="center-card-header">
-                <div class="center-card-title"><span class="center-code">{{ center.code }}</span><h2><a href="{% url 'director_educational_center_detail' center.pk %}">{{ center.name }}</a></h2><p>{% if center.district %}{{ center.district }} · {% endif %}{{ center.municipality|default:"Municipio no registrado" }}{% if center.department %} · {{ center.department }}{% endif %}</p></div>
-                <span class="attention-badge attention-badge-{{ center.attention_level }}">{{ center.attention_label }}</span>
+                <div class="center-card-meta">
+                    <span class="center-code">{{ center.code }}</span>
+                    <span class="attention-badge attention-badge-{{ center.attention_level }}">{{ center.attention_label }}</span>
+                </div>
+                <div class="center-card-title">
+                    <h2><a href="{% url 'director_educational_center_detail' center.pk %}">{{ center.name }}</a></h2>
+                    <p>{% if center.district %}{{ center.district }} · {% endif %}{{ center.municipality|default:"Municipio no registrado" }}{% if center.department %} · {{ center.department }}{% endif %}</p>
+                </div>
             </header>
 
-            {% if center.attention_reasons %}<ul class="center-reason-list" aria-label="Razones de atención">{% for reason in center.attention_reasons|slice:":3" %}<li class="reason-{{ reason.kind }}">{{ reason.label }}</li>{% endfor %}</ul>{% endif %}
+            {% if center.attention_reasons %}
+            <div class="center-alert-summary">
+                <p>Motivos de prioridad</p>
+                <ul class="center-reason-list" aria-label="Razones de atención">
+                    {% for reason in center.attention_reasons|slice:":3" %}<li class="reason-{{ reason.kind }}">{{ reason.label }}</li>{% endfor %}
+                </ul>
+            </div>
+            {% endif %}
 
             <dl class="center-metric-grid">
                 <div><dt>Expedientes</dt><dd>{{ center.case_count }}</dd><small>{{ center.active_case_count }} activo{{ center.active_case_count|pluralize }}</small></div>
@@ -64,7 +77,13 @@
                 <div><dt>Cumplimiento</dt><dd>{% if center.compliance_rate is not None %}{{ center.compliance_rate }}%{% else %}N/D{% endif %}</dd><small>{% if center.terminal_count %}{{ center.complied_count }} de {{ center.terminal_count }} definitivas{% else %}sin resultados definitivos{% endif %}</small></div>
             </dl>
 
-            <div class="center-context-row"><span class="context-state {% if center.access_active %}is-ok{% else %}is-warning{% endif %}">{% if center.access_active %}Acceso activo{% else %}Sin acceso activo{% endif %}</span><span class="context-state {% if center.has_current_cde %}is-ok{% else %}is-warning{% endif %}">{{ center.cde_state_label }}</span><small>{% if center.latest_activity_at %}Actividad: {{ center.latest_activity_at|date:"d/m/Y H:i" }}{% else %}Sin actividad auditora consolidada{% endif %}</small></div>
+            <div class="center-context-row">
+                <div class="center-context-statuses">
+                    <span class="context-state {% if center.access_active %}is-ok{% else %}is-warning{% endif %}">{% if center.access_active %}Acceso activo{% else %}Sin acceso activo{% endif %}</span>
+                    <span class="context-state {% if center.has_current_cde %}is-ok{% else %}is-warning{% endif %}">{{ center.cde_state_label }}</span>
+                </div>
+                <small>{% if center.latest_activity_at %}Última actividad: {{ center.latest_activity_at|date:"d/m/Y H:i" }}{% else %}Sin actividad auditora consolidada{% endif %}</small>
+            </div>
 
             <footer class="center-card-actions">
                 <a class="button button-primary" href="{% url 'director_educational_center_detail' center.pk %}">Ver detalle</a>

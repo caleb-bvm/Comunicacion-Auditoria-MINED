@@ -99,6 +99,7 @@ class Command(BaseCommand):
             defaults={
                 "name": "Instituto Nacional de Nahuizalco",
                 "kind": Organization.Kind.EDUCATIONAL_CENTER,
+                "educational_center_type": "Instituto",
                 "department": "Sonsonate",
                 "municipality": "Nahuizalco",
                 "address": "Nahuizalco, Sonsonate",
@@ -110,6 +111,7 @@ class Command(BaseCommand):
             defaults={
                 "name": "Centro Escolar Florinda B. González",
                 "kind": Organization.Kind.EDUCATIONAL_CENTER,
+                "educational_center_type": "Centro escolar",
                 "department": "Santa Ana",
                 "municipality": "Santa Ana Centro",
                 "address": "Distrito de Santa Ana, Santa Ana Centro, Santa Ana",
@@ -121,6 +123,7 @@ class Command(BaseCommand):
             defaults={
                 "name": "Complejo Educativo Comunidad 10 de Octubre",
                 "kind": Organization.Kind.EDUCATIONAL_CENTER,
+                "educational_center_type": "Complejo educativo",
                 "department": "San Salvador",
                 "municipality": "San Salvador Sur",
                 "address": "Distrito de San Marcos, San Salvador Sur, San Salvador",

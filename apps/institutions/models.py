@@ -1,3 +1,5 @@
+import re
+import unicodedata
 import uuid
 from pathlib import Path
 
@@ -27,6 +29,16 @@ class Organization(models.Model):
     code = models.CharField("código institucional", max_length=30, unique=True)
     name = models.CharField("nombre", max_length=255)
     kind = models.CharField("tipo", max_length=30, choices=Kind.choices)
+    educational_center_type = models.CharField(
+        "tipo de centro educativo",
+        max_length=100,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "Clasificación específica del catálogo de centros, por ejemplo: "
+            "Centro escolar, Instituto o Complejo educativo."
+        ),
+    )
     department = models.CharField("departamento", max_length=100, blank=True)
     municipality = models.CharField("municipio", max_length=100, blank=True)
     district = models.CharField("distrito", max_length=100, blank=True)
@@ -42,6 +54,53 @@ class Organization(models.Model):
 
     def __str__(self):
         return f"{self.code} - {self.name}"
+
+    @staticmethod
+    def _normalized_location(value):
+        normalized = unicodedata.normalize("NFKD", value or "")
+        without_accents = "".join(
+            character
+            for character in normalized
+            if not unicodedata.combining(character)
+        )
+        return " ".join(re.findall(r"\w+", without_accents.casefold()))
+
+    @property
+    def display_address(self):
+        """Return one complete address without repeating geographic components."""
+        address = " ".join((self.address or "").split())
+        address_key = self._normalized_location(address)
+        parts = [address] if address else []
+        seen_components = set()
+
+        for component in (self.district, self.municipality, self.department):
+            value = " ".join((component or "").split())
+            key = self._normalized_location(value)
+            if not key or key in seen_components:
+                continue
+            seen_components.add(key)
+            if address_key and key in address_key:
+                continue
+            parts.append(value)
+
+        return ", ".join(parts) if parts else "Dirección no registrada"
+
+    @property
+    def display_center_type(self):
+        """Use imported catalog data and infer a label only for legacy records."""
+        configured_type = " ".join((self.educational_center_type or "").split())
+        if configured_type:
+            return configured_type
+        normalized_name = self.name.casefold().strip()
+        inferred_types = (
+            ("centro escolar", "Centro escolar"),
+            ("instituto", "Instituto"),
+            ("complejo educativo", "Complejo educativo"),
+        )
+        for prefix, label in inferred_types:
+            if normalized_name.startswith(prefix):
+                return label
+        return self.get_kind_display()
 
 
 class SchoolBoardPeriod(models.Model):

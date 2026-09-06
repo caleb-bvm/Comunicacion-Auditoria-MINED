@@ -25,15 +25,21 @@
 <div class="case-grid" role="list" aria-label="Expedientes encontrados">
     {% for case in cases %}
     <article class="case-card" role="listitem" aria-labelledby="case-{{ case.pk }}-title">
-        <div class="case-card-primary">
+        <header class="case-card-header">
             <span class="case-reference">{{ case.reference }}</span>
+            <span class="status status-{{ case.status }}">{{ case.get_status_display }}</span>
+        </header>
+        <div class="case-card-primary">
             <h2 id="case-{{ case.pk }}-title">{{ case.audited_organization.name }}</h2>
             <p>{{ case.title }}</p>
         </div>
-        <div class="case-card-meta"><span>Código</span><strong>{{ case.audited_organization.code }}</strong></div>
-        <div class="case-card-meta"><span>Fecha límite</span><strong>{{ case.response_deadline|date:"d/m/Y"|default:"Por definir" }}</strong></div>
-        <span class="status status-{{ case.status }}">{{ case.get_status_display }}</span>
-        <a class="button button-ghost button-compact" href="{% url 'case_detail' case.pk %}" aria-label="Ver detalle de {{ case.reference }}">Ver detalle <span aria-hidden="true">→</span></a>
+        <dl class="case-card-details">
+            <div class="case-card-meta"><dt>Código</dt><dd>{{ case.audited_organization.code }}</dd></div>
+            <div class="case-card-meta"><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"d/m/Y"|default:"Por definir" }}</dd></div>
+        </dl>
+        <footer class="case-card-footer">
+            <a class="button button-ghost button-compact" href="{% url 'case_detail' case.pk %}" aria-label="Ver detalle de {{ case.reference }}">Ver detalle <span aria-hidden="true">→</span></a>
+        </footer>
     </article>
     {% empty %}<div class="empty-state card"><h2>{% if invalid_organization_filter %}Centro educativo no encontrado{% else %}No hay expedientes con estos filtros{% endif %}</h2>{% if invalid_organization_filter %}<p>Seleccione un centro desde el directorio.</p>{% endif %}{% if invalid_organization_filter and user.role == 'audit_manager' %}<a class="button button-secondary" href="{% url 'director_educational_centers' %}">Volver a centros</a>{% endif %}</div>{% endfor %}
 </div>

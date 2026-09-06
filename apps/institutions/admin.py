@@ -20,13 +20,29 @@ class OrganizationAdmin(admin.ModelAdmin):
         "code",
         "name",
         "kind",
+        "educational_center_type",
         "department",
         "municipality",
         "district",
         "is_active",
     )
-    list_filter = ("kind", "department", "municipality", "district", "is_active")
-    search_fields = ("code", "name", "department", "municipality", "district")
+    list_filter = (
+        "kind",
+        "educational_center_type",
+        "department",
+        "municipality",
+        "district",
+        "is_active",
+    )
+    search_fields = (
+        "code",
+        "name",
+        "educational_center_type",
+        "department",
+        "municipality",
+        "district",
+        "address",
+    )
 
 
 class SchoolBoardMemberInline(admin.TabularInline):

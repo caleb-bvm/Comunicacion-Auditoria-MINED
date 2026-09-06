@@ -67,6 +67,18 @@ class Command(BaseCommand):
             if not reader.fieldnames or not {"code", "name"}.issubset(reader.fieldnames):
                 raise CommandError("El CSV debe incluir como mínimo las columnas code y name.")
             includes_district = "district" in reader.fieldnames
+            center_type_field = next(
+                (
+                    field
+                    for field in (
+                        "educational_center_type",
+                        "center_type",
+                        "tipo_centro",
+                    )
+                    if field in reader.fieldnames
+                ),
+                None,
+            )
             rows = []
             seen_codes = set()
             valid_kinds = set(Organization.Kind.values)
@@ -94,6 +106,10 @@ class Command(BaseCommand):
                 }
                 if includes_district:
                     row["district"] = (raw.get("district") or "").strip()
+                if center_type_field:
+                    row["educational_center_type"] = (
+                        raw.get(center_type_field) or ""
+                    ).strip()
                 rows.append(row)
             return rows
 

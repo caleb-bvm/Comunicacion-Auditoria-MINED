@@ -423,3 +423,23 @@ class DirectorEducationalCenterTests(TestCase):
         self.client.logout()
         anonymous = self.client.get(url)
         self.assertRedirects(anonymous, f"{reverse('login')}?next={url}")
+
+    def test_center_detail_shows_one_complete_address_and_center_type(self):
+        self.center.educational_center_type = "Instituto técnico"
+        self.center.district = "Distrito Centro"
+        self.center.address = "Avenida Principal 25"
+        self.center.save(
+            update_fields=("educational_center_type", "district", "address")
+        )
+        self.client.force_login(self.director)
+
+        response = self.client.get(
+            reverse("director_educational_center_detail", args=[self.center.pk])
+        )
+
+        self.assertContains(response, "Instituto técnico")
+        self.assertContains(
+            response,
+            "Avenida Principal 25, Distrito Centro, San Salvador",
+            count=1,
+        )

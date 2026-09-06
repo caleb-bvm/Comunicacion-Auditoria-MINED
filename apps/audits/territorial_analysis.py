@@ -519,12 +519,16 @@ def build_territorial_analysis(params, today=None):
     """Build the shared dataset for the web analysis and its future XLSX export."""
 
     today = today or timezone.localdate()
-    period, start_date, end_date, errors = _period_dates(params, today)
-    departments, municipalities, districts = _geography_options(params)
-
     selected_mode = params.get("mode", "current")
     if selected_mode not in {"current", "activity"}:
         selected_mode = "current"
+
+    period, start_date, end_date, errors = _period_dates(params, today)
+    if selected_mode == "current":
+        # The current snapshot deliberately uses the complete consolidated history.
+        # Period validation belongs only to the activity view.
+        errors = []
+    departments, municipalities, districts = _geography_options(params)
 
     if params.get("municipality") and hasattr(Organization, "district"):
         default_group = "district"
@@ -550,7 +554,6 @@ def build_territorial_analysis(params, today=None):
         for name in ("coverage", "risk", "cde", "access", "compliance")
     )
     advanced_filter_count += selected_group != default_group
-    advanced_filter_count += period != "year"
 
     filters = {
         "selected_mode": selected_mode,
@@ -572,7 +575,7 @@ def build_territorial_analysis(params, today=None):
         "selected_compliance": params.get("compliance", ""),
         "filter_errors": errors,
         "advanced_filter_count": advanced_filter_count,
-        "advanced_filters_open": bool(advanced_filter_count or errors),
+        "advanced_filters_open": bool(advanced_filter_count),
     }
 
     center_queryset = center_analytics_queryset(today=today)

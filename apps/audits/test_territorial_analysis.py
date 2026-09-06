@@ -118,30 +118,101 @@ class TerritorialAnalysisTests(TestCase):
         url = reverse("director_statistics")
 
         default = self.client.get(url)
-        filtered = self.client.get(url, {"coverage": "not_audited", "period": "30"})
+        filtered = self.client.get(
+            url,
+            {"mode": "activity", "coverage": "not_audited", "period": "30"},
+        )
 
         self.assertEqual(default.context["advanced_filter_count"], 0)
         self.assertFalse(default.context["advanced_filters_open"])
         self.assertContains(default, '<details class="territorial-advanced-filters" >')
-        self.assertEqual(filtered.context["advanced_filter_count"], 2)
+        self.assertEqual(filtered.context["advanced_filter_count"], 1)
         self.assertTrue(filtered.context["advanced_filters_open"])
         self.assertContains(
             filtered, '<details class="territorial-advanced-filters" open>'
         )
-        self.assertContains(filtered, "2 activos")
+        self.assertContains(filtered, "1 activo")
 
-    def test_advanced_filters_open_to_expose_period_errors(self):
+    def test_custom_period_errors_are_exposed_in_the_period_selector(self):
         self.client.force_login(self.director)
 
         response = self.client.get(
-            reverse("director_statistics"), {"period": "custom"}
+            reverse("director_statistics"),
+            {"mode": "activity", "period": "custom"},
         )
 
         self.assertTrue(response.context["filter_errors"])
-        self.assertTrue(response.context["advanced_filters_open"])
+        self.assertFalse(response.context["advanced_filters_open"])
         self.assertContains(
-            response, '<details class="territorial-advanced-filters" open>'
+            response,
+            '<fieldset class="period-filter-group analysis-period-selector" data-period-filter >',
         )
+        self.assertContains(response, "Indique una fecha inicial y una fecha final válidas.")
+
+    def test_current_mode_does_not_validate_the_hidden_activity_period(self):
+        self._recommendation(
+            audited=self.center_a,
+            responsible=self.center_a,
+            reference="IA-TERR-CURRENT-CUSTOM",
+        )
+        self.client.force_login(self.director)
+
+        response = self.client.get(
+            reverse("director_statistics"),
+            {"mode": "current", "period": "custom"},
+        )
+
+        self.assertEqual(response.context["filter_errors"], [])
+        self.assertEqual(response.context["audited_center_count"], 1)
+        self.assertContains(response, "Desde todos los tiempos")
+        self.assertNotContains(
+            response, "Indique una fecha inicial y una fecha final válidas."
+        )
+
+    def test_valid_custom_period_filters_activity_and_is_kept_in_mode_links(self):
+        included_case, _recommendation = self._recommendation(
+            audited=self.center_a,
+            responsible=self.center_a,
+            reference="IA-TERR-CUSTOM-IN",
+        )
+        excluded_case, _recommendation = self._recommendation(
+            audited=self.center_a,
+            responsible=self.center_a,
+            reference="IA-TERR-CUSTOM-OUT",
+        )
+        AuditCase.objects.filter(pk=excluded_case.pk).update(
+            created_at=timezone.now() - timedelta(days=3)
+        )
+        self.client.force_login(self.director)
+        selected_date = date.today().isoformat()
+
+        response = self.client.get(
+            reverse("director_statistics"),
+            {
+                "mode": "activity",
+                "period": "custom",
+                "start": selected_date,
+                "end": selected_date,
+                "department": "Departamento A",
+            },
+        )
+        content = response.content.decode()
+
+        self.assertEqual(response.context["filter_errors"], [])
+        self.assertEqual(response.context["activity_case_count"], 1)
+        self.assertEqual(response.context["activity_finding_count"], 1)
+        self.assertEqual(response.context["activity_recommendation_count"], 1)
+        self.assertEqual(response.context["selected_period"], "custom")
+        self.assertIn(
+            f"mode=current&amp;period=custom&amp;start={selected_date}&amp;end={selected_date}",
+            content,
+        )
+        self.assertContains(
+            response,
+            '<div class="period-custom-dates" data-custom-period-dates >',
+        )
+        self.assertContains(response, f'value="{included_case.created_at:%Y-%m-%d}"')
+        self.assertNotContains(response, 'id="current-title"')
 
     def test_quick_filters_prioritize_actionable_audit_signals(self):
         self._recommendation(
