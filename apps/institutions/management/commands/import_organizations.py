@@ -2,6 +2,8 @@ import csv
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 
 from apps.institutions.models import Organization
@@ -110,6 +112,13 @@ class Command(BaseCommand):
                     row["educational_center_type"] = (
                         raw.get(center_type_field) or ""
                     ).strip()
+                if "email" in reader.fieldnames:
+                    row["email"] = (raw.get("email") or "").strip().lower()
+                    if row["email"]:
+                        try:
+                            validate_email(row["email"])
+                        except ValidationError as exc:
+                            raise CommandError(f"Fila {line_number}: correo inválido.") from exc
                 rows.append(row)
             return rows
 

@@ -29,7 +29,7 @@
                         <td><span class="status status-{{ document.status }}">{{ document.get_status_display }}</span></td>
                         <td>
                             <div class="item-actions">
-                                {% if document.document_type == 'historical_report' %}<a class="text-link" href="{% url 'historical_document_detail' document.pk %}">Ver recomendaciones</a>{% endif %}
+                                {% if document.document_type == 'historical_report' %}<a class="text-link" href="{% url 'historical_document_detail' document.pk %}">Ver informe y documentos</a>{% endif %}
                                 <a class="icon-link" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar {{ document.title }}">↓</a>
                             </div>
                         </td>

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Registrar informe anterior{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'historical_document_list' %}">Informes</a><span>/</span><span>Nuevo</span></nav>
-<div class="page-heading"><h1>Registrar informe anterior</h1><p>Adjunte el informe original. Después podrá registrar las recomendaciones que continúan pendientes.</p></div>
+<nav class="breadcrumb" aria-label="Ruta">{% if center and user.role == 'audit_manager' %}<a href="{% url 'director_educational_center_detail' center.pk %}">{{ center.code }} · {{ center.name }}</a>{% else %}<a href="{% url 'historical_document_list' %}">Informes</a>{% endif %}<span>/</span><span>Informe anterior</span></nav>
+<div class="page-heading"><h1>Agregar informe anterior</h1><p>{% if center %}{{ center.code }} · {{ center.name }}. {% endif %}Adjunte el informe original y, si los tiene, sus documentos relacionados.</p></div>
 <form method="post" enctype="multipart/form-data" class="editor-form card" aria-label="Registrar informe anterior">
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
@@ -16,6 +16,7 @@
         </div>
         {% endfor %}
     </div>
-    <div class="submit-panel"><a class="button button-secondary" href="{% url 'historical_document_list' %}">Cancelar</a><button class="button button-primary" type="submit">Registrar informe</button></div>
+    {% include 'audits/historical_attachment_fields.html' %}
+    <div class="submit-panel"><a class="button button-secondary" href="{% if center and user.role == 'audit_manager' %}{% url 'director_educational_center_detail' center.pk %}{% else %}{% url 'historical_document_list' %}{% endif %}">Cancelar</a><button class="button button-primary" type="submit">Guardar informe y documentos</button></div>
 </form>
 {% endblock %}

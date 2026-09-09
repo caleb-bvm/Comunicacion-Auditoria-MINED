@@ -79,9 +79,10 @@
 
             <div class="center-context-row">
                 <div class="center-context-statuses">
-                    <span class="context-state {% if center.access_active %}is-ok{% else %}is-warning{% endif %}">{% if center.access_active %}Acceso activo{% else %}Sin acceso activo{% endif %}</span>
+                    <span class="context-state {% if center.access_active %}is-ok{% else %}is-warning{% endif %}">{{ center.access_label }}</span>
                     <span class="context-state {% if center.has_current_cde %}is-ok{% else %}is-warning{% endif %}">{{ center.cde_state_label }}</span>
                 </div>
+                <small>{{ center.email|default:"Sin correo registrado" }}</small>
                 <small>{% if center.latest_activity_at %}Última actividad: {{ center.latest_activity_at|date:"d/m/Y H:i" }}{% else %}Sin actividad auditora consolidada{% endif %}</small>
             </div>
 
@@ -91,7 +92,7 @@
                     <summary class="button button-secondary" aria-label="Más acciones para {{ center.name }}">Más acciones</summary>
                     <div class="action-menu-content">
                         <a class="text-link center-cases-button" href="{% url 'case_list' %}?organization={{ center.pk }}">Ver expedientes ({{ center.case_count }})</a>
-                        {% if not center.active_user_count %}<form method="post" action="{% url 'director_activate_educational_center' center.pk %}" onsubmit="return confirm('¿Activar el acceso para {{ center.name|escapejs }}?');">{% csrf_token %}<button class="text-link center-action-button" type="submit">{% if center.institutional_user_count %}Reactivar acceso{% else %}Activar centro{% endif %}</button></form>{% endif %}
+                        {% if not center.active_user_count %}{% if center.email %}<form method="post" action="{% url 'director_activate_educational_center' center.pk %}">{% csrf_token %}<button class="text-link center-action-button" type="submit">{% if center.activation_pending %}Reenviar enlace{% else %}Activar acceso por correo{% endif %}</button></form>{% else %}<span>Falta registrar el correo</span>{% endif %}{% endif %}
                     </div>
                 </details>
             </footer>

@@ -64,6 +64,34 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .nav-icon { flex: 0 0 29px; width: 29px; height: 29px; display: grid; place-items: center; line-height: 1; border-radius: 50%; }
 .nav-icon svg { width: 21px; height: 21px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .nav-item.is-active .nav-icon { color: var(--md-on-primary); }
+.historical-attachment-fields { margin-top: 2rem; }
+.historical-attachment-row { min-width: 0; margin: 1rem 0; padding: 1rem; border: 1px solid var(--md-outline-variant); border-radius: var(--radius-md); }
+.historical-attachment-row legend { padding: 0 .4rem; font-weight: 700; }
+.historical-visibility-form { display: grid; gap: .5rem; margin-top: .8rem; }
+.historical-original-meta { margin-bottom: 1.5rem; }
+.bulk-editor { border: 0; margin: 0; padding: 0; min-width: 0; }
+.bulk-center-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.bulk-center-summary p { margin-bottom: 0; }
+.bulk-center-results { padding-left: 1.25rem; }
+.bulk-center-results li { margin: 1rem 0; }
+.bulk-dropzone { border: 2px dashed #a5b8ce; margin-bottom: 1.5rem; }
+.bulk-dropzone input[type="file"] { display: block; width: 100%; margin-top: .75rem; }
+.bulk-common { display: flex; flex-wrap: wrap; align-items: end; gap: .8rem; margin: 1.25rem 0; }
+.bulk-common > strong { width: 100%; }
+.bulk-common .field { flex: 1 1 150px; min-width: 0; }
+.bulk-common select { max-width: 100%; }
+.bulk-review { margin-bottom: 1.5rem; min-width: 0; }
+.bulk-review .table-responsive { position: relative; }
+.bulk-table { min-width: 1320px; }
+.bulk-table td { vertical-align: top; }
+.bulk-table td:nth-child(2) { min-width: 250px; max-width: 300px; overflow-wrap: anywhere; }
+.bulk-table td:nth-child(3) { min-width: 195px; }
+.bulk-table td:nth-child(4) { min-width: 250px; max-width: 280px; }
+.bulk-table td:nth-child(6) { min-width: 160px; max-width: 220px; }
+.bulk-table input:not([type="checkbox"]), .bulk-table select { width: 100%; margin-top: .5rem; min-width: 0; }
+.bulk-table tr[data-status="error"] { background: #fff4f2; }
+.bulk-table tr[data-status="saved"], .bulk-table tr[data-status="duplicate"] { background: #f0f8f4; }
+.bulk-upload-actions progress { width: 100%; height: 1rem; accent-color: #236048; }
 .sidebar-footer { min-width: 0; margin-top: auto; display: grid; gap: .35rem; }
 .sidebar-context { min-width: 0; padding: .9rem; background: transparent; border-top: 1px solid var(--md-outline-variant); display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .65rem; }
 .context-icon { grid-row: 1 / 3; width: 34px; height: 34px; display: grid; place-items: center; color: var(--md-primary); background: var(--md-primary-container); border-radius: 50%; font-weight: 850; }
@@ -290,12 +318,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .center-profile-heading p:last-child { margin: 0; color: var(--md-on-surface-variant); }
 .center-profile-actions { display: grid; justify-items: end; gap: .65rem; }
 .center-profile-actions .button { width: 100%; }
-.center-profile-context { background: var(--md-surface); border-top: 1px solid var(--md-outline-variant); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.center-profile-context { background: var(--md-surface); border-top: 1px solid var(--md-outline-variant); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .center-profile-context > div { min-width: 0; padding: 1rem 1.25rem; border-right: 1px solid var(--md-outline-variant); display: grid; gap: .18rem; }
 .center-profile-context > div:last-child { border-right: 0; }
 .center-profile-context span, .center-profile-context small { color: var(--md-on-surface-variant); }
 .center-profile-context span { font-size: .72rem; font-weight: 800; text-transform: uppercase; }
-.center-profile-context small { overflow-wrap: anywhere; }
+.center-profile-context small, .center-profile-context strong { overflow-wrap: anywhere; }
 .center-attention-panel { margin-top: 1rem; padding: 1.1rem 1.25rem; color: var(--md-on-surface); background: #fff8f0; border: 0; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; }
 .center-attention-panel h2 { margin: .15rem 0 0; font-size: 1.25rem; }
 .center-attention-panel ul { margin: 0; display: grid; gap: .35rem; }

@@ -70,7 +70,7 @@ class SeedDemoCommandTests(TestCase):
         call_command("seed_demo", stdout=StringIO())
         original_passwords = dict(
             User.objects.filter(
-                username__in=["auditor.demo", "directora.demo", "centro.10754"]
+                username__in=["auditor.demo", "directora.demo", "10754"]
             )
             .values_list("username", "password")
         )
@@ -80,7 +80,7 @@ class SeedDemoCommandTests(TestCase):
 
         current_passwords = dict(
             User.objects.filter(
-                username__in=["auditor.demo", "directora.demo", "centro.10754"]
+                username__in=["auditor.demo", "directora.demo", "10754"]
             )
             .values_list("username", "password")
         )
@@ -91,7 +91,7 @@ class SeedDemoCommandTests(TestCase):
         call_command("seed_demo", stdout=StringIO())
         original_passwords = dict(
             User.objects.filter(
-                username__in=["auditor.demo", "directora.demo", "centro.10754"]
+                username__in=["auditor.demo", "directora.demo", "10754"]
             )
             .values_list("username", "password")
         )
@@ -101,7 +101,7 @@ class SeedDemoCommandTests(TestCase):
 
         current_passwords = dict(
             User.objects.filter(
-                username__in=["auditor.demo", "directora.demo", "centro.10754"]
+                username__in=["auditor.demo", "directora.demo", "10754"]
             )
             .values_list("username", "password")
         )
@@ -253,7 +253,7 @@ class SeedDemoCommandTests(TestCase):
             {"q": "10471"},
         )
         self.assertContains(directory, "Centro Escolar Florinda B. González")
-        self.assertContains(directory, "Activar centro")
+        self.assertContains(directory, "Activar acceso por correo")
         center_cases = self.client.get(
             reverse("case_list"),
             {"organization": florinda_case.audited_organization_id},
@@ -266,7 +266,7 @@ class SeedDemoCommandTests(TestCase):
         call_command("seed_demo", stdout=StringIO())
         director = User.objects.get(username="directora.demo")
         auditor = User.objects.get(username="auditor.demo")
-        institution = User.objects.get(username="centro.10754")
+        institution = User.objects.get(username="10754")
 
         self.client.force_login(director)
         director_dashboard = self.client.get(reverse("director_dashboard"))
@@ -368,7 +368,7 @@ class SeedDemoCommandTests(TestCase):
         call_command("seed_demo", stdout=StringIO())
         director = User.objects.get(username="directora.demo")
         auditor = User.objects.get(username="auditor.demo")
-        institution = User.objects.get(username="centro.10754")
+        institution = User.objects.get(username="10754")
         publication_case = AuditCase.objects.get(reference="IA/NA-011-2026")
         decision = publication_case.decisions.get(status=CaseDecision.Status.PENDING)
 
@@ -1671,6 +1671,9 @@ class AccessAndWorkflowTests(TestCase):
             {
                 "organization": self.center.pk,
                 "reference": "HIST-CENTRO-1",
+                "visibility": AuditDocument.Visibility.INSTITUTION,
+                "attachments-TOTAL_FORMS": "0",
+                "attachments-INITIAL_FORMS": "0",
                 "title": "Informe histórico del centro",
                 "document_date": date(2025, 6, 1).isoformat(),
                 "file": SimpleUploadedFile(

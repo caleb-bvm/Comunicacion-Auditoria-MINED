@@ -1,0 +1,12 @@
+<section class="historical-attachment-fields" data-historical-attachments data-max-forms="{{ attachments.max_num }}">
+    <div class="section-heading"><div><h2>Documentos relacionados</h2><p>Clasifique cada archivo e indique su fecha original. Puede dejar las filas vacías y agregar documentos más adelante.</p></div></div>
+    <p class="help-text">Los documentos compartidos se podrán consultar cuando el informe también sea visible para la institución. Hasta {{ attachments.max_num }} documentos por carga.</p>
+    {{ attachments.management_form }}
+    {% if attachments.non_form_errors %}<div class="form-error" role="alert">{{ attachments.non_form_errors }}</div>{% endif %}
+    <div data-attachment-rows>
+        {% for attachment in attachments %}{% include 'audits/historical_attachment_row.html' %}{% endfor %}
+    </div>
+    <template data-attachment-template>{% include 'audits/historical_attachment_row.html' with attachment=attachments.empty_form %}</template>
+    <button class="button button-secondary" type="button" data-add-attachment>Agregar otro documento</button>
+    <p class="help-text" data-attachment-limit hidden>Alcanzó el límite de esta carga. Puede agregar más documentos después de guardar.</p>
+</section>

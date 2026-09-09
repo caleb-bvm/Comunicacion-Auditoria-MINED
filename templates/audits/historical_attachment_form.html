@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Agregar documentos | Informe anterior{% endblock %}
+{% block content %}
+<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'historical_document_detail' document.pk %}">{{ document.reference|default:document.title }}</a><span>/</span><span>Agregar documentos</span></nav>
+<div class="page-heading"><h1>Agregar documentos al informe</h1><p>{{ document.organization.code }} · {{ document.organization.name }} · {{ document.title }}</p></div>
+<form method="post" enctype="multipart/form-data" class="editor-form card">
+    {% csrf_token %}
+    {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+    {% include 'audits/historical_attachment_fields.html' %}
+    <div class="submit-panel"><a class="button button-secondary" href="{% url 'historical_document_detail' document.pk %}">Cancelar</a><button class="button button-primary" type="submit">Guardar documentos</button></div>
+</form>
+{% endblock %}

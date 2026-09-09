@@ -1,8 +1,7 @@
 from datetime import date, timedelta
 
-from django.contrib.auth.hashers import check_password
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.accounts.models import User
@@ -17,6 +16,7 @@ from apps.audits.models import (
 from .models import Organization, SchoolBoardPeriod
 
 
+@override_settings(PUBLIC_BASE_URL="https://auditoria.example")
 class DirectorEducationalCenterTests(TestCase):
     common_password = "UnaClaveDePrueba!2026"
 
@@ -28,6 +28,7 @@ class DirectorEducationalCenterTests(TestCase):
         )
         self.center = Organization.objects.create(
             code="CE-104",
+            email="ce104@example.edu.sv",
             name="Instituto Nacional Central",
             kind=Organization.Kind.EDUCATIONAL_CENTER,
             department="San Salvador",
@@ -36,6 +37,7 @@ class DirectorEducationalCenterTests(TestCase):
         )
         self.other_center = Organization.objects.create(
             code="CE-205",
+            email="ce205@example.edu.sv",
             name="Centro Escolar Las Flores",
             kind=Organization.Kind.EDUCATIONAL_CENTER,
             department="La Libertad",
@@ -183,7 +185,7 @@ class DirectorEducationalCenterTests(TestCase):
             ).exists()
         )
 
-    def test_director_activates_center_with_common_credential_and_audit_log(self):
+    def test_director_invites_center_without_enabling_login(self):
         self.client.force_login(self.director)
 
         response = self.client.post(
@@ -195,21 +197,22 @@ class DirectorEducationalCenterTests(TestCase):
             organization=self.center,
             role=User.Role.INSTITUTION,
         )
-        self.assertEqual(account.username, "centro.ce-104")
-        self.assertTrue(account.is_active)
-        self.assertFalse(account.must_change_password)
-        self.assertTrue(check_password(self.common_password, account.password))
-        self.assertEqual(account.password, self.director.password)
+        self.assertEqual(account.username, "CE-104")
+        self.assertEqual(account.email, self.center.email)
+        self.assertFalse(account.is_active)
+        self.assertTrue(account.must_change_password)
+        self.assertFalse(account.has_usable_password())
+        self.assertNotEqual(account.password, self.director.password)
         self.client.logout()
-        self.assertTrue(
+        self.assertFalse(
             self.client.login(username=account.username, password=self.common_password)
         )
         self.center.refresh_from_db()
         self.assertTrue(self.center.is_active)
-        log = ActivityLog.objects.get(action="educational_center_activated")
+        log = ActivityLog.objects.get(action="educational_center_invited")
         self.assertEqual(log.actor, self.director)
         self.assertEqual(log.target_id, str(self.center.pk))
-        self.assertEqual(log.details["username"], "centro.ce-104")
+        self.assertEqual(log.details["username"], "CE-104")
         self.assertTrue(log.details["account_created"])
 
     def test_activation_reuses_suspended_account_without_creating_a_duplicate(self):
@@ -228,9 +231,10 @@ class DirectorEducationalCenterTests(TestCase):
         )
 
         account.refresh_from_db()
-        self.assertTrue(account.is_active)
-        self.assertFalse(account.must_change_password)
-        self.assertEqual(account.password, self.director.password)
+        self.assertFalse(account.is_active)
+        self.assertTrue(account.must_change_password)
+        self.assertFalse(account.has_usable_password())
+        self.assertEqual(account.username, self.other_center.code)
         self.assertEqual(
             User.objects.filter(
                 organization=self.other_center,

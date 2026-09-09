@@ -19,6 +19,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     list_display = (
         "code",
         "name",
+        "email",
         "kind",
         "educational_center_type",
         "department",
@@ -37,6 +38,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     search_fields = (
         "code",
         "name",
+        "email",
         "educational_center_type",
         "department",
         "municipality",

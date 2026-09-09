@@ -1,0 +1,13 @@
+<fieldset class="historical-attachment-row">
+    <legend>Documento relacionado</legend>
+    {{ attachment.non_field_errors }}
+    <div class="form-grid form-grid-two">
+        {% for field in attachment %}
+        <div class="field {% if field.errors %}field-error{% endif %}{% if field.name == 'file' or field.name == 'title' %} field-wide{% endif %}">
+            {{ field.label_tag }}{{ field }}
+            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            {{ field.errors }}
+        </div>
+        {% endfor %}
+    </div>
+</fieldset>

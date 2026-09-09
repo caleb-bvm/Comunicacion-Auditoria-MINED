@@ -12,9 +12,13 @@ Las instituciones, las cuentas y las personas que integran el CDE representan ob
 
 Esta estrategia evita más de mil credenciales inactivas y contraseñas distribuidas anticipadamente. También evita que cada auditor tenga que volver a capturar los datos del centro y mantiene separada la actividad de la cuenta institucional del historial legal de sus administradores.
 
-## Estado temporal del piloto
+## Acceso por código e invitación
 
-La interfaz de Dirección permite buscar centros y activar su acceso con el usuario `centro.<código>`. Durante la validación local, la cuenta activada reutiliza la credencial común de demostración y no exige un cambio inmediato. Antes de publicar el sistema, esa credencial común debe sustituirse por una credencial institucional propia para cada centro y entregarse mediante un canal seguro.
+El usuario es el código exacto del centro, conservando los ceros iniciales. El correo se precarga desde el catálogo y se copia al perfil de la cuenta cuando Dirección solicita su activación. El código no se utiliza como contraseña y no se reutilizan credenciales de Dirección.
+
+Dirección revisa el correo y solicita el envío de una invitación desde el directorio o la ficha del centro. Se crea o reutiliza una cuenta inactiva, sin contraseña utilizable. El enlace permite establecer una contraseña y habilitar el acceso; vence a las 24 horas y deja de funcionar después de utilizarlo o de reenviar la invitación. Los cambios de correo también invalidan el enlace anterior. Un fallo de envío conserva el estado previo y se muestra como error.
+
+La ficha distingue centros sin activar, invitaciones pendientes, accesos activos y cuentas suspendidas. El centro puede consultar su correo y cambiar su contraseña desde «Mi perfil». En desarrollo los correos son simulados en la consola. La integración SMTP y la dirección HTTPS pública se configuran antes del lanzamiento.
 
 ## Distribución de responsabilidades
 
@@ -34,11 +38,11 @@ El auditor puede iniciar la solicitud de activación, pero no debería definir c
 1. El catálogo institucional se carga desde la fuente oficial utilizando el código único del centro.
 2. Al asignar la primera recomendación a un centro sin usuarios activos, el sistema debe advertirlo a Auditoría.
 3. El auditor solicita la activación del centro.
-4. Se crea o reactiva la cuenta institucional vinculada al código oficial del centro.
-5. El centro utiliza esa cuenta para atender sus expedientes y mantener el historial de su CDE.
+4. Dirección envía una invitación al correo institucional registrado y la cuenta permanece inactiva.
+5. El centro establece su contraseña mediante el enlace, habilita su acceso y utiliza la cuenta para atender expedientes y mantener el historial de su CDE.
 6. La cuenta se suspende cuando el centro deja de estar activo o pierde autorización de acceso al sistema.
 
-Cada centro mantiene una sola cuenta institucional activa. Sus actuaciones quedan atribuidas al centro en la bitácora; cuando una actuación requiera identificar a una persona, se conserva el nombre y cargo declarado dentro de la propia actuación.
+El flujo de activación reutiliza la cuenta del centro y rechaza crear otra si ya tiene acceso activo. Si existen varias cuentas heredadas, deben revisarse antes de habilitar una. Sus actuaciones quedan atribuidas al centro en la bitácora; cuando una actuación requiera identificar a una persona, se conserva el nombre y cargo declarado dentro de la propia actuación.
 
 ## Carga inicial
 
@@ -51,12 +55,15 @@ Para el piloto se recomienda:
 
 El comando `python manage.py import_organizations archivo.csv --dry-run` valida el archivo sin modificar datos. Una vez revisado, se ejecuta sin `--dry-run` para crear o actualizar el catálogo.
 
+Para el listado de correos en XLSX use `python manage.py import_center_emails archivo.xlsx --dry-run` y, después de revisar el resultado, ejecútelo sin `--dry-run`. Este comando agrega centros faltantes, conserva los datos existentes y actualiza correos. No crea cuentas, no activa accesos ni envía mensajes. No agrega ubicaciones que no figuren en la fuente.
+
 Columnas admitidas:
 
 | Columna | Obligatoria | Ejemplo |
 | --- | --- | --- |
 | `code` | Sí | `10754` |
 | `name` | Sí | `Instituto Nacional de Nahuizalco` |
+| `email` | No | `10754@clases.edu.sv` |
 | `kind` | No | `educational_center` |
 | `department` | No | `Sonsonate` |
 | `municipality` | No | `Nahuizalco` |

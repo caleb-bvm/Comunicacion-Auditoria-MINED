@@ -20,6 +20,7 @@ Primera base funcional para registrar expedientes, hallazgos, recomendaciones, r
 - Inteligencia institucional de centros educativos para Dirección, con priorización explicable, filtros territoriales y de alerta, ficha analítica por centro, estado del CDE, acceso, riesgos, obligaciones, respuestas, documentos e historial de auditoría.
 - Importación validada del catálogo institucional desde CSV, incluido el distrito como dato territorial opcional.
 - Repositorio de informes anteriores en PDF y Word.
+- Registro de informes anteriores desde la ficha del centro, con hasta diez documentos relacionados por carga, clasificación, fechas originales, visibilidad individual y detección de archivos repetidos.
 - Copia controlada y sin duplicados de recomendaciones no cumplidas o parcialmente cumplidas.
 - Informes Word versionados, con aprobación directiva antes de su publicación.
 - Prórrogas calculadas en días hábiles y calendario configurable de asuetos.
@@ -89,4 +90,25 @@ Nunca use el servidor de desarrollo ni la clave incluida en `config/settings/dev
 
 ## Catálogo de centros y cuentas
 
-La estrategia recomendada es cargar todas las instituciones, pero activar cuentas personales solamente cuando se necesiten. Consulte [el plan de catálogo institucional y cuentas](docs/user-provisioning-plan.md) para conocer responsabilidades, controles y fases de despliegue.
+Desde **Dirección → Centros → ficha del centro → Documentos e informes → Agregar informe anterior** se puede cargar un informe PDF o DOCX y sus notificaciones, respuestas, evidencias, prórrogas y cierres. El centro queda fijado por la ficha, aunque aún no tenga cuenta. Cada documento conserva su fecha original; si se desconoce, queda vacía.
+
+En el detalle del informe se pueden agregar más documentos, registrar recomendaciones pendientes y cambiar la visibilidad. Los adjuntos compartidos solo son consultables por el centro cuando el informe principal también está compartido. La carga histórica no crea expedientes operativos, cuentas, notificaciones ni plazos de respuesta, ni altera resultados existentes. Una prórroga o respuesta antigua se conserva como documento histórico, sin ejecutarse sobre el seguimiento vigente.
+
+En la carga individual, todos los archivos se validan antes de guardar. Se rechaza un informe idéntico ya registrado en el mismo centro o un archivo repetido dentro del mismo informe. Se conservan los originales y se registra quién cargó cada documento o cambió su visibilidad.
+
+**Dirección y auditores** también disponen de **Informes → Carga múltiple**. Se busca el centro por código o nombre y se seleccionan o arrastran hasta 100 archivos por lote (20 MB por archivo con la configuración predeterminada). La tabla permite editar descripción, referencia, tipo, fecha original, informe y visibilidad; los valores comunes se aplican a las filas seleccionadas. Los informes principales deben marcarse como «Informe anterior» y sus documentos pueden asociarse a informes del lote o ya existentes en ese centro. La ficha del centro y el detalle de cada informe también ofrecen acceso directo.
+
+La carga múltiple guarda primero los informes y luego sus documentos, en solicitudes independientes. Muestra el progreso y el resultado por archivo, reconoce duplicados por su contenido sin reemplazar sus datos y permite corregir o reintentar los pendientes sin repetir las cargas exitosas. Se puede pausar después del archivo actual. La página debe mantenerse abierta: los archivos pendientes no se conservan al cerrarla. Por defecto, cada archivo queda visible solo para Auditoría.
+
+El catálogo completo se carga sin crear ni activar cuentas. Cada centro utiliza su código exacto como usuario (por ejemplo, `10471`), y conserva el correo institucional en su ficha. Dirección envía una invitación individual; el centro establece su contraseña y entonces se habilita el acceso. Consulte [el plan de catálogo institucional y cuentas](docs/user-provisioning-plan.md).
+
+Para importar el listado oficial de correos en XLSX:
+
+```powershell
+python manage.py import_center_emails "Listado_Cuentas_Correo_CE.xlsx" --dry-run
+python manage.py import_center_emails "Listado_Cuentas_Correo_CE.xlsx"
+```
+
+El archivo debe contener `Codigo de Centro Escolar`, `Nombre de Centro Escolar` y `Email Address`. La importación valida todo antes de guardar, conserva los nombres y datos territoriales ya registrados, agrega centros faltantes y actualiza los correos en las cuentas existentes. Conserva sus contraseñas y estados de acceso. Los usuarios de la antigua forma `centro.<código>` pasan al código exacto; las cuentas personalizadas de pruebas conservan su usuario. Volver a importar el mismo archivo no duplica centros ni cuentas.
+
+Las invitaciones son de un solo uso y vencen a las 24 horas. Reenviar una invitación invalida la anterior. En desarrollo se muestran en la consola y **no se envían correos reales**. Para producción configure `PUBLIC_BASE_URL` con HTTPS, `DEFAULT_FROM_EMAIL` y los parámetros SMTP de `.env.example`; debe verificarse una entrega real a una cuenta de prueba autorizada antes de lanzar el servicio.

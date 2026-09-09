@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Mi perfil | Auditoría Interna{% endblock %}
+{% block content %}
+<div class="page-narrow">
+    <div class="page-heading"><h1>Mi perfil</h1><p>Datos de su cuenta de acceso.</p></div>
+    <section class="card stacked-form">
+        <div class="field"><strong>Usuario</strong><span>{{ user.username }}</span></div>
+        <div class="field"><strong>Correo electrónico</strong><span>{{ user.email|default:"Sin correo registrado" }}</span></div>
+        {% if user.organization %}<div class="field"><strong>Institución</strong><span>{{ user.organization.name }}</span></div>{% endif %}
+        <div class="field"><strong>Rol</strong><span>{{ user.get_role_display }}</span></div>
+        <p>Para corregir el correo registrado, comuníquese con la administración de Auditoría.</p>
+        <a class="button button-primary" href="{% url 'password_change' %}">Cambiar contraseña</a>
+    </section>
+</div>
+{% endblock %}

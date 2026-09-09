@@ -21,6 +21,9 @@ class User(AbstractUser):
     )
     job_title = models.CharField("cargo", max_length=150, blank=True)
     must_change_password = models.BooleanField("debe cambiar contraseña", default=True)
+    activation_requested_at = models.DateTimeField(
+        "activación solicitada", null=True, blank=True, editable=False
+    )
 
     class Meta:
         verbose_name = "usuario"

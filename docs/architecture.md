@@ -65,6 +65,18 @@ dependencias que participen en el mismo expediente.
 
 ## Plazos y conservación
 
+### Incorporación de informes por centro
+
+La ficha del centro abre un formulario con la institución fijada en el servidor. El informe anterior se guarda como `AuditDocument` sin expediente operativo. Sus adjuntos apuntan a ese informe mediante `parent_report`, conservan la misma institución y el estado anterior, y se clasifican como notificación, respuesta, evidencia, prórroga, cierre u otro documento.
+
+El informe admite PDF o DOCX; los adjuntos admiten los formatos documentales ya validados por el sistema. Se pueden cargar hasta diez adjuntos en una operación y agregar más posteriormente. La escritura es transaccional y los archivos nuevos se limpian si falla la operación. La comprobación de huellas evita informes idénticos por centro y adjuntos repetidos por informe.
+
+La fecha original se conserva separada de `uploaded_at`; no se infiere una fecha desconocida. La incorporación histórica no llama al flujo de publicación, revisión o prórrogas, ni crea plazos u obligaciones actuales. El seguimiento explícito de recomendaciones sigue utilizando el mecanismo existente.
+
+La visibilidad se define para cada archivo, con «Solo Auditoría» como valor inicial. Para consultar un adjunto, la institución debe poder consultar también su informe principal. Las cargas y los cambios de visibilidad quedan en bitácora. Los adjuntos se agrupan dentro del detalle del informe para no contarlos como informes independientes en el historial institucional.
+
+### Reglas de plazos
+
 - Toda prórroga conserva la fecha anterior, los días hábiles concedidos, la nueva fecha, el motivo y el usuario que la registró.
 - Los fines de semana y los asuetos activos se excluyen del cálculo.
 - El comando `process_overdue_recommendations` registra como no cumplidas las recomendaciones sin respuesta cuyo plazo vigente ya terminó. Solo procesa expedientes publicados y respeta la prórroga más reciente.

@@ -7,7 +7,7 @@
     <meta name="description" content="Sistema institucional de seguimiento de recomendaciones de Auditoría Interna">
     <title>{% block title %}Sistema de Seguimiento de Auditoría Interna{% endblock %}</title>
     <meta name="theme-color" content="#f7f9fc">
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260902-8">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260909-3">
 </head>
 <body>
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -68,6 +68,7 @@
             {% endif %}
             {% endif %}
             <div class="sidebar-footer">
+                <a class="nav-item" href="{% url 'account_profile' %}">Mi perfil</a>
                 {% if sidebar_context %}
                 <div class="sidebar-context">
                     <span class="context-icon" aria-hidden="true">{% if user.first_name %}{{ user.first_name|first|upper }}{% else %}{{ user.username|first|upper }}{% endif %}</span>
@@ -123,12 +124,14 @@
         <div class="mobile-more-scrim" hidden></div>
         <aside id="mobile-more-menu" class="mobile-more-menu" aria-label="Más opciones" hidden>
             <div class="mobile-more-heading"><strong>Más opciones</strong><button type="button" class="icon-button mobile-more-close" aria-label="Cerrar menú">×</button></div>
+            <a href="{% url 'account_profile' %}">Mi perfil</a>
             {% if user.role == 'audit_manager' %}<a href="{% url 'case_list' %}"><svg aria-hidden="true"><use href="#nav-files"></use></svg>Expedientes</a><a href="{% url 'historical_document_list' %}"><svg aria-hidden="true"><use href="#nav-reports"></use></svg>Informes</a>{% endif %}
             {% if user.is_superuser or user.role == 'technical_admin' %}<a href="/administracion/"><svg aria-hidden="true"><use href="#nav-admin"></use></svg>Administración</a>{% endif %}
             <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit"><svg aria-hidden="true"><use href="#nav-logout"></use></svg>Cerrar sesión</button></form>
         </aside>
     </div>
-    <script src="{% static 'js/app.js' %}?v=20260902-1" defer></script>
+    <script src="{% static 'js/app.js' %}?v=20260909-3" defer></script>
     {% endif %}
 </body>
 </html>
+

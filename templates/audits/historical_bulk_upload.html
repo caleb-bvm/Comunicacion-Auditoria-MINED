@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Carga múltiple | Informes{% endblock %}
+{% block content %}
+<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'historical_document_list' %}">Informes</a><span>/</span><span>Carga múltiple</span></nav>
+<div class="page-heading"><h1>Carga múltiple de documentos anteriores</h1><p>Organice los archivos por centro e informe antes de incorporarlos al historial.</p></div>
+{% if not center %}
+<section class="card">
+    <h2>1. Seleccione el centro educativo</h2>
+    <form method="get" class="filter-bar" role="search">
+        <div class="field grow"><label for="bulk-center-search">Código o nombre del centro</label><input id="bulk-center-search" name="q" value="{{ query }}" maxlength="150" required placeholder="Ejemplo: 10471"></div>
+        <button class="button button-primary" type="submit">Buscar centro</button>
+    </form>
+    {% if query %}<p class="help-text">Hasta 40 coincidencias. Si no encuentra el centro, utilice su código completo.</p>
+    <ul class="bulk-center-results">{% for item in centers %}<li><a href="{% url 'center_historical_bulk_upload' item.pk %}"><strong>{{ item.code }}</strong> · {{ item.name }}</a></li>{% empty %}<li>No se encontraron centros con esos datos.</li>{% endfor %}</ul>{% endif %}
+</section>
+{% else %}
+<section class="card bulk-center-summary"><div><strong>{{ center.code }} · {{ center.name }}</strong><p>Los archivos de este lote se guardarán en este centro, aunque todavía no tenga una cuenta activa.</p></div><a href="{% url 'historical_bulk_upload' %}">Cambiar centro</a></section>
+<form id="historical-bulk-form" novalidate>
+    {% csrf_token %}
+    <fieldset class="bulk-editor" id="bulk-editor">
+        <section class="card bulk-dropzone" id="bulk-dropzone">
+            <h2>1. Seleccione o arrastre sus archivos</h2>
+            <label for="bulk-files">Agregar varios archivos</label>
+            <input id="bulk-files" type="file" multiple accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png">
+            <p class="help-text">Hasta 100 archivos por lote, {{ max_file_mb }} MB por archivo. Informes: PDF o Word. Documentos relacionados: PDF, Word, Excel o imágenes JPG y PNG.</p>
+        </section>
+        <section class="card bulk-review">
+            <h2>2. Revise y organice los documentos</h2>
+            <p>Marque cada informe principal como «Informe anterior». Para sus anexos, elija el tipo y el informe al que pertenecen. Puede combinar informes nuevos y existentes.</p>
+            <p class="help-text">La fecha original puede quedar vacía. Por defecto, los archivos son de uso interno de Auditoría. Un documento compartido solo será visible para el centro si su informe también está compartido.</p>
+            <div class="bulk-common">
+                <strong>Aplicar a las filas seleccionadas</strong>
+                <div class="field"><label for="bulk-type">Tipo</label><select id="bulk-type"></select></div>
+                <div class="field"><label for="bulk-report">Informe</label><select id="bulk-report"></select></div>
+                <div class="field"><label for="bulk-date">Fecha original</label><input id="bulk-date" type="date"></div>
+                <div class="field"><label for="bulk-visibility">Visibilidad</label><select id="bulk-visibility"></select></div>
+                <button class="button button-secondary" type="button" id="bulk-apply">Aplicar</button>
+            </div>
+            <p id="bulk-notice" role="status" aria-live="polite"></p>
+            <div class="table-responsive"><table class="bulk-table">
+                <caption class="sr-only">Archivos pendientes y resultado de la carga</caption>
+                <thead><tr><th><input type="checkbox" id="bulk-select-all" aria-label="Seleccionar todos los pendientes"></th><th>Archivo y descripción</th><th>Tipo</th><th>Informe al que pertenece</th><th>Fecha y visibilidad</th><th>Resultado</th><th><span class="sr-only">Quitar</span></th></tr></thead>
+                <tbody id="bulk-rows"></tbody>
+            </table></div>
+            <p id="bulk-empty" class="muted">Todavía no ha seleccionado archivos.</p>
+        </section>
+    </fieldset>
+    <section class="card bulk-upload-actions">
+        <h2>3. Guardar en el historial</h2>
+        <p>Se guardará cada archivo por separado. Podrá corregir y reintentar los errores; los duplicados conservarán los datos del registro existente. Esta carga no genera plazos ni envía notificaciones.</p>
+        <progress id="bulk-progress" value="0" max="1" aria-label="Progreso de la carga"></progress>
+        <p id="bulk-summary" role="status" aria-live="polite">0 archivos seleccionados.</p>
+        <div class="button-group"><button class="button button-primary" type="submit" id="bulk-save" disabled>Guardar pendientes</button><button class="button button-secondary" type="button" id="bulk-pause" hidden>Pausar después del archivo actual</button><a class="button button-secondary" href="{% url 'historical_document_list' %}?organization={{ center.pk }}">Ver informes del centro</a></div>
+        <p class="help-text">Mantenga esta página abierta hasta terminar. Los archivos pendientes no se conservan al cerrar la página.</p>
+    </section>
+</form>
+{{ bulk_config|json_script:"historical-bulk-config" }}
+<script src="{% static 'js/historical-bulk.js' %}?v=20260909-1" defer></script>
+{% endif %}
+{% endblock %}

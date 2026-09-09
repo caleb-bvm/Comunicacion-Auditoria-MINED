@@ -107,6 +107,7 @@ class HistoricalDocumentForm(forms.ModelForm):
             "title",
             "document_date",
             "file",
+            "visibility",
         )
         widgets = {
             "document_date": forms.DateInput(attrs={"type": "date"}),
@@ -114,13 +115,19 @@ class HistoricalDocumentForm(forms.ModelForm):
         }
         help_texts = {
             "file": "Se admiten informes anteriores en PDF o Word (.docx).",
+            "document_date": "Fecha original del informe; déjela vacía si no se conoce.",
+            "visibility": "Defina quién puede consultar el informe y sus recomendaciones.",
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, organization=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["organization"].queryset = Organization.objects.filter(
             is_active=True
         ).order_by("name")
+        if organization is not None:
+            self.fields["organization"].queryset = Organization.objects.filter(pk=organization.pk)
+            self.fields["organization"].initial = organization.pk
+            self.fields["organization"].disabled = True
 
     def clean_file(self):
         document = self.cleaned_data.get("file")
@@ -128,6 +135,46 @@ class HistoricalDocumentForm(forms.ModelForm):
         if extension not in {".pdf", ".docx"}:
             raise forms.ValidationError("El informe debe ser PDF o Word (.docx).")
         return document
+
+
+class HistoricalAttachmentForm(forms.Form):
+    document_type = forms.ChoiceField(label="Tipo de documento", choices=[
+        (AuditDocument.DocumentType.NOTIFICATION, "Notificación u oficio"),
+        (AuditDocument.DocumentType.HISTORICAL_RESPONSE, "Respuesta"),
+        (AuditDocument.DocumentType.HISTORICAL_EVIDENCE, "Evidencia"),
+        (AuditDocument.DocumentType.HISTORICAL_EXTENSION, "Prórroga"),
+        (AuditDocument.DocumentType.HISTORICAL_CLOSURE, "Cierre"),
+        (AuditDocument.DocumentType.OTHER, "Otro documento"),
+    ], initial=AuditDocument.DocumentType.OTHER)
+    title = forms.CharField(label="Descripción", max_length=300, required=False,
+                           help_text="Si queda vacía, se utilizará el nombre del archivo.")
+    reference = forms.CharField(label="Referencia del documento", max_length=80, required=False)
+    document_date = forms.DateField(label="Fecha original", required=False,
+                                   widget=forms.DateInput(attrs={"type": "date"}))
+    visibility = forms.ChoiceField(label="Visibilidad", choices=AuditDocument.Visibility.choices,
+                                  initial=AuditDocument.Visibility.AUDIT_ONLY)
+    file = forms.FileField(label="Archivo", validators=[validate_evidence_file],
+        widget=forms.ClearableFileInput(attrs={"accept": ".pdf,.docx,.xlsx,.jpg,.jpeg,.png"}),
+        help_text="PDF, Word, Excel o imagen. Un archivo por documento.")
+
+
+class BaseHistoricalAttachmentFormSet(forms.BaseFormSet):
+    def __init__(self, *args, require_one=False, **kwargs):
+        self.require_one = require_one
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        if self.require_one and not any(form.cleaned_data.get("file") for form in self.forms):
+            raise forms.ValidationError("Agregue al menos un documento.")
+
+
+HistoricalAttachmentFormSet = forms.formset_factory(
+    HistoricalAttachmentForm, formset=BaseHistoricalAttachmentFormSet,
+    extra=2, max_num=10, absolute_max=10, validate_max=True,
+)
 
 
 class HistoricalRecommendationForm(forms.ModelForm):

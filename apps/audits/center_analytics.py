@@ -257,6 +257,13 @@ def enrich_center(center, today=None):
         else None
     )
     center.access_active = bool(center.is_active and center.active_user_count)
+    accounts = getattr(center, "institutional_accounts", [])
+    center.activation_pending = any(account.activation_requested_at for account in accounts)
+    center.access_label = (
+        "Activo" if center.access_active else
+        "Pendiente de establecer contraseña" if center.activation_pending else
+        "Suspendido" if center.institutional_user_count else "Sin activar"
+    )
 
     if center.has_current_cde:
         center.cde_state = "current"

@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-heading heading-row">
     <div><h1>Informes</h1></div>
-    <a class="button button-primary" href="{% url 'historical_document_create' %}">Registrar informe anterior</a>
+    <div class="button-group"><a class="button button-secondary" href="{% url 'historical_document_create' %}">Registrar informe anterior</a><a class="button button-primary" href="{% url 'historical_bulk_upload' %}">Carga múltiple</a></div>
 </div>
 
 <form method="get" class="filter-bar" role="search" aria-label="Buscar informes">

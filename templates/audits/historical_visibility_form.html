@@ -1,0 +1,8 @@
+<form method="post" action="{% url 'historical_document_visibility' item.pk %}" class="historical-visibility-form">
+    {% csrf_token %}
+    <label for="visibility-{{ item.pk }}">Visibilidad</label>
+    <select id="visibility-{{ item.pk }}" name="visibility">
+        {% for value, label in visibility_choices %}<option value="{{ value }}"{% if item.visibility == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button class="button button-secondary" type="submit">Guardar visibilidad</button>
+</form>

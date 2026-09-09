@@ -1,12 +1,14 @@
 import hashlib
+import logging
+import smtplib
 from datetime import date, timedelta
 from pathlib import Path
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Exists, Max, OuterRef, Prefetch, Q
 from django.http import FileResponse, Http404, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
@@ -16,6 +18,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import ListView, TemplateView
 
 from apps.accounts.models import User
+from apps.accounts.activation import invite_center
 from apps.institutions.models import Organization, SchoolBoardPeriod
 
 from .forms import (
@@ -27,6 +30,7 @@ from .forms import (
     DecisionResolutionForm,
     FindingForm,
     HistoricalDocumentForm,
+    HistoricalAttachmentFormSet,
     HistoricalRecommendationForm,
     HistoricalRecommendationImportForm,
     RecommendationForm,
@@ -54,6 +58,7 @@ from .models import (
     Review,
 )
 from .pdf import build_response_receipt
+from .historical_documents import save_historical_bundle
 from .services import (
     add_business_days,
     copy_historical_recommendations,
@@ -97,16 +102,8 @@ def user_is_director(user):
 
 
 def institutional_username(organization):
-    """Build a stable, unique username from the official center code."""
-    identifier = slugify(organization.code) or str(organization.pk)
-    base_username = f"centro.{identifier}"[:150]
-    username = base_username
-    suffix = 2
-    while User.objects.filter(username=username).exists():
-        suffix_text = f".{suffix}"
-        username = f"{base_username[:150 - len(suffix_text)]}{suffix_text}"
-        suffix += 1
-    return username
+    """The official code is the institutional login identifier."""
+    return organization.code
 
 
 def user_can_edit_case(user, case):
@@ -132,6 +129,12 @@ def user_can_access_response(user, response):
 
 
 def user_can_access_document(user, document):
+    if not user.is_authenticated:
+        return False
+    if document.parent_report_id:
+        if (document.organization_id != document.parent_report.organization_id
+                or not user_can_access_document(user, document.parent_report)):
+            return False
     if user.is_superuser or user.role in {
         User.Role.TECHNICAL_ADMIN,
         User.Role.AUDIT_MANAGER,
@@ -140,6 +143,7 @@ def user_can_access_document(user, document):
     if user.role == User.Role.AUDITOR:
         return bool(
             document.document_type == AuditDocument.DocumentType.HISTORICAL_REPORT
+            or document.parent_report_id
             or (document.case and document.case.assigned_auditor_id == user.pk)
         )
     return bool(
@@ -338,6 +342,7 @@ def institution_history(request):
     )
     documents = AuditDocument.objects.filter(
         organization=organization,
+        parent_report__isnull=True,
         visibility=AuditDocument.Visibility.INSTITUTION,
         status__in=[AuditDocument.Status.HISTORICAL, AuditDocument.Status.APPROVED],
     ).select_related("case")
@@ -1172,7 +1177,7 @@ class DirectorEducationalCenterDetailView(LoginRequiredMixin, TemplateView):
         ).select_related(
             "recommendation__finding__case__audited_organization", "review", "submitted_by"
         )[:10]
-        documents = AuditDocument.objects.filter(organization=center).select_related(
+        documents = AuditDocument.objects.filter(organization=center, parent_report__isnull=True).select_related(
             "case", "uploaded_by"
         )
         historical_recommendations = HistoricalRecommendation.objects.filter(
@@ -1217,70 +1222,20 @@ class DirectorEducationalCenterDetailView(LoginRequiredMixin, TemplateView):
 def director_activate_educational_center(request, pk):
     if not user_is_director(request.user):
         raise PermissionDenied("Esta acción es exclusiva de la Dirección de Auditoría.")
-    if not request.user.has_usable_password():
-        messages.error(request, "No fue posible asignar la credencial inicial al centro.")
-        return redirect("director_educational_centers")
-
-    with transaction.atomic():
-        center = get_object_or_404(
-            Organization.objects.select_for_update(),
-            pk=pk,
-            kind=Organization.Kind.EDUCATIONAL_CENTER,
-        )
-        accounts = User.objects.select_for_update().filter(
-            organization=center,
-            role=User.Role.INSTITUTION,
-        )
-        active_account = accounts.filter(is_active=True).order_by("username").first()
-        if active_account:
-            messages.info(
-                request,
-                f"{center.name} ya tiene acceso activo con el usuario {active_account.username}.",
-            )
-            return redirect("director_educational_centers")
-
-        account = accounts.order_by("username").first()
-        created = account is None
-        if created:
-            account = User(
-                username=institutional_username(center),
-                first_name="Responsable",
-                last_name="Institucional",
-                role=User.Role.INSTITUTION,
-                organization=center,
-                job_title="Dirección del centro educativo",
-                is_staff=False,
-            )
-
-        account.is_active = True
-        account.must_change_password = False
-        # During the pilot all demo users intentionally share the same credential.
-        # Copying the encoded value avoids storing or exposing that password in plain text.
-        account.password = request.user.password
-        account.save()
-
-        center_was_inactive = not center.is_active
-        if center_was_inactive:
-            center.is_active = True
-            center.save(update_fields=["is_active", "updated_at"])
-
-        log_activity(
-            request,
-            "educational_center_activated",
-            target=center,
-            details={
-                "organization_code": center.code,
-                "institutional_user_id": account.pk,
-                "username": account.username,
-                "account_created": created,
-                "organization_reactivated": center_was_inactive,
-            },
-        )
-
-    messages.success(
-        request,
-        f"Centro activado. Su nombre de usuario es {account.username} y utiliza la clave común.",
-    )
+    get_object_or_404(Organization, pk=pk, kind=Organization.Kind.EDUCATIONAL_CENTER)
+    try:
+        account = invite_center(center_id=pk, actor=request.user, request=request)
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+    except (OSError, smtplib.SMTPException, IntegrityError):
+        # Do not expose SMTP responses, credentials or invitation links in messages/logs.
+        logging.getLogger(__name__).warning("No se pudo emitir la invitación del centro %s", pk)
+        messages.error(request, "No se pudo enviar la invitación. Revise el servicio de correo e intente nuevamente.")
+    else:
+        if settings.EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend":
+            messages.info(request, "Invitación simulada en desarrollo; el enlace aparece en la consola del servidor. No se envió correo.")
+        else:
+            messages.success(request, f"Invitación enviada a {account.email}. El acceso se habilitará al establecer la contraseña.")
     return redirect("director_educational_centers")
 
 
@@ -1630,35 +1585,33 @@ def historical_document_list(request):
     )
 
 
-@transaction.atomic
-def historical_document_create(request):
+def historical_document_create(request, organization_pk=None):
     if not request.user.is_authenticated:
         return redirect(f"/ingresar/?next={request.path}")
     if not request.user.is_audit_staff:
         raise PermissionDenied("Esta acción corresponde al personal de Auditoría.")
-    form = HistoricalDocumentForm(request.POST or None, request.FILES or None)
-    if request.method == "POST" and form.is_valid():
-        uploaded_file = form.cleaned_data["file"]
-        document = create_audit_document(
-            uploaded_file=uploaded_file,
-            user=request.user,
-            case=None,
-            organization=form.cleaned_data["organization"],
-            document_type=AuditDocument.DocumentType.HISTORICAL_REPORT,
-            reference=form.cleaned_data["reference"],
-            title=form.cleaned_data["title"],
-            document_date=form.cleaned_data["document_date"],
-            version=1,
-            status=AuditDocument.Status.HISTORICAL,
-            visibility=AuditDocument.Visibility.INSTITUTION,
-        )
-        log_activity(request, "historical_document_uploaded", target=document)
-        messages.success(
-            request,
-            "El informe anterior fue registrado. Ahora agregue sus recomendaciones pendientes.",
-        )
-        return redirect("historical_document_detail", pk=document.pk)
-    return render(request, "audits/historical_document_form.html", {"form": form})
+    center = get_object_or_404(Organization, pk=organization_pk,
+        kind=Organization.Kind.EDUCATIONAL_CENTER) if organization_pk is not None else None
+    data = request.POST if request.method == "POST" else None
+    form = HistoricalDocumentForm(data, request.FILES or None, organization=center)
+    attachments = HistoricalAttachmentFormSet(data, request.FILES or None, prefix="attachments")
+    if request.method == "POST":
+        valid_form = form.is_valid()
+        valid_attachments = attachments.is_valid()
+        if valid_form and valid_attachments:
+            try:
+                document = save_historical_bundle(user=request.user, report_data=form.cleaned_data,
+                    attachments=[item.cleaned_data for item in attachments if item.cleaned_data.get("file")])
+            except ValidationError as exc:
+                form.add_error(None, exc)
+            except OSError:
+                form.add_error(None, "No fue posible guardar los archivos. Vuelva a seleccionarlos e intente nuevamente.")
+            else:
+                messages.success(request, "Informe anterior y documentos registrados. Puede agregar recomendaciones o más documentos cuando lo necesite.")
+                return redirect("historical_document_detail", pk=document.pk)
+    return render(request, "audits/historical_document_form.html", {
+        "form": form, "attachments": attachments, "center": center,
+    })
 
 
 def historical_document_detail(request, pk):
@@ -1673,11 +1626,66 @@ def historical_document_detail(request, pk):
     )
     if not user_can_access_document(request.user, document):
         raise PermissionDenied("No tiene autorización para consultar este documento.")
+    attachments = document.attachments.all()
+    if not request.user.is_audit_staff:
+        attachments = attachments.filter(visibility=AuditDocument.Visibility.INSTITUTION,
+                                         status=AuditDocument.Status.HISTORICAL)
     return render(
         request,
         "audits/historical_document_detail.html",
-        {"document": document},
+        {"document": document, "attachments": attachments,
+         "visibility_choices": AuditDocument.Visibility.choices},
     )
+
+
+def historical_attachment_create(request, document_pk):
+    if not request.user.is_authenticated:
+        return redirect(f"/ingresar/?next={request.path}")
+    if not request.user.is_audit_staff:
+        raise PermissionDenied("Esta acción corresponde al personal de Auditoría.")
+    document = get_object_or_404(AuditDocument, pk=document_pk,
+        document_type=AuditDocument.DocumentType.HISTORICAL_REPORT,
+        parent_report__isnull=True, case__isnull=True)
+    data = request.POST if request.method == "POST" else None
+    attachments = HistoricalAttachmentFormSet(data, request.FILES or None,
+        prefix="attachments", require_one=True)
+    error = None
+    if request.method == "POST" and attachments.is_valid():
+        try:
+            save_historical_bundle(user=request.user, report_id=document.pk,
+                attachments=[item.cleaned_data for item in attachments if item.cleaned_data.get("file")])
+        except ValidationError as exc:
+            error = " ".join(exc.messages)
+        except OSError:
+            error = "No fue posible guardar los archivos. Vuelva a seleccionarlos e intente nuevamente."
+        else:
+            messages.success(request, "Documentos agregados al informe anterior.")
+            return redirect("historical_document_detail", pk=document.pk)
+    return render(request, "audits/historical_attachment_form.html", {
+        "document": document, "attachments": attachments, "error": error,
+    })
+
+
+@require_POST
+@transaction.atomic
+def historical_document_visibility(request, pk):
+    if not request.user.is_authenticated or not request.user.is_audit_staff:
+        raise PermissionDenied("Esta acción corresponde al personal de Auditoría.")
+    document = get_object_or_404(AuditDocument.objects.select_for_update(), pk=pk,
+                                status=AuditDocument.Status.HISTORICAL, case__isnull=True)
+    if not document.parent_report_id and document.document_type != AuditDocument.DocumentType.HISTORICAL_REPORT:
+        raise Http404
+    visibility = request.POST.get("visibility")
+    if visibility not in AuditDocument.Visibility.values:
+        return HttpResponseBadRequest("Seleccione una visibilidad válida.")
+    previous = document.visibility
+    if previous != visibility:
+        document.visibility = visibility
+        document.save(update_fields=["visibility"])
+        log_activity(request, "historical_document_visibility_changed", target=document,
+                     details={"previous": previous, "new": visibility})
+    messages.success(request, "Visibilidad guardada.")
+    return redirect("historical_document_detail", pk=document.parent_report_id or document.pk)
 
 
 @transaction.atomic

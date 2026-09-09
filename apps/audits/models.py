@@ -2,6 +2,7 @@ import uuid
 from pathlib import Path
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -81,6 +82,10 @@ class AuditDocument(models.Model):
         HISTORICAL_REPORT = "historical_report", "Informe anterior"
         REPORT = "report", "Informe del expediente"
         NOTIFICATION = "notification", "Notificación"
+        HISTORICAL_RESPONSE = "historical_response", "Respuesta anterior"
+        HISTORICAL_EVIDENCE = "historical_evidence", "Evidencia anterior"
+        HISTORICAL_EXTENSION = "historical_extension", "Prórroga anterior"
+        HISTORICAL_CLOSURE = "historical_closure", "Cierre anterior"
         OTHER = "other", "Otro documento"
 
     class Status(models.TextChoices):
@@ -114,6 +119,11 @@ class AuditDocument(models.Model):
         choices=DocumentType.choices,
     )
     reference = models.CharField("referencia", max_length=80, blank=True)
+    parent_report = models.ForeignKey(
+        "self", verbose_name="informe anterior relacionado", on_delete=models.PROTECT,
+        null=True, blank=True, related_name="attachments",
+        limit_choices_to={"document_type": "historical_report", "parent_report__isnull": True},
+    )
     title = models.CharField("título", max_length=300)
     document_date = models.DateField("fecha del documento", null=True, blank=True)
     version = models.PositiveIntegerField("versión", default=1, validators=[MinValueValidator(1)])
@@ -151,8 +161,30 @@ class AuditDocument(models.Model):
                 fields=("case", "document_type", "version"),
                 condition=models.Q(case__isnull=False),
                 name="unique_document_version_per_case_and_type",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=("parent_report", "sha256"),
+                condition=models.Q(parent_report__isnull=False),
+                name="unique_file_per_historical_report",
+            ),
         ]
+
+    def clean(self):
+        super().clean()
+        archived_types = {self.DocumentType.HISTORICAL_RESPONSE, self.DocumentType.HISTORICAL_EVIDENCE,
+                          self.DocumentType.HISTORICAL_EXTENSION, self.DocumentType.HISTORICAL_CLOSURE}
+        if self.document_type in archived_types and not self.parent_report_id:
+            raise ValidationError({"parent_report": "Seleccione el informe anterior al que pertenece el documento."})
+        if self.parent_report_id:
+            parent = self.parent_report
+            if (parent.document_type != self.DocumentType.HISTORICAL_REPORT
+                    or parent.parent_report_id or parent.case_id or parent.pk == self.pk
+                    or parent.organization_id != self.organization_id
+                    or parent.status != self.Status.HISTORICAL):
+                raise ValidationError({"parent_report": "El documento debe pertenecer a un informe anterior del mismo centro."})
+            if (self.case_id or self.status != self.Status.HISTORICAL
+                    or self.document_type in {self.DocumentType.REPORT, self.DocumentType.HISTORICAL_REPORT}):
+                raise ValidationError("Los anexos históricos deben conservar su clasificación y estado anterior.")
 
     def __str__(self):
         return f"{self.reference or self.title} / v{self.version}"

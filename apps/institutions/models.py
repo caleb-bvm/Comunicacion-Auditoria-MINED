@@ -28,6 +28,7 @@ class Organization(models.Model):
 
     code = models.CharField("código institucional", max_length=30, unique=True)
     name = models.CharField("nombre", max_length=255)
+    email = models.EmailField("correo institucional", max_length=254, blank=True)
     kind = models.CharField("tipo", max_length=30, choices=Kind.choices)
     educational_center_type = models.CharField(
         "tipo de centro educativo",

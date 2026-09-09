@@ -97,6 +97,7 @@ class Command(BaseCommand):
         center, _ = Organization.objects.update_or_create(
             code="10754",
             defaults={
+                "email": "10754@clases.edu.sv",
                 "name": "Instituto Nacional de Nahuizalco",
                 "kind": Organization.Kind.EDUCATIONAL_CENTER,
                 "educational_center_type": "Instituto",
@@ -109,6 +110,7 @@ class Command(BaseCommand):
         florinda_center, _ = Organization.objects.update_or_create(
             code="10471",
             defaults={
+                "email": "10471@clases.edu.sv",
                 "name": "Centro Escolar Florinda B. González",
                 "kind": Organization.Kind.EDUCATIONAL_CENTER,
                 "educational_center_type": "Centro escolar",
@@ -121,6 +123,7 @@ class Command(BaseCommand):
         comunidad_center, _ = Organization.objects.update_or_create(
             code="11489",
             defaults={
+                "email": "11489@clases.edu.sv",
                 "name": "Complejo Educativo Comunidad 10 de Octubre",
                 "kind": Organization.Kind.EDUCATIONAL_CENTER,
                 "educational_center_type": "Complejo educativo",
@@ -195,12 +198,14 @@ class Command(BaseCommand):
                 "must_change_password": False,
             },
         )
+        if not User.objects.filter(username=center.code).exists():
+            User.objects.filter(username=f"centro.{center.code}", organization=center).update(username=center.code)
         institutional, institutional_created = User.objects.update_or_create(
-            username="centro.10754",
+            username=center.code,
             defaults={
                 "first_name": "Responsable",
                 "last_name": "Institucional",
-                "email": "centro.10754@localhost",
+                "email": center.email or "10754@example.edu.sv",
                 "role": User.Role.INSTITUTION,
                 "organization": center,
                 "job_title": "Dirección del centro educativo",
@@ -270,7 +275,7 @@ class Command(BaseCommand):
         credentials = [
             ("Auditoría", "auditor.demo", auditor_created),
             ("Dirección", "directora.demo", director_created),
-            ("Centro educativo", "centro.10754", institutional_created),
+            ("Centro educativo", "10754", institutional_created),
         ]
         for label, username, created in credentials:
             if created or reset_passwords:

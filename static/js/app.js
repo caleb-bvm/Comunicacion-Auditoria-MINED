@@ -1,4 +1,35 @@
 (() => {
+    document.querySelectorAll("[data-historical-attachments]").forEach((section) => {
+        const total = section.querySelector('[name="attachments-TOTAL_FORMS"]');
+        const rows = section.querySelector("[data-attachment-rows]");
+        const template = section.querySelector("[data-attachment-template]");
+        const add = section.querySelector("[data-add-attachment]");
+        const limit = section.querySelector("[data-attachment-limit]");
+        if (!total || !rows || !template || !add) return;
+        const updateLimit = () => {
+            const reached = Number(total.value) >= Number(section.dataset.maxForms);
+            add.disabled = reached;
+            if (limit) limit.hidden = !reached;
+        };
+        add.addEventListener("click", () => {
+            const index = Number(total.value);
+            if (index >= Number(section.dataset.maxForms)) return;
+            const fragment = template.content.cloneNode(true);
+            fragment.querySelectorAll("[name], [id], [for], [aria-describedby]").forEach((element) => {
+                ["name", "id", "for", "aria-describedby"].forEach((attribute) => {
+                    if (element.hasAttribute(attribute)) {
+                        element.setAttribute(attribute, element.getAttribute(attribute).replaceAll("__prefix__", String(index)));
+                    }
+                });
+            });
+            rows.append(fragment);
+            total.value = index + 1;
+            updateLimit();
+            rows.lastElementChild?.querySelector("input, select")?.focus();
+        });
+        updateLimit();
+    });
+
     const moreTrigger = document.querySelector(".mobile-more-trigger");
     const moreMenu = document.querySelector(".mobile-more-menu");
     const moreScrim = document.querySelector(".mobile-more-scrim");

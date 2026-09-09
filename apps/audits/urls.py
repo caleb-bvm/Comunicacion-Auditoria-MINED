@@ -1,9 +1,16 @@
 from django.urls import path
 
 from . import views
+from . import historical_bulk
 
 
 urlpatterns = [
+    path("documentos-historicos/carga-multiple/", historical_bulk.historical_bulk_upload,
+         name="historical_bulk_upload"),
+    path("centros/<int:organization_pk>/informes-anteriores/carga-multiple/", historical_bulk.historical_bulk_upload,
+         name="center_historical_bulk_upload"),
+    path("centros/<int:organization_pk>/informes-anteriores/carga-multiple/archivo/", historical_bulk.historical_bulk_file,
+         name="historical_bulk_file"),
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("mi-historial/", views.institution_history, name="institution_history"),
     path("direccion/", views.DirectorDashboardView.as_view(), name="director_dashboard"),
@@ -80,6 +87,12 @@ urlpatterns = [
         views.historical_document_create,
         name="historical_document_create",
     ),
+    path("centros/<int:organization_pk>/informes-anteriores/nuevo/",
+         views.historical_document_create, name="center_historical_document_create"),
+    path("documentos-historicos/<int:document_pk>/documentos/nuevo/",
+         views.historical_attachment_create, name="historical_attachment_create"),
+    path("documentos-historicos/documentos/<int:pk>/visibilidad/",
+         views.historical_document_visibility, name="historical_document_visibility"),
     path(
         "documentos-historicos/<int:pk>/",
         views.historical_document_detail,
