@@ -19,6 +19,7 @@ from django.views.generic import ListView, TemplateView
 
 from apps.accounts.models import User
 from apps.accounts.activation import invite_center
+from apps.core.scanning import protected_file_response
 from apps.institutions.models import Organization, SchoolBoardPeriod
 
 from .forms import (
@@ -2200,17 +2201,14 @@ def download_audit_document(request, pk):
     )
     if not user_can_access_document(request.user, document):
         raise PermissionDenied("No tiene autorización para descargar este documento.")
-    log_activity(
-        request,
-        "audit_document_downloaded",
-        case=document.case,
-        target=document,
-    )
-    return FileResponse(
+    response = protected_file_response(
         document.file.open("rb"),
         as_attachment=True,
         filename=document.original_filename,
     )
+    if response.status_code == 200:
+        log_activity(request, "audit_document_downloaded", case=document.case, target=document)
+    return response
 
 
 def download_report(request, pk):
@@ -2232,20 +2230,24 @@ def download_report(request, pk):
     if document:
         if not user_can_access_document(request.user, document):
             raise PermissionDenied("No tiene autorización para descargar este informe.")
-        log_activity(request, "report_downloaded", case=case, target=document)
-        return FileResponse(
+        response = protected_file_response(
             document.file.open("rb"),
             as_attachment=True,
             filename=document.original_filename,
         )
+        if response.status_code == 200:
+            log_activity(request, "report_downloaded", case=case, target=document)
+        return response
     if not case.report_file:
         raise Http404("Este expediente no tiene un informe adjunto.")
-    log_activity(request, "report_downloaded", case=case, target=case)
-    return FileResponse(
+    response = protected_file_response(
         case.report_file.open("rb"),
         as_attachment=True,
         filename=f"{case.reference}.pdf",
     )
+    if response.status_code == 200:
+        log_activity(request, "report_downloaded", case=case, target=case)
+    return response
 
 
 @transaction.atomic
@@ -2303,11 +2305,8 @@ def respond_recommendation(request, pk):
                     description=form.cleaned_data["evidence_description"],
                     size=uploaded_file.size,
                     sha256=digest.hexdigest(),
-                    scan_status=(
-                        Evidence.ScanStatus.PENDING
-                        if settings.FILE_SCAN_REQUIRED
-                        else Evidence.ScanStatus.CLEAN
-                    ),
+                    # El formulario ya verificó el archivo con el antivirus.
+                    scan_status=Evidence.ScanStatus.CLEAN,
                     uploaded_by=request.user,
                 )
 
@@ -2401,12 +2400,14 @@ def download_evidence(request, pk):
         raise PermissionDenied("No tiene autorización para descargar esta evidencia.")
     if settings.FILE_SCAN_REQUIRED and evidence.scan_status != Evidence.ScanStatus.CLEAN:
         raise Http404("La evidencia aún no está disponible.")
-    log_activity(request, "evidence_downloaded", case=case, target=evidence)
-    return FileResponse(
+    response = protected_file_response(
         evidence.file.open("rb"),
         as_attachment=True,
         filename=evidence.original_filename,
     )
+    if response.status_code == 200:
+        log_activity(request, "evidence_downloaded", case=case, target=evidence)
+    return response
 
 
 def response_receipt(request, pk):

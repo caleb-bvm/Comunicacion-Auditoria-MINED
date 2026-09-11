@@ -3,6 +3,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from .scanning import scan_file
 
 
 ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".docx", ".xlsx"}
@@ -48,4 +49,4 @@ def validate_evidence_file(uploaded_file):
                 raise ValidationError("El documento de Office está dañado o no es válido.") from exc
     finally:
         uploaded_file.seek(position)
-
+    scan_file(uploaded_file)

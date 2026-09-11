@@ -19,3 +19,6 @@ DATABASES = {
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 FILE_SCAN_REQUIRED = False
+# Las pruebas de seguridad activan Axes explícitamente; producción lo exige.
+AXES_ENABLED = False
+ALLOW_DEMO_DATA = True

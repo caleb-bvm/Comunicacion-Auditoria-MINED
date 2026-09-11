@@ -51,7 +51,7 @@ La publicación y el cierre requieren una decisión de la Dirección de Auditor�
 
 ## Archivos
 
-Los formatos iniciales permitidos son PDF, JPG, PNG, DOCX y XLSX. La validación comprueba extensión, tamaño, firma básica y estructura interna de los documentos de Office. En producción, `FILE_SCAN_REQUIRED=true` mantiene los archivos sin disponibilidad hasta que el servicio antivirus los marque como aprobados.
+Los formatos iniciales permitidos son PDF, JPG, PNG, DOCX y XLSX. La validación comprueba extensión, tamaño, firma básica y estructura interna de los documentos de Office. En producción, ClamAV verifica las cargas antes de aceptarlas y se repite el análisis al descargar documentos privados, después de comprobar los permisos. Si el motor rechaza el archivo o no está disponible, se impide la operación. Las evidencias antiguas pendientes pueden verificarse mediante `scan_pending_evidence`. Consulte [la guía de despliegue seguro](production-security.md).
 
 Los nuevos informes se elaboran fuera del sistema y se cargan en Word. Cada carga crea una
 versión independiente. La Dirección aprueba o devuelve el informe completo; solamente la

@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 
@@ -23,6 +24,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "axes",
     "apps.core",
     "apps.accounts",
     "apps.institutions",
@@ -35,10 +37,11 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.core.middleware.SecurityHeadersMiddleware",
     "apps.accounts.middleware.MustChangePasswordMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "apps.core.middleware.SecurityHeadersMiddleware",
+    "axes.middleware.AxesMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -85,6 +88,22 @@ MEDIA_URL = "/archivos-privados/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+AXES_ENABLED = True
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_LOCKOUT_PARAMETERS = ["username"]
+AXES_RESET_ON_SUCCESS = True
+AXES_CLIENT_IP_CALLABLE = "apps.accounts.security.client_ip"
+AXES_LOCKOUT_CALLABLE = "apps.accounts.security.lockout_response"
+AXES_SENSITIVE_PARAMETERS = ["username", "ip_address"]
+# El bloqueo por cuenta resiste cambios de IP/cookies y no bloquea otros centros
+# detrás de una misma red. Nginx aplica el límite complementario por IP.
+SILENCED_SYSTEM_CHECKS = ["axes.W006"]
+ALLOW_DEMO_DATA = False
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
@@ -93,6 +112,10 @@ FILE_MAX_UPLOAD_MB = int(os.getenv("FILE_MAX_UPLOAD_MB", "20"))
 DATA_UPLOAD_MAX_MEMORY_SIZE = FILE_MAX_UPLOAD_MB * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 FILE_SCAN_REQUIRED = env_bool("FILE_SCAN_REQUIRED", default=False)
+CLAMAV_HOST = os.getenv("CLAMAV_HOST", "127.0.0.1")
+CLAMAV_PORT = int(os.getenv("CLAMAV_PORT", "3310"))
+CLAMAV_TIMEOUT = 10
+SESSION_ABSOLUTE_TIMEOUT = 8 * 60 * 60
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"

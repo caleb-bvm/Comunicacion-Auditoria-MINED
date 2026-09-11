@@ -84,6 +84,8 @@ El despliegue no debe considerarse terminado hasta completar estas tres comproba
 
 ## Producción
 
+La preparación de seguridad, las plantillas de servidor y las comprobaciones previas al piloto están en [Despliegue seguro y operación inicial](docs/production-security.md). Incluyen protección de acceso, análisis antivirus de documentos y configuración de Nginx/systemd. Deben adaptarse y verificarse en el servidor antes de abrir el acceso externo.
+
 La aplicación de producción usa `config.settings.production`, PostgreSQL y variables de entorno. Consulte [.env.example](.env.example) como inventario de configuración. El almacenamiento de evidencias debe ubicarse fuera del directorio público y conectarse con el antivirus institucional antes de habilitar descargas.
 
 Nunca use el servidor de desarrollo ni la clave incluida en `config/settings/development.py` en un servidor institucional.

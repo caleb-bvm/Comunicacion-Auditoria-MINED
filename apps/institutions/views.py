@@ -4,12 +4,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.http import FileResponse, Http404
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.audits.models import ActivityLog, AuditCase
+from apps.core.scanning import protected_file_response
 
 from .forms import (
     SchoolBoardMemberDepartureForm,
@@ -361,7 +362,7 @@ def cde_period_document(request, pk):
     _require_cde_view(request.user, period.organization)
     if not period.supporting_document:
         raise Http404("El período no tiene un documento asociado.")
-    return FileResponse(
+    return protected_file_response(
         period.supporting_document.open("rb"),
         as_attachment=True,
         filename=period.supporting_document_name or Path(period.supporting_document.name).name,
@@ -377,7 +378,7 @@ def cde_member_document(request, pk):
     _require_cde_view(request.user, member.period.organization)
     if not member.change_document:
         raise Http404("El integrante no tiene un documento de cambio asociado.")
-    return FileResponse(
+    return protected_file_response(
         member.change_document.open("rb"),
         as_attachment=True,
         filename=member.change_document_name or Path(member.change_document.name).name,

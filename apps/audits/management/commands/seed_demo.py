@@ -6,7 +6,8 @@ from xml.sax.saxutils import escape
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from django.core.files.base import ContentFile
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from reportlab.lib.pagesizes import LETTER
 from reportlab.pdfgen import canvas
@@ -93,6 +94,8 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if not settings.ALLOW_DEMO_DATA:
+            raise CommandError("Los datos de demostración no se permiten en producción.")
         reset_passwords = options["reset_passwords"]
         center, _ = Organization.objects.update_or_create(
             code="10754",
