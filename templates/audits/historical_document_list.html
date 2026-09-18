@@ -6,17 +6,27 @@
     <div class="button-group"><a class="button button-secondary" href="{% url 'historical_document_create' %}">Registrar informe anterior</a><a class="button button-primary" href="{% url 'historical_bulk_upload' %}">Carga múltiple</a></div>
 </div>
 
-<form method="get" class="filter-bar" role="search" aria-label="Buscar informes">
+<form method="get" class="filter-bar report-filter-bar" role="search" aria-label="Buscar informes" data-location-filters>
     <div class="field grow search-field">
         <label for="q">Buscar</label>
         <input id="q" name="q" value="{{ request.GET.q }}" placeholder="Referencia, centro o recomendación">
     </div>
     <div class="field">
-        <label for="type">Tipo</label>
-        <select id="type" name="type">
+        <label for="department">Departamento</label>
+        <select id="department" name="department">
             <option value="">Todos</option>
-            <option value="report" {% if selected_document_type == 'report' %}selected{% endif %}>De expedientes</option>
-            <option value="historical_report" {% if selected_document_type == 'historical_report' %}selected{% endif %}>Anteriores</option>
+            {% for department in department_options %}
+            <option value="{{ department }}" {% if selected_department == department %}selected{% endif %}>{{ department }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="field">
+        <label for="district">Distrito</label>
+        <select id="district" name="district">
+            <option value="">Todos</option>
+            {% for district in district_options %}
+            <option value="{{ district }}" {% if selected_district == district %}selected{% endif %}>{{ district }}</option>
+            {% endfor %}
         </select>
     </div>
     <div class="field">
@@ -79,7 +89,7 @@
             </table>
         </div>
         {% else %}
-        <div class="empty-state"><h3>No se encontraron informes</h3>{% if request.GET.q or selected_document_type or selected_organization %}<p>Modifique los filtros para ampliar los resultados.</p>{% endif %}</div>
+        <div class="empty-state"><h3>No se encontraron informes</h3>{% if request.GET.q or selected_department or selected_district or selected_organization %}<p>Modifique los filtros para ampliar los resultados.</p>{% endif %}</div>
         {% endif %}
     </div>
 </section>

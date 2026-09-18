@@ -72,6 +72,14 @@
     statusField?.addEventListener("change", updateResponseFields);
     updateResponseFields();
 
+    document.querySelectorAll("[data-location-filters]").forEach((form) => {
+        const department = form.querySelector('[name="department"]');
+        const district = form.querySelector('[name="district"]');
+        department?.addEventListener("change", () => {
+            if (district) district.value = "";
+        });
+    });
+
     const analysisForm = document.querySelector(".territorial-filter[data-analysis-mode]");
     const periodFilter = analysisForm?.querySelector("[data-period-filter]");
     const periodOptions = periodFilter
@@ -90,7 +98,6 @@
         ? Array.from(analysisForm.querySelectorAll("select"))
         : [];
     const departmentFilter = analysisForm?.querySelector("#department");
-    const municipalityFilter = analysisForm?.querySelector("#municipality");
     const districtFilter = analysisForm?.querySelector("#district");
     const advancedAnalysisFilters = analysisForm?.querySelector(
         ".territorial-advanced-filters"
@@ -222,10 +229,7 @@
     analysisSelects.forEach((select) => {
         select.addEventListener("change", () => {
             if (select === departmentFilter) {
-                if (municipalityFilter) municipalityFilter.value = "";
                 if (districtFilter) districtFilter.value = "";
-            } else if (select === municipalityFilter && districtFilter) {
-                districtFilter.value = "";
             }
             submitAnalysisFilters(80);
         });

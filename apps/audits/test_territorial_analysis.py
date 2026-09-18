@@ -295,7 +295,7 @@ class TerritorialAnalysisTests(TestCase):
         self.assertEqual(department_a["audited_count"], 1)
         self.assertEqual(department_a["coverage_rate"], 50)
 
-    def test_geographic_filters_are_chained_and_invalid_combination_is_empty(self):
+    def test_district_options_and_results_are_limited_to_selected_department(self):
         self.client.force_login(self.director)
         url = reverse("director_statistics")
 
@@ -303,7 +303,6 @@ class TerritorialAnalysisTests(TestCase):
             url,
             {
                 "department": "Departamento A",
-                "municipality": "Municipio A",
                 "district": "Distrito A2",
                 "group_by": "district",
             },
@@ -312,14 +311,31 @@ class TerritorialAnalysisTests(TestCase):
             url,
             {
                 "department": "Departamento A",
-                "municipality": "Municipio B",
+                "district": "Distrito B1",
             },
         )
 
+        self.assertEqual(district.context["district_options"], ["Distrito A1", "Distrito A2"])
+        self.assertNotContains(district, 'name="municipality"')
+        self.assertNotContains(district, "Distrito B1")
         self.assertEqual(district.context["center_count"], 1)
         self.assertEqual(district.context["centers"][0], self.center_without_audits)
         self.assertEqual(invalid.context["center_count"], 0)
         self.assertNotContains(invalid, self.center_a.name)
+
+    def test_center_directory_uses_correlated_district_filter(self):
+        self.client.force_login(self.director)
+
+        response = self.client.get(
+            reverse("director_educational_centers"),
+            {"department": "Departamento A", "district": "Distrito A2"},
+        )
+
+        self.assertEqual(list(response.context["district_options"]), ["Distrito A1", "Distrito A2"])
+        self.assertNotContains(response, 'name="municipality"')
+        self.assertContains(response, self.center_without_audits.name)
+        self.assertNotContains(response, self.center_a.name)
+        self.assertNotContains(response, self.center_b.name)
 
     def test_old_overdue_obligation_remains_in_current_snapshot_with_30_day_period(self):
         case, _recommendation = self._recommendation(

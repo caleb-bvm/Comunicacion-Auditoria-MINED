@@ -35,7 +35,6 @@ PERIOD_CHOICES = (
 
 GROUP_CHOICES = (
     ("department", "Departamento"),
-    ("municipality", "Municipio"),
     ("district", "Distrito"),
 )
 
@@ -139,34 +138,19 @@ def _geography_options(params):
         .distinct()
         .order_by("department")
     )
-    municipalities = centers
     selected_department = params.get("department", "").strip()
-    if selected_department:
-        municipalities = municipalities.filter(department=selected_department)
-    municipalities = list(
-        municipalities.exclude(municipality="")
-        .values_list("municipality", flat=True)
-        .distinct()
-        .order_by("municipality")
-    )
-
     districts = []
     if hasattr(Organization, "district"):
         district_queryset = centers
         if selected_department:
             district_queryset = district_queryset.filter(department=selected_department)
-        selected_municipality = params.get("municipality", "").strip()
-        if selected_municipality:
-            district_queryset = district_queryset.filter(
-                municipality=selected_municipality
-            )
         districts = list(
             district_queryset.exclude(district="")
             .values_list("district", flat=True)
             .distinct()
             .order_by("district")
         )
-    return departments, municipalities, districts
+    return departments, districts
 
 
 def _matches_center_filters(center, filters):
@@ -258,7 +242,6 @@ def _quick_filters(centers, filters):
     query_params = {
         "mode": "current",
         "department": filters["selected_department"],
-        "municipality": filters["selected_municipality"],
         "district": filters["selected_district"],
         "group_by": filters["selected_group_by"],
         "period": filters["selected_period"],
@@ -528,12 +511,10 @@ def build_territorial_analysis(params, today=None):
         # The current snapshot deliberately uses the complete consolidated history.
         # Period validation belongs only to the activity view.
         errors = []
-    departments, municipalities, districts = _geography_options(params)
+    departments, districts = _geography_options(params)
 
-    if params.get("municipality") and hasattr(Organization, "district"):
+    if params.get("department"):
         default_group = "district"
-    elif params.get("department"):
-        default_group = "municipality"
     else:
         default_group = "department"
 
@@ -562,7 +543,6 @@ def build_territorial_analysis(params, today=None):
         "start_date": start_date,
         "end_date": end_date,
         "selected_department": params.get("department", "").strip(),
-        "selected_municipality": params.get("municipality", "").strip(),
         "selected_district": params.get("district", "").strip(),
         "selected_group_by": selected_group,
         "selected_group_label": _territory_label(selected_group),
@@ -582,10 +562,6 @@ def build_territorial_analysis(params, today=None):
     if filters["selected_department"]:
         center_queryset = center_queryset.filter(
             department=filters["selected_department"]
-        )
-    if filters["selected_municipality"]:
-        center_queryset = center_queryset.filter(
-            municipality=filters["selected_municipality"]
         )
     if filters["selected_district"] and hasattr(Organization, "district"):
         center_queryset = center_queryset.filter(district=filters["selected_district"])
@@ -669,7 +645,6 @@ def build_territorial_analysis(params, today=None):
         "period_choices": PERIOD_CHOICES,
         "group_choices": GROUP_CHOICES,
         "department_options": departments,
-        "municipality_options": municipalities,
         "district_options": districts,
         "district_supported": hasattr(Organization, "district"),
         "quick_filters": quick_filters,
@@ -715,11 +690,10 @@ def build_territorial_analysis(params, today=None):
         "monthly_activity_max": monthly_activity_max,
         "never_audited_centers": sorted(
             (center for center in centers if not center.case_count),
-            key=lambda center: (center.department, center.municipality, center.name),
+            key=lambda center: (center.department, center.district, center.name),
         )[:12],
         "data_quality": {
             "without_department": sum(not center.department for center in centers),
-            "without_municipality": sum(not center.municipality for center in centers),
             "without_district": (
                 sum(not getattr(center, "district", "") for center in centers)
                 if hasattr(Organization, "district")

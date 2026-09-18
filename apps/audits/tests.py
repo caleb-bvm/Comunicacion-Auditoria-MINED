@@ -1303,7 +1303,7 @@ class AccessAndWorkflowTests(TestCase):
             1,
         )
 
-    def test_report_repository_combines_and_filters_report_types(self):
+    def test_report_repository_combines_report_types_without_type_filter(self):
         current_document = AuditDocument.objects.create(
             case=self.case,
             organization=self.center,
@@ -1350,20 +1350,57 @@ class AccessAndWorkflowTests(TestCase):
         self.assertContains(combined, previous_document.reference)
         self.assertContains(combined, "Informe del expediente")
         self.assertContains(combined, "Informe anterior")
+        self.assertNotContains(combined, 'name="type"')
 
-        current_only = self.client.get(
+        legacy_type_parameter = self.client.get(
             reverse("historical_document_list"),
             {"type": AuditDocument.DocumentType.REPORT},
         )
-        self.assertContains(current_only, current_document.reference)
-        self.assertNotContains(current_only, previous_document.reference)
+        self.assertContains(legacy_type_parameter, current_document.reference)
+        self.assertContains(legacy_type_parameter, previous_document.reference)
 
-        previous_only = self.client.get(
-            reverse("historical_document_list"),
-            {"type": AuditDocument.DocumentType.HISTORICAL_REPORT},
+    def test_report_repository_filters_by_correlated_department_and_district(self):
+        self.center.department = "Departamento A"
+        self.center.district = "Distrito A1"
+        self.center.save(update_fields=["department", "district"])
+        self.other_center.department = "Departamento B"
+        self.other_center.district = "Distrito B1"
+        self.other_center.save(update_fields=["department", "district"])
+        included = AuditDocument.objects.create(
+            organization=self.center,
+            document_type=AuditDocument.DocumentType.HISTORICAL_REPORT,
+            reference="IA-UBICACION-A",
+            title="Informe del departamento A",
+            status=AuditDocument.Status.HISTORICAL,
+            file=SimpleUploadedFile("ubicacion-a.pdf", b"%PDF-1.4\na"),
+            original_filename="ubicacion-a.pdf",
+            size=11,
+            sha256="a" * 64,
+            uploaded_by=self.auditor,
         )
-        self.assertNotContains(previous_only, current_document.reference)
-        self.assertContains(previous_only, previous_document.reference)
+        excluded = AuditDocument.objects.create(
+            organization=self.other_center,
+            document_type=AuditDocument.DocumentType.HISTORICAL_REPORT,
+            reference="IA-UBICACION-B",
+            title="Informe del departamento B",
+            status=AuditDocument.Status.HISTORICAL,
+            file=SimpleUploadedFile("ubicacion-b.pdf", b"%PDF-1.4\nb"),
+            original_filename="ubicacion-b.pdf",
+            size=11,
+            sha256="b" * 64,
+            uploaded_by=self.auditor,
+        )
+        self.client.force_login(self.director)
+
+        result = self.client.get(
+            reverse("historical_document_list"),
+            {"department": "Departamento A", "district": "Distrito A1"},
+        )
+
+        self.assertEqual(list(result.context["district_options"]), ["Distrito A1"])
+        self.assertContains(result, included.reference)
+        self.assertNotContains(result, excluded.reference)
+        self.assertNotContains(result, "Distrito B1")
 
     def test_report_repository_hides_unassigned_case_reports_from_auditor(self):
         assigned_document = AuditDocument.objects.create(
@@ -1415,6 +1452,10 @@ class AccessAndWorkflowTests(TestCase):
 
         self.assertContains(result, assigned_document.reference)
         self.assertNotContains(result, hidden_document.reference)
+        self.assertEqual(
+            list(result.context["organizations"]),
+            [self.center],
+        )
 
     def test_auditor_can_upload_versioned_word_report(self):
         draft_case = AuditCase.objects.create(

@@ -955,7 +955,6 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
         query = self.request.GET.get("q", "").strip()
         access = self.request.GET.get("access", "")
         department = self.request.GET.get("department", "").strip()
-        municipality = self.request.GET.get("municipality", "").strip()
         district = self.request.GET.get("district", "").strip()
         attention = self.request.GET.get("attention", "")
         risk = self.request.GET.get("risk", "")
@@ -968,8 +967,6 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
             )
         if department:
             queryset = queryset.filter(department=department)
-        if municipality:
-            queryset = queryset.filter(municipality=municipality)
         if district:
             queryset = queryset.filter(district=district)
         if access == "active":
@@ -1019,18 +1016,16 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
         enrich_centers(centers)
         context["centers"] = centers
         selected_department = self.request.GET.get("department", "").strip()
-        municipalities = Organization.objects.filter(
+        districts = Organization.objects.filter(
             kind=Organization.Kind.EDUCATIONAL_CENTER
         )
         if selected_department:
-            municipalities = municipalities.filter(department=selected_department)
-        selected_municipality = self.request.GET.get("municipality", "").strip()
+            districts = districts.filter(department=selected_department)
         context.update(
             {
                 "query": self.request.GET.get("q", "").strip(),
                 "selected_access": self.request.GET.get("access", ""),
                 "selected_department": selected_department,
-                "selected_municipality": selected_municipality,
                 "selected_district": self.request.GET.get("district", "").strip(),
                 "selected_attention": self.request.GET.get("attention", ""),
                 "selected_risk": self.request.GET.get("risk", ""),
@@ -1043,10 +1038,10 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
                 .values_list("department", flat=True)
                 .distinct()
                 .order_by("department"),
-                "municipality_options": municipalities.exclude(municipality="")
-                .values_list("municipality", flat=True)
+                "district_options": districts.exclude(district="")
+                .values_list("district", flat=True)
                 .distinct()
-                .order_by("municipality"),
+                .order_by("district"),
                 "total_centers": all_centers.count(),
                 "audited_centers": all_centers.filter(case_count__gt=0).count(),
                 "immediate_attention_centers": all_centers.filter(
@@ -1274,7 +1269,7 @@ def director_decision_detail(request, pk):
     if not user_is_director(request.user):
         raise PermissionDenied("Esta decisión corresponde a la Dirección de Auditoría.")
     decision = get_object_or_404(
-        CaseDecision.objects.select_for_update().select_related(
+        CaseDecision.objects.select_for_update(of=("self",)).select_related(
             "case__audited_organization",
             "case__assigned_auditor",
             "document",
@@ -1369,8 +1364,35 @@ class CaseListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = accessible_cases(self.request.user)
         search = self.request.GET.get("q", "").strip()
-        status = self.request.GET.get("status", "").strip()
         organization_id = self.request.GET.get("organization", "").strip()
+        department = self.request.GET.get("department", "").strip()
+        district = self.request.GET.get("district", "").strip()
+        geographic_organizations = Organization.objects.filter(
+            audit_cases__in=queryset,
+            kind=Organization.Kind.EDUCATIONAL_CENTER,
+        ).distinct()
+        self.department_options = list(
+            geographic_organizations.exclude(department="")
+            .values_list("department", flat=True)
+            .distinct()
+            .order_by("department")
+        )
+        district_organizations = geographic_organizations
+        if department:
+            district_organizations = district_organizations.filter(
+                department=department
+            )
+        self.district_options = list(
+            district_organizations.exclude(district="")
+            .values_list("district", flat=True)
+            .distinct()
+            .order_by("district")
+        )
+        if district and district not in self.district_options:
+            district = ""
+        self.selected_department = department
+        self.selected_district = district
+        self.organization_options = geographic_organizations.order_by("name")
         self.selected_organization = None
         self.invalid_organization_filter = False
         if organization_id and self.request.user.is_audit_staff:
@@ -1394,20 +1416,26 @@ class CaseListView(LoginRequiredMixin, ListView):
                 | Q(assigned_auditor__first_name__icontains=search)
                 | Q(assigned_auditor__last_name__icontains=search)
             )
-        if status in AuditCase.Status.values:
-            queryset = queryset.filter(status=status)
+        if department:
+            queryset = queryset.filter(audited_organization__department=department)
+        if district:
+            queryset = queryset.filter(audited_organization__district=district)
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(
             {
-                "statuses": AuditCase.Status.choices,
                 "selected_organization": self.selected_organization,
                 "selected_organization_id": (
                     str(self.selected_organization.pk) if self.selected_organization else ""
                 ),
                 "invalid_organization_filter": self.invalid_organization_filter,
+                "organizations": self.organization_options,
+                "department_options": self.department_options,
+                "district_options": self.district_options,
+                "selected_department": self.selected_department,
+                "selected_district": self.selected_district,
             }
         )
         return context
@@ -1538,7 +1566,31 @@ def historical_document_list(request):
 
     search = request.GET.get("q", "").strip()
     organization_id = request.GET.get("organization", "").strip()
-    document_type = request.GET.get("type", "").strip()
+    department = request.GET.get("department", "").strip()
+    district = request.GET.get("district", "").strip()
+
+    geographic_organizations = Organization.objects.filter(
+        audit_documents__in=documents
+    ).distinct()
+    departments = (
+        geographic_organizations.exclude(department="")
+        .values_list("department", flat=True)
+        .distinct()
+        .order_by("department")
+    )
+    district_organizations = geographic_organizations
+    if department:
+        district_organizations = district_organizations.filter(
+            department=department
+        )
+    districts = list(
+        district_organizations.exclude(district="")
+        .values_list("district", flat=True)
+        .distinct()
+        .order_by("district")
+    )
+    if district and district not in districts:
+        district = ""
 
     if search:
         documents = documents.filter(
@@ -1553,15 +1605,10 @@ def historical_document_list(request):
         ).distinct()
     if organization_id.isdigit():
         documents = documents.filter(organization_id=organization_id)
-
-    valid_document_types = {
-        AuditDocument.DocumentType.REPORT,
-        AuditDocument.DocumentType.HISTORICAL_REPORT,
-    }
-    if document_type in valid_document_types:
-        documents = documents.filter(document_type=document_type)
-    else:
-        document_type = ""
+    if department:
+        documents = documents.filter(organization__department=department)
+    if district:
+        documents = documents.filter(organization__district=district)
 
     documents = documents.annotate(
         case_recommendation_count=Count(
@@ -1574,14 +1621,23 @@ def historical_document_list(request):
         ),
     )
 
+    organizations = Organization.objects.filter(is_active=True)
+    if request.user.role == User.Role.AUDITOR:
+        organizations = organizations.filter(
+            audit_cases__assigned_auditor=request.user,
+        ).distinct()
+
     return render(
         request,
         "audits/historical_document_list.html",
         {
             "documents": documents,
-            "organizations": Organization.objects.filter(is_active=True).order_by("name"),
+            "organizations": organizations.order_by("name"),
             "selected_organization": organization_id,
-            "selected_document_type": document_type,
+            "department_options": departments,
+            "district_options": districts,
+            "selected_department": department,
+            "selected_district": district,
         },
     )
 
@@ -1925,7 +1981,7 @@ def case_publish(request, pk):
     if not request.user.is_authenticated:
         return redirect(f"/ingresar/?next={request.path}")
     case = get_object_or_404(
-        AuditCase.objects.select_for_update().select_related(
+        AuditCase.objects.select_for_update(of=("self",)).select_related(
             "audited_organization", "assigned_auditor"
         ),
         pk=pk,
@@ -1977,7 +2033,7 @@ def request_case_closure(request, pk):
     if not request.user.is_authenticated:
         return redirect(f"/ingresar/?next={request.path}")
     case = get_object_or_404(
-        AuditCase.objects.select_for_update().select_related(
+        AuditCase.objects.select_for_update(of=("self",)).select_related(
             "audited_organization", "assigned_auditor"
         ),
         pk=pk,
@@ -2030,7 +2086,7 @@ def director_reassign_case(request, pk):
     if not user_is_director(request.user):
         raise PermissionDenied("La reasignación corresponde a la Dirección de Auditoría.")
     case = get_object_or_404(
-        AuditCase.objects.select_for_update().select_related(
+        AuditCase.objects.select_for_update(of=("self",)).select_related(
             "audited_organization", "assigned_auditor"
         ),
         pk=pk,
@@ -2132,7 +2188,7 @@ def grant_deadline_extension(request, pk):
     if not request.user.is_authenticated:
         return redirect(f"/ingresar/?next={request.path}")
     recommendation = get_object_or_404(
-        Recommendation.objects.select_for_update().select_related(
+        Recommendation.objects.select_for_update(of=("self",)).select_related(
             "finding__case__audited_organization"
         ),
         pk=pk,

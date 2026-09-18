@@ -33,6 +33,7 @@ class DirectorEducationalCenterTests(TestCase):
             kind=Organization.Kind.EDUCATIONAL_CENTER,
             department="San Salvador",
             municipality="San Salvador",
+            district="Distrito Centro",
             is_active=False,
         )
         self.other_center = Organization.objects.create(
@@ -42,6 +43,7 @@ class DirectorEducationalCenterTests(TestCase):
             kind=Organization.Kind.EDUCATIONAL_CENTER,
             department="La Libertad",
             municipality="Santa Tecla",
+            district="Distrito Flores",
         )
         self.director = User.objects.create_user(
             username="directora",
@@ -80,7 +82,7 @@ class DirectorEducationalCenterTests(TestCase):
 
         text_search = self.client.get(url, {"q": "San Salvador"})
         geographic_search = self.client.get(
-            url, {"department": "San Salvador", "municipality": "San Salvador"}
+            url, {"department": "San Salvador", "district": "Distrito Centro"}
         )
 
         self.assertNotContains(text_search, self.center.name)
@@ -94,8 +96,8 @@ class DirectorEducationalCenterTests(TestCase):
 
         self.assertContains(response, 'name="q"')
         self.assertContains(response, 'name="department"')
-        self.assertContains(response, 'name="municipality"')
-        for removed_filter in ("district", "attention", "risk", "audits", "cde", "access"):
+        self.assertContains(response, 'name="district"')
+        for removed_filter in ("municipality", "attention", "risk", "audits", "cde", "access"):
             self.assertNotContains(response, f'name="{removed_filter}"')
         self.assertContains(response, "Atención inmediata")
         self.assertContains(response, "Próximos a vencer")
@@ -140,6 +142,40 @@ class DirectorEducationalCenterTests(TestCase):
         self.assertContains(cases, center_case.reference)
         self.assertNotContains(cases, other_case.reference)
         self.assertContains(cases, "Volver a centros")
+
+    def test_case_list_uses_correlated_location_filter_bar(self):
+        center_case = AuditCase.objects.create(
+            reference="IA-UBICACION-104",
+            title="Expediente del distrito seleccionado",
+            audited_organization=self.center,
+            status=AuditCase.Status.PUBLISHED,
+            assigned_auditor=self.auditor,
+            created_by=self.auditor,
+        )
+        other_case = AuditCase.objects.create(
+            reference="IA-UBICACION-205",
+            title="Expediente de otro departamento",
+            audited_organization=self.other_center,
+            status=AuditCase.Status.PUBLISHED,
+            assigned_auditor=self.auditor,
+            created_by=self.auditor,
+        )
+        self.client.force_login(self.director)
+
+        response = self.client.get(
+            reverse("case_list"),
+            {"department": "San Salvador", "district": "Distrito Centro"},
+        )
+
+        self.assertContains(response, 'class="filter-bar report-filter-bar"')
+        self.assertContains(response, 'name="department"')
+        self.assertContains(response, 'name="district"')
+        self.assertContains(response, 'name="organization"')
+        self.assertNotContains(response, 'name="status"')
+        self.assertEqual(list(response.context["district_options"]), ["Distrito Centro"])
+        self.assertContains(response, center_case.reference)
+        self.assertNotContains(response, other_case.reference)
+        self.assertNotContains(response, "Distrito Flores")
 
     def test_anonymous_user_is_redirected_to_login(self):
         response = self.client.get(reverse("director_educational_centers"))

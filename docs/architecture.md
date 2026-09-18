@@ -91,7 +91,7 @@ La visibilidad se define para cada archivo, con «Solo Auditoría» como valor i
 ## Inteligencia de centros educativos
 
 - El universo incluye todos los centros educativos del catálogo, incluso aquellos sin auditorías. La ausencia de datos se presenta como no disponible y nunca como cumplimiento.
-- La página de Análisis ofrece alcance nacional o filtros encadenados por departamento, municipio y distrito. La comparación puede agruparse por cualquiera de esos niveles y permite continuar hacia el siguiente nivel territorial o hacia el directorio de centros.
+- La página de Análisis ofrece alcance nacional o filtros encadenados por departamento y distrito. La comparación puede agruparse por cualquiera de esos niveles y permite continuar hacia el siguiente nivel territorial o hacia el directorio de centros.
 - La situación actual y la actividad del período son lecturas distintas. Las alertas, obligaciones y riesgos vigentes no se recortan por antigüedad; el período solamente limita expedientes, informes, respuestas, dictámenes, prórrogas e incumplimientos según la fecha propia de cada evento.
 - Los indicadores de riesgo y hallazgos se atribuyen al centro auditado. Los indicadores de plazos, respuestas y cumplimiento se atribuyen a la institución responsable de cada recomendación.
 - Solamente los expedientes enviados, en seguimiento o cerrados forman parte de los indicadores consolidados. Los borradores y publicaciones pendientes pueden consultarse, pero no modifican la lectura institucional.
