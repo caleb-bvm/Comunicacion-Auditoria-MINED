@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 
 from apps.accounts.models import User
@@ -15,7 +15,7 @@ from .models import (ActivityLog, AuditCase, AuditDocument, DeadlineExtension,
                      Finding, Recommendation, Response)
 
 
-class HistoricalDocumentsByCenterTests(TestCase):
+class HistoricalDocumentsByCenterTests(TransactionTestCase):
     def setUp(self):
         self.storage = tempfile.TemporaryDirectory()
         self.addCleanup(self.storage.cleanup)

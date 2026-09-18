@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.sqlite3
 .env
+.env.development
 .coverage
 htmlcov/
 media/private/*

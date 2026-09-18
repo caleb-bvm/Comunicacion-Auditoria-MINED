@@ -15,7 +15,7 @@ Primera base funcional para registrar expedientes, hallazgos, recomendaciones, r
 - Flujo propio para crear borradores, registrar hallazgos y recomendaciones, revisar y publicar expedientes.
 - Perfil de Dirección de Auditoría con resumen ejecutivo, bandeja de decisiones, aprobación de publicaciones y cierres, y reasignación justificada de auditores.
 - Indicadores operativos en el inicio de cada auditor, limitados estrictamente a sus expedientes asignados, con alertas de revisión, vencimientos y riesgo.
-- Página de Análisis para Dirección centrada en todos los centros educativos, con vista nacional o filtrada por departamento, municipio y distrito, situación vigente, actividad por período, comparación territorial y centros prioritarios.
+- Página de Análisis para Dirección centrada en todos los centros educativos, con vista nacional o filtrada por departamento y distrito, situación vigente, actividad por período, comparación territorial y centros prioritarios.
 - Informe estadístico XLSX para Dirección que conserva los filtros aplicados e incluye resumen ejecutivo, gráficos, expedientes, hallazgos, recomendaciones, respuestas, prórrogas, análisis por auditor e institución, dependencias responsables, series mensuales, alertas, controles y metodología.
 - Inteligencia institucional de centros educativos para Dirección, con priorización explicable, filtros territoriales y de alerta, ficha analítica por centro, estado del CDE, acceso, riesgos, obligaciones, respuestas, documentos e historial de auditoría.
 - Importación validada del catálogo institucional desde CSV, incluido el distrito como dato territorial opcional.
@@ -47,10 +47,17 @@ Para la preparación inicial del proyecto:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Copy-Item .env.development.example .env.development
+# Complete las credenciales de PostgreSQL en .env.development
 .\.venv\Scripts\python.exe manage.py migrate
 .\.venv\Scripts\python.exe manage.py seed_demo
 .\iniciar.ps1
 ```
+
+El desarrollo utiliza PostgreSQL. La base y el usuario indicados en
+`.env.development` deben existir antes de ejecutar las migraciones. El archivo
+local contiene credenciales y está excluido de Git; `.env.development.example`
+sirve únicamente como plantilla.
 
 La primera ejecución de `seed_demo` genera credenciales temporales y las muestra una sola vez en la consola. Las ejecuciones posteriores actualizan los datos de ejemplo, pero conservan esas contraseñas. Para regenerarlas deliberadamente, use `python manage.py seed_demo --reset-passwords`. Solo debe utilizarse en desarrollo local.
 

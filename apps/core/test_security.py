@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from apps.accounts.models import User
@@ -155,7 +155,7 @@ class ProductionSettingsTests(SimpleTestCase):
 
 
 @override_settings(FILE_SCAN_REQUIRED=True)
-class PrivateDownloadTests(TestCase):
+class PrivateDownloadTests(TransactionTestCase):
     def setUp(self):
         from apps.audits.models import AuditDocument
         from apps.institutions.models import Organization, SchoolBoardPeriod

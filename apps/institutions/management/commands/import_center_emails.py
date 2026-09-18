@@ -74,7 +74,9 @@ class Command(BaseCommand):
         for item in existing.values():
             if item.email:
                 email_owners.setdefault(item.email.lower(), set()).add(item.code)
-        accounts = list(User.objects.select_for_update().select_related("organization"))
+        accounts = list(
+            User.objects.select_for_update(of=("self",)).select_related("organization")
+        )
         by_username = {user.username: user for user in accounts}
         by_center = {}
         for account in accounts:

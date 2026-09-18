@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase, override_settings
+from django.test import Client, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from apps.accounts.models import User
@@ -11,7 +11,7 @@ from apps.institutions.models import Organization
 from .models import ActivityLog, AuditCase, AuditDocument, DeadlineExtension, Response
 
 
-class HistoricalBulkTests(TestCase):
+class HistoricalBulkTests(TransactionTestCase):
     def setUp(self):
         storage = tempfile.TemporaryDirectory()
         self.addCleanup(storage.cleanup)

@@ -133,7 +133,7 @@ def mark_overdue_recommendations(today=None):
     today = today or timezone.localdate()
     overdue = list(
         with_effective_deadline(
-            Recommendation.objects.select_for_update().select_related("finding__case")
+            Recommendation.objects.select_for_update(of=("self",)).select_related("finding__case")
         )
         .filter(
             current_deadline__lt=today,
