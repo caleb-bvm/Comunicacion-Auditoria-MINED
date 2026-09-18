@@ -1,11 +1,12 @@
 import re
 import unicodedata
 import uuid
+from decimal import Decimal
 from pathlib import Path
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 
 from apps.core.validators import validate_evidence_file
@@ -44,6 +45,28 @@ class Organization(models.Model):
     municipality = models.CharField("municipio", max_length=100, blank=True)
     district = models.CharField("distrito", max_length=100, blank=True)
     address = models.TextField("dirección", blank=True)
+    latitude = models.DecimalField(
+        "latitud",
+        max_digits=9,
+        decimal_places=7,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(Decimal("-90")),
+            MaxValueValidator(Decimal("90")),
+        ],
+    )
+    longitude = models.DecimalField(
+        "longitud",
+        max_digits=10,
+        decimal_places=7,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(Decimal("-180")),
+            MaxValueValidator(Decimal("180")),
+        ],
+    )
     is_active = models.BooleanField("activa", default=True)
     created_at = models.DateTimeField("creada", auto_now_add=True)
     updated_at = models.DateTimeField("actualizada", auto_now=True)
