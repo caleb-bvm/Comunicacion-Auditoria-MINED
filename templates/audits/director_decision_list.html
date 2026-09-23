@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-heading heading-row"><div><h1>Solicitudes</h1></div><a class="button button-secondary" href="{% url 'director_dashboard' %}">Volver al inicio</a></div>
 
-<form method="get" class="filter-bar">
+<form method="get" class="filter-bar" data-auto-submit-filters>
     <div class="field"><label for="status">Estado</label><select id="status" name="status">{% for value, label in statuses %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
     <div class="field"><label for="kind">Tipo de solicitud</label><select id="kind" name="kind"><option value="">Todas</option>{% for value, label in kinds %}<option value="{{ value }}" {% if selected_kind == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
     <button class="button button-primary" type="submit">Aplicar filtros</button>

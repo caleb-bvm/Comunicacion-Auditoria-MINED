@@ -264,10 +264,23 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 ]
             ).count()
         elif self.request.user.organization_id:
-            context["pending_recommendations"] = Recommendation.objects.filter(
+            organization_pending = Recommendation.objects.filter(
                 responsible_organization_id=self.request.user.organization_id,
                 status__in=[Recommendation.Status.PENDING, Recommendation.Status.CORRECTION_REQUIRED],
-            ).count()
+            ).exclude(
+                finding__case__status__in=[
+                    AuditCase.Status.DRAFT,
+                    AuditCase.Status.PENDING_PUBLICATION,
+                    AuditCase.Status.PENDING_CLOSURE,
+                    AuditCase.Status.CLOSED,
+                ]
+            )
+            context["pending_recommendations"] = organization_pending.count()
+            context["organization_attention_items"] = list(
+                with_effective_deadline(
+                    organization_pending.select_related("finding__case")
+                ).order_by("current_deadline", "finding__case__reference")[:5]
+            )
         else:
             context["pending_recommendations"] = 0
 
@@ -1363,6 +1376,19 @@ class CaseListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         queryset = accessible_cases(self.request.user)
+        self.selected_organization = None
+        self.invalid_organization_filter = False
+        self.department_options = []
+        self.district_options = []
+        self.organization_options = Organization.objects.none()
+        self.selected_department = ""
+        self.selected_district = ""
+
+        # Institutional accounts receive their scope from accessible_cases().
+        # Query-string filters belong only to the audit staff interface.
+        if not self.request.user.is_audit_staff:
+            return queryset
+
         search = self.request.GET.get("q", "").strip()
         organization_id = self.request.GET.get("organization", "").strip()
         department = self.request.GET.get("department", "").strip()
@@ -1393,9 +1419,7 @@ class CaseListView(LoginRequiredMixin, ListView):
         self.selected_department = department
         self.selected_district = district
         self.organization_options = geographic_organizations.order_by("name")
-        self.selected_organization = None
-        self.invalid_organization_filter = False
-        if organization_id and self.request.user.is_audit_staff:
+        if organization_id:
             if organization_id.isdigit():
                 self.selected_organization = Organization.objects.filter(
                     pk=int(organization_id),

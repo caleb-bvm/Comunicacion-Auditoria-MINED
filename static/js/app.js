@@ -80,6 +80,32 @@
         });
     });
 
+    document.querySelectorAll("form[data-auto-submit-filters]").forEach((form) => {
+        let submitTimer = null;
+        let isSubmitting = false;
+
+        const submitFilters = (delay = 0) => {
+            if (isSubmitting) return;
+            window.clearTimeout(submitTimer);
+            submitTimer = window.setTimeout(() => {
+                if (form.checkValidity()) form.requestSubmit();
+            }, delay);
+        };
+
+        form.querySelectorAll("select, input[type='checkbox'], input[type='radio']")
+            .forEach((control) => {
+                control.addEventListener("change", () => submitFilters(80));
+            });
+        form.querySelectorAll("input[type='search'], input[type='text']")
+            .forEach((control) => {
+                control.addEventListener("input", () => submitFilters(500));
+            });
+        form.addEventListener("submit", () => {
+            isSubmitting = true;
+            window.clearTimeout(submitTimer);
+        });
+    });
+
     const analysisForm = document.querySelector(".territorial-filter[data-analysis-mode]");
     const periodFilter = analysisForm?.querySelector("[data-period-filter]");
     const periodOptions = periodFilter

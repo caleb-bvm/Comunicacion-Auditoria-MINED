@@ -23,11 +23,11 @@
                 <tbody>
                 {% for document in documents %}
                     <tr>
-                        <td><strong>{{ document.reference|default:"Sin referencia" }}</strong></td>
-                        <td>{{ document.title }}<small>Versión {{ document.version }}</small></td>
-                        <td>{{ document.document_date|date:"d/m/Y"|default:"Sin fecha" }}</td>
-                        <td><span class="status status-{{ document.status }}">{{ document.get_status_display }}</span></td>
-                        <td>
+                        <td data-label="Referencia"><strong>{{ document.reference|default:"Sin referencia" }}</strong></td>
+                        <td data-label="Documento">{{ document.title }}<small>Versión {{ document.version }}</small></td>
+                        <td data-label="Fecha">{{ document.document_date|date:"d/m/Y"|default:"Sin fecha" }}</td>
+                        <td data-label="Estado"><span class="status status-{{ document.status }}">{{ document.get_status_display }}</span></td>
+                        <td class="mobile-card-action">
                             <div class="item-actions">
                                 {% if document.document_type == 'historical_report' %}<a class="text-link" href="{% url 'historical_document_detail' document.pk %}">Ver informe y documentos</a>{% endif %}
                                 <a class="icon-link" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar {{ document.title }}">↓</a>
@@ -98,7 +98,7 @@
                 <thead><tr><th scope="col">Expediente</th><th scope="col">Versión</th><th scope="col">Fecha</th><th scope="col">Documentos</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
                 <tbody>
                 {% for response in responses %}
-                    <tr><td>{{ response.recommendation.finding.case.reference }}</td><td>Versión {{ response.version }}</td><td>{{ response.submitted_at|date:"d/m/Y H:i" }}</td><td>{{ response.evidence.count }}</td><td><a class="text-link" href="{% url 'response_receipt' response.pk %}">Ver constancia</a></td></tr>
+                    <tr><td data-label="Expediente"><strong>{{ response.recommendation.finding.case.reference }}</strong></td><td data-label="Respuesta">Versión {{ response.version }}</td><td data-label="Enviada">{{ response.submitted_at|date:"d/m/Y H:i" }}</td><td data-label="Documentos">{{ response.evidence.count }}</td><td class="mobile-card-action"><a class="text-link" href="{% url 'response_receipt' response.pk %}">Ver constancia</a></td></tr>
                 {% endfor %}
                 </tbody>
             </table>

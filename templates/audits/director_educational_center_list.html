@@ -20,7 +20,7 @@
         <div><dt>Sin CDE vigente</dt><dd>{{ without_current_cde_centers }}</dd></div>
     </dl>
 
-    <form method="get" class="filter-bar center-analytics-filter" role="search">
+    <form method="get" class="filter-bar center-analytics-filter" role="search" data-location-filters data-auto-submit-filters>
         {% if selected_attention %}<input type="hidden" name="attention" value="{{ selected_attention }}">{% endif %}
         {% if selected_risk %}<input type="hidden" name="risk" value="{{ selected_risk }}">{% endif %}
         {% if selected_audits %}<input type="hidden" name="audits" value="{{ selected_audits }}">{% endif %}

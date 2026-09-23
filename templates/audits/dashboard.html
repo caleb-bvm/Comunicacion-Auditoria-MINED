@@ -70,11 +70,43 @@
     </article>
 </section>
 {% else %}
+{% if user.role == 'institution' %}
+<section class="institution-welcome" aria-labelledby="institution-welcome-title">
+    <div>
+        <span class="eyebrow">Panel de la organización</span>
+        <h1 id="institution-welcome-title">{{ user.organization.name }}</h1>
+        <p>Revise sus pendientes y presente la documentación solicitada desde aquí.</p>
+    </div>
+    {% if pending_recommendations %}<a class="button button-primary" href="#pendientes">Ver pendientes</a>{% endif %}
+</section>
+{% endif %}
 <section class="stats-grid" aria-label="Indicadores">
     <article class="stat-card stat-primary"><div><span>Expedientes</span><strong>{{ total_cases }}</strong></div></article>
     <article class="stat-card stat-secondary"><div><span>Expedientes activos</span><strong>{{ open_cases }}</strong></div></article>
     <article class="stat-card stat-tertiary"><div><span>{% if user.is_audit_staff %}Respuestas por revisar{% else %}Recomendaciones pendientes{% endif %}</span><strong>{{ pending_recommendations }}</strong></div></article>
 </section>
+{% if user.role == 'institution' %}
+<section class="section-block institution-attention" id="pendientes" aria-labelledby="institution-attention-title">
+    <div class="section-heading"><div><span class="eyebrow">Prioridad</span><h2 id="institution-attention-title">Recomendaciones por atender</h2></div><a class="text-link arrow-link" href="{% url 'case_list' %}">Ver expedientes <span aria-hidden="true">→</span></a></div>
+    {% if organization_attention_items %}
+    <div class="institution-task-list">
+        {% for recommendation in organization_attention_items %}
+        <article class="institution-task">
+            <div class="institution-task-copy">
+                <div><span class="case-reference">{{ recommendation.finding.case.reference }}</span><span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span></div>
+                <h3>Recomendación {{ recommendation.finding.number }}.{{ recommendation.number }}</h3>
+                <p>{{ recommendation.text|truncatechars:150 }}</p>
+                <small>Fecha límite: <strong>{{ recommendation.current_deadline|date:"d/m/Y"|default:"Por definir" }}</strong></small>
+            </div>
+            <a class="button button-primary" href="{% url 'respond_recommendation' recommendation.pk %}">{% if recommendation.status == 'correction_required' %}Corregir respuesta{% else %}Responder{% endif %}</a>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="institution-all-clear"><span aria-hidden="true">✓</span><div><strong>Todo al día</strong><p>No tiene recomendaciones pendientes de respuesta.</p></div></div>
+    {% endif %}
+</section>
+{% endif %}
 {% endif %}
 
 <section class="section-block" aria-labelledby="recent-cases-title">
@@ -91,11 +123,11 @@
                 <tbody>
                 {% for case in recent_cases %}
                 <tr>
-                    <td><strong>{{ case.reference }}</strong><small>{{ case.title|truncatechars:65 }}</small></td>
-                    <td>{{ case.audited_organization.name }}</td>
-                    <td><span class="status status-{{ case.status }}">{{ case.get_status_display }}</span></td>
-                    <td>{{ case.response_deadline|date:"d/m/Y"|default:"Por definir" }}</td>
-                    <td><a class="icon-link" aria-label="Abrir expediente {{ case.reference }}" href="{% url 'case_detail' case.pk %}">→</a></td>
+                    <td data-label="Expediente"><strong>{{ case.reference }}</strong><small>{{ case.title|truncatechars:65 }}</small></td>
+                    <td data-label="Institución">{{ case.audited_organization.name }}</td>
+                    <td data-label="Estado"><span class="status status-{{ case.status }}">{{ case.get_status_display }}</span></td>
+                    <td data-label="Fecha límite">{{ case.response_deadline|date:"d/m/Y"|default:"Por definir" }}</td>
+                    <td class="mobile-card-action"><a class="icon-link" aria-label="Abrir expediente {{ case.reference }}" href="{% url 'case_detail' case.pk %}">Abrir <span aria-hidden="true">→</span></a></td>
                 </tr>
                 {% endfor %}
                 </tbody>

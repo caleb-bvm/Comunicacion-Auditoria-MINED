@@ -12,13 +12,15 @@
         {% if user.role == 'auditor' %}<a class="button button-primary" href="{% url 'case_create' %}">Nuevo expediente</a>{% endif %}
     </div>
 </div>
-<form method="get" class="filter-bar report-filter-bar" role="search" aria-label="Buscar expedientes" data-location-filters>
+{% if user.is_audit_staff %}
+<form method="get" class="filter-bar report-filter-bar" role="search" aria-label="Buscar expedientes" data-location-filters data-auto-submit-filters>
     <div class="field grow search-field"><label for="q">Buscar</label><div class="input-with-icon"><span aria-hidden="true">⌕</span><input id="q" name="q" value="{{ request.GET.q }}" placeholder="Referencia, institución o código"></div></div>
     <div class="field"><label for="department">Departamento</label><select id="department" name="department"><option value="">Todos</option>{% for department in department_options %}<option value="{{ department }}" {% if selected_department == department %}selected{% endif %}>{{ department }}</option>{% endfor %}</select></div>
     <div class="field"><label for="district">Distrito</label><select id="district" name="district"><option value="">Todos</option>{% for district in district_options %}<option value="{{ district }}" {% if selected_district == district %}selected{% endif %}>{{ district }}</option>{% endfor %}</select></div>
     <div class="field"><label for="organization">Institución</label><select id="organization" name="organization"><option value="">Todas</option>{% for organization in organizations %}<option value="{{ organization.pk }}" {% if selected_organization_id == organization.pk|stringformat:'s' %}selected{% endif %}>{{ organization.name }}</option>{% endfor %}</select></div>
     <button class="button button-secondary" type="submit">Aplicar filtros</button>
 </form>
+{% endif %}
 <div class="results-heading" aria-live="polite">
     <h2>Resultados</h2>
     <span>{% if is_paginated %}{{ page_obj.paginator.count }} expediente{{ page_obj.paginator.count|pluralize }}{% else %}{{ cases|length }} expediente{{ cases|length|pluralize }}{% endif %}</span>
@@ -42,7 +44,7 @@
             <a class="button button-ghost button-compact" href="{% url 'case_detail' case.pk %}" aria-label="Ver detalle de {{ case.reference }}">Ver detalle <span aria-hidden="true">→</span></a>
         </footer>
     </article>
-    {% empty %}<div class="empty-state card"><h2>{% if invalid_organization_filter %}Centro educativo no encontrado{% else %}No hay expedientes con estos filtros{% endif %}</h2>{% if invalid_organization_filter %}<p>Seleccione un centro desde el directorio.</p>{% endif %}{% if invalid_organization_filter and user.role == 'audit_manager' %}<a class="button button-secondary" href="{% url 'director_educational_centers' %}">Volver a centros</a>{% endif %}</div>{% endfor %}
+    {% empty %}<div class="empty-state card"><h2>{% if invalid_organization_filter %}Centro educativo no encontrado{% elif user.is_audit_staff %}No hay expedientes con estos filtros{% else %}No hay expedientes asignados a su organización{% endif %}</h2>{% if invalid_organization_filter %}<p>Seleccione un centro desde el directorio.</p>{% endif %}{% if invalid_organization_filter and user.role == 'audit_manager' %}<a class="button button-secondary" href="{% url 'director_educational_centers' %}">Volver a centros</a>{% endif %}</div>{% endfor %}
 </div>
-{% if is_paginated %}<nav class="pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a href="?organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;page={{ page_obj.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
+{% if is_paginated %}<nav class="pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a href="?{% if user.is_audit_staff %}organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?{% if user.is_audit_staff %}organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
 {% endblock %}

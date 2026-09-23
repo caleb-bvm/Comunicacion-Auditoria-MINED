@@ -505,6 +505,23 @@ class AccessAndWorkflowTests(TestCase):
         response = self.client.get(reverse("case_detail", args=[self.case.pk]))
         self.assertEqual(response.status_code, 404)
 
+    def test_institution_case_list_hides_and_ignores_audit_filters(self):
+        self.client.force_login(self.institution_user)
+
+        response = self.client.get(
+            reverse("case_list"),
+            {
+                "q": "no-coincide",
+                "organization": self.other_center.pk,
+                "department": "Otro departamento",
+                "district": "Otro distrito",
+            },
+        )
+
+        self.assertContains(response, self.case.reference)
+        self.assertNotContains(response, 'aria-label="Buscar expedientes"')
+        self.assertNotContains(response, "Aplicar filtros")
+
     def test_responsible_organization_can_open_case_detail(self):
         self.client.force_login(self.institution_user)
         response = self.client.get(reverse("case_detail", args=[self.case.pk]))

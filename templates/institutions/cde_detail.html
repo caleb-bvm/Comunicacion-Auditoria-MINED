@@ -65,12 +65,12 @@
                         <tbody>
                         {% for member in period.members.all %}
                         <tr>
-                            <td><strong>{{ member.full_name }}</strong>{% if member.identity_document %}<small>DUI: {{ member.identity_document }}</small>{% endif %}</td>
-                            <td>{{ member.position }}<small>{{ member.get_sector_display }}</small></td>
-                            <td>{{ member.joined_on|date:"d/m/Y" }}{% if member.left_on %} — {{ member.left_on|date:"d/m/Y" }}{% if member.exit_reason %}<small>{{ member.exit_reason }}</small>{% endif %}{% else %}<small>Activo</small>{% endif %}</td>
-                            <td>{% if member.is_legal_representative %}<span class="status status-approved">Sí</span>{% else %}<span class="muted">No</span>{% endif %}</td>
+                            <td data-label="Integrante"><strong>{{ member.full_name }}</strong>{% if member.identity_document %}<small>DUI: {{ member.identity_document }}</small>{% endif %}</td>
+                            <td data-label="Cargo y sector">{{ member.position }}<small>{{ member.get_sector_display }}</small></td>
+                            <td data-label="Participación">{{ member.joined_on|date:"d/m/Y" }}{% if member.left_on %} — {{ member.left_on|date:"d/m/Y" }}{% if member.exit_reason %}<small>{{ member.exit_reason }}</small>{% endif %}{% else %}<small>Activo</small>{% endif %}</td>
+                            <td data-label="Representante legal">{% if member.is_legal_representative %}<span class="status status-approved">Sí</span>{% else %}<span class="muted">No</span>{% endif %}</td>
                             {% if can_manage %}
-                            <td>
+                            <td class="mobile-card-action">
                                 <div class="table-actions">
                                     <a class="text-link" href="{% url 'cde_member_edit' member.pk %}">Editar</a>
                                     {% if member.is_active %}<a class="text-link" href="{% url 'cde_member_departure' member.pk %}">Registrar salida</a>{% endif %}

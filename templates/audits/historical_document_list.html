@@ -6,7 +6,7 @@
     <div class="button-group"><a class="button button-secondary" href="{% url 'historical_document_create' %}">Registrar informe anterior</a><a class="button button-primary" href="{% url 'historical_bulk_upload' %}">Carga múltiple</a></div>
 </div>
 
-<form method="get" class="filter-bar report-filter-bar" role="search" aria-label="Buscar informes" data-location-filters>
+<form method="get" class="filter-bar report-filter-bar" role="search" aria-label="Buscar informes" data-location-filters data-auto-submit-filters>
     <div class="field grow search-field">
         <label for="q">Buscar</label>
         <input id="q" name="q" value="{{ request.GET.q }}" placeholder="Referencia, centro o recomendación">
