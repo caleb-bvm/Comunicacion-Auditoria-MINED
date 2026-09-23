@@ -4,7 +4,7 @@ Description=Revisar vencimientos cada día
 [Timer]
 OnCalendar=*-*-* 06:15:00 UTC
 Persistent=true
-Unit=endpoint-overdue.service
+Unit=siga-mineducyt-overdue.service
 
 [Install]
 WantedBy=timers.target

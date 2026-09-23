@@ -13,8 +13,8 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: endpoint_test
-          POSTGRES_USER: endpoint_test
+          POSTGRES_DB: siga_mineducyt_test
+          POSTGRES_USER: siga_mineducyt_test
           POSTGRES_PASSWORD: test-only-ci-password
         ports:
           - 5432:5432

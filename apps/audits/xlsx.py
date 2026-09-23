@@ -1261,7 +1261,7 @@ def _create_summary_sheet(
     )
     worksheet["D12"].comment = Comment(
         "Recomendaciones cumplidas divididas entre recomendaciones con resultado definitivo.",
-        "Sistema de Auditoría",
+        "SIGA-MINEDUCYT",
     )
     _write_kpi_card(
         worksheet,
@@ -1301,7 +1301,7 @@ def _create_summary_sheet(
     )
     worksheet["D15"].comment = Comment(
         "Recomendaciones con resultado definitivo divididas entre el total de recomendaciones.",
-        "Sistema de Auditoría",
+        "SIGA-MINEDUCYT",
     )
     _write_kpi_card(
         worksheet,
@@ -1803,7 +1803,7 @@ def build_director_statistics_xlsx(
     workbook.properties.title = "Informe estadístico y analítico de Auditoría Interna"
     workbook.properties.subject = report_id
     workbook.properties.description = (
-        "Corte estadístico generado por el Sistema de Seguimiento de Auditoría Educativa."
+        "Corte estadístico generado por SIGA-MINEDUCYT."
     )
     workbook.properties.keywords = "auditoría, estadísticas, recomendaciones, cumplimiento, riesgo"
     workbook.calculation.fullCalcOnLoad = True

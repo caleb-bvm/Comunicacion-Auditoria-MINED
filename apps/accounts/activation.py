@@ -99,14 +99,14 @@ def invite_center(*, center_id, actor, request):
     })
     hours = settings.PASSWORD_RESET_TIMEOUT // 3600
     body = (
-        f"Se ha solicitado el acceso de {center.name} al sistema de Auditoría Interna.\n\n"
+        f"Se ha solicitado el acceso de {center.name} a SIGA-MINEDUCYT.\n\n"
         f"Su usuario es el código del centro: {account.username}\n"
         f"Establezca su contraseña mediante este enlace (válido por {hours} horas):\n"
         f"{origin}{path}\n\n"
         "El enlace solo puede utilizarse una vez. Si no reconoce esta solicitud, "
         "comuníquese con la Dirección de Auditoría."
     )
-    if send_mail("Activación de acceso | Auditoría Interna", body,
+    if send_mail("Activación de acceso | SIGA-MINEDUCYT", body,
                  settings.DEFAULT_FROM_EMAIL, [center.email], fail_silently=False) != 1:
         raise ValidationError("No se pudo enviar la invitación. Inténtelo nuevamente.")
     # Preserve the existing pilot's ability to reactivate a catalog entry explicitly.

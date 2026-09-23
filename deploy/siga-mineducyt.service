@@ -1,0 +1,29 @@
+[Unit]
+Description=SIGA-MINEDUCYT
+After=network.target
+
+[Service]
+User=siga-mineducyt
+Group=siga-mineducyt
+WorkingDirectory=/srv/siga-mineducyt
+EnvironmentFile=/etc/siga-mineducyt/production.env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.production
+ExecStartPre=/srv/siga-mineducyt/.venv/bin/python manage.py check --deploy --fail-level ERROR
+ExecStartPre=/srv/siga-mineducyt/.venv/bin/python manage.py deployment_preflight
+ExecStart=/srv/siga-mineducyt/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 180 --max-requests 500 --max-requests-jitter 50 --error-logfile -
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+StateDirectory=siga-mineducyt
+ReadWritePaths=/var/lib/siga-mineducyt
+RestrictSUIDSGID=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

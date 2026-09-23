@@ -75,6 +75,6 @@ if not FILE_SCAN_REQUIRED:
 AXES_ENABLED = True
 SESSION_COOKIE_NAME = "__Host-sessionid"
 CSRF_COOKIE_NAME = "__Host-csrftoken"
-MEDIA_ROOT = Path(os.environ.get("PRIVATE_MEDIA_ROOT", "/var/lib/endpoint/private"))
+MEDIA_ROOT = Path(os.environ.get("PRIVATE_MEDIA_ROOT", "/var/lib/siga-mineducyt/private"))
 if not MEDIA_ROOT.is_absolute() or MEDIA_ROOT == STATIC_ROOT or STATIC_ROOT in MEDIA_ROOT.parents:
     raise ImproperlyConfigured("PRIVATE_MEDIA_ROOT debe ser absoluto y estar fuera de archivos públicos.")

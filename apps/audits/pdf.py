@@ -156,7 +156,7 @@ def build_response_receipt(response):
         Paragraph("Constancia de respuesta institucional", styles["ReceiptTitle"]),
         Paragraph(
             "Este documento confirma la recepción de una respuesta y sus evidencias dentro del "
-            "Sistema de Seguimiento de Auditoría Educativa.",
+            "SIGA-MINEDUCYT.",
             styles["BodyCompact"],
         ),
         Spacer(1, 5 * mm),

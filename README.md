@@ -1,4 +1,4 @@
-# Sistema de Seguimiento de Auditoría Educativa
+# SIGA-MINEDUCYT
 
 Primera base funcional para registrar expedientes, hallazgos, recomendaciones, respuestas institucionales, evidencias y revisiones de Auditoría Interna.
 
@@ -94,6 +94,16 @@ El despliegue no debe considerarse terminado hasta completar estas tres comproba
 La preparación de seguridad, las plantillas de servidor y las comprobaciones previas al piloto están en [Despliegue seguro y operación inicial](docs/production-security.md). Incluyen protección de acceso, análisis antivirus de documentos y configuración de Nginx/systemd. Deben adaptarse y verificarse en el servidor antes de abrir el acceso externo.
 
 La aplicación de producción usa `config.settings.production`, PostgreSQL y variables de entorno. Consulte [.env.example](.env.example) como inventario de configuración. El almacenamiento de evidencias debe ubicarse fuera del directorio público y conectarse con el antivirus institucional antes de habilitar descargas.
+
+Antes de iniciar o reiniciar el servicio, el servidor ejecuta `python manage.py deployment_preflight`. La comprobación debe finalizar con cinco resultados `[OK]`: base de datos, migraciones, almacenamiento privado, antivirus y correo SMTP. Un fallo impide el arranque para evitar publicar una instalación parcialmente operativa.
+
+Cuando el código, el entorno virtual, `production.env`, PostgreSQL, ClamAV y el certificado TLS ya estén preparados en el servidor, el resto de la instalación se puede ejecutar de forma controlada con:
+
+```bash
+sudo bash ./deploy/install-production.sh --domain auditoria.mined.gob.sv
+```
+
+El instalador aplica migraciones, recopila archivos estáticos, ejecuta las comprobaciones, instala las plantillas de Nginx y systemd, habilita el servicio y el temporizador diario, ejecuta una vez el procesamiento de vencimientos y muestra el estado final. Puede ejecutarse nuevamente para publicar una actualización. Se detiene inmediatamente si falta un requisito o falla una comprobación.
 
 Nunca use el servidor de desarrollo ni la clave incluida en `config/settings/development.py` en un servidor institucional.
 

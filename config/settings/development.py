@@ -30,8 +30,8 @@ ALLOWED_HOSTS = [
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB", "endpoint_dev"),
-        "USER": os.getenv("POSTGRES_USER", "endpoint_app"),
+        "NAME": os.getenv("POSTGRES_DB", "siga_mineducyt_dev"),
+        "USER": os.getenv("POSTGRES_USER", "siga_mineducyt_app"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
         "HOST": os.getenv("POSTGRES_HOST", "127.0.0.1"),
         "PORT": os.getenv("POSTGRES_PORT", "5432"),

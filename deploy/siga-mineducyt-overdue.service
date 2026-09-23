@@ -4,12 +4,12 @@ After=network.target
 
 [Service]
 Type=oneshot
-User=endpoint
-Group=endpoint
-WorkingDirectory=/srv/endpoint
-EnvironmentFile=/etc/endpoint/production.env
+User=siga-mineducyt
+Group=siga-mineducyt
+WorkingDirectory=/srv/siga-mineducyt
+EnvironmentFile=/etc/siga-mineducyt/production.env
 Environment=DJANGO_SETTINGS_MODULE=config.settings.production
-ExecStart=/srv/endpoint/.venv/bin/python manage.py process_overdue_recommendations
+ExecStart=/srv/siga-mineducyt/.venv/bin/python manage.py process_overdue_recommendations
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
