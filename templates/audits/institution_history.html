@@ -45,6 +45,26 @@
 <section class="section-block" aria-labelledby="history-recommendations-title">
     <div class="section-heading"><div><h2 id="history-recommendations-title">Recomendaciones</h2></div></div>
     <div class="history-recommendation-groups">
+        <section class="history-recommendation-group" aria-labelledby="current-recommendations-title">
+            <h3 id="current-recommendations-title">De expedientes</h3>
+            {% for recommendation in recommendations %}
+            <article class="recommendation-card">
+                <div class="recommendation-header">
+                    <span class="recommendation-number">{{ recommendation.finding.case.reference }} · {{ recommendation.finding.number }}.{{ recommendation.number }}</span>
+                    <span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span>
+                </div>
+                <p>{{ recommendation.text|truncatechars:380 }}</p>
+                <dl class="meta-list horizontal">
+                    <div><dt>Responsable</dt><dd>{{ recommendation.responsible_organization.name }}</dd></div>
+                    <div><dt>Fecha límite</dt><dd>{{ recommendation.deadline|date:"d/m/Y"|default:"Sin definir" }}</dd></div>
+                </dl>
+                <a class="text-link" href="{% url 'case_detail' recommendation.finding.case_id %}">Abrir expediente</a>
+            </article>
+            {% empty %}
+            <div class="compact-empty"><strong>No hay recomendaciones de expedientes</strong></div>
+            {% endfor %}
+        </section>
+
         <section class="history-recommendation-group" aria-labelledby="previous-recommendations-title">
             <h3 id="previous-recommendations-title">De informes anteriores</h3>
             {% for recommendation in historical_recommendations %}
@@ -63,26 +83,6 @@
             </article>
             {% empty %}
             <div class="compact-empty"><strong>No hay recomendaciones de informes anteriores</strong></div>
-            {% endfor %}
-        </section>
-
-        <section class="history-recommendation-group" aria-labelledby="current-recommendations-title">
-            <h3 id="current-recommendations-title">De expedientes</h3>
-            {% for recommendation in recommendations %}
-            <article class="recommendation-card">
-                <div class="recommendation-header">
-                    <span class="recommendation-number">{{ recommendation.finding.case.reference }} · {{ recommendation.finding.number }}.{{ recommendation.number }}</span>
-                    <span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span>
-                </div>
-                <p>{{ recommendation.text|truncatechars:380 }}</p>
-                <dl class="meta-list horizontal">
-                    <div><dt>Responsable</dt><dd>{{ recommendation.responsible_organization.name }}</dd></div>
-                    <div><dt>Fecha límite</dt><dd>{{ recommendation.deadline|date:"d/m/Y"|default:"Sin definir" }}</dd></div>
-                </dl>
-                <a class="text-link" href="{% url 'case_detail' recommendation.finding.case_id %}">Abrir expediente</a>
-            </article>
-            {% empty %}
-            <div class="compact-empty"><strong>No hay recomendaciones de expedientes</strong></div>
             {% endfor %}
         </section>
     </div>

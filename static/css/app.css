@@ -1779,7 +1779,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
 .dashboard-task-panel { min-width: 0; }
 .history-recommendation-groups {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
 }
 .history-recommendation-group {
@@ -1905,7 +1905,6 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
     .results-heading, .directory-result-heading { align-items: flex-start; }
     .secondary-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .secondary-metrics > div { min-width: 0; padding-inline: .45rem; }
-    .history-recommendation-groups { grid-template-columns: 1fr; }
     .action-menu { width: 100%; }
     .action-menu > summary { width: 100%; }
     .action-menu-content { position: static; margin-top: .4rem; box-shadow: none; }
