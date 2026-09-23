@@ -8,6 +8,8 @@ __pycache__/
 htmlcov/
 media/private/*
 !media/private/.gitkeep
+# Local CDE uploads created with an alternate media root.
+/config/cde/
 staticfiles/
 tmp/
 .idea/
