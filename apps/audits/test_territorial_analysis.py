@@ -1,13 +1,16 @@
 from datetime import date, timedelta
+from io import BytesIO
 
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from openpyxl import load_workbook
 
 from apps.accounts.models import User
 from apps.institutions.models import Organization
 
 from .models import (
+    ActivityLog,
     AuditCase,
     DeadlineExtension,
     Finding,
@@ -480,3 +483,47 @@ class TerritorialAnalysisTests(TestCase):
         self.assertEqual(result.context["activity_extension_count"], 1)
         self.assertEqual(result.context["overdue_center_count"], 0)
         self.assertEqual(result.context["centers"][0].due_soon_count, 1)
+
+    def test_xlsx_uses_the_same_territorial_filters_and_metrics_as_the_page(self):
+        self._recommendation(
+            audited=self.center_a,
+            responsible=self.center_a,
+            reference="IA-TERR-XLSX-IN",
+            deadline=date.today() - timedelta(days=2),
+        )
+        self._recommendation(
+            audited=self.center_b,
+            responsible=self.center_b,
+            reference="IA-TERR-XLSX-OUT",
+            deadline=date.today() - timedelta(days=2),
+        )
+        self.client.force_login(self.director)
+        params = {
+            "mode": "current",
+            "department": "Departamento A",
+            "group_by": "district",
+            "quick": "overdue",
+        }
+
+        page = self.client.get(reverse("director_statistics"), params)
+        export = self.client.get(reverse("director_statistics_xlsx"), params)
+
+        self.assertContains(page, reverse("director_statistics_xlsx"))
+        self.assertEqual(export.status_code, 200)
+        content = b"".join(export.streaming_content)
+        workbook = load_workbook(BytesIO(content), data_only=False)
+        center_sheet = workbook["Centros educativos"]
+        exported_codes = [
+            center_sheet.cell(row=row, column=1).value
+            for row in range(5, center_sheet.max_row + 1)
+        ]
+        self.assertEqual(exported_codes, [self.center_a.code])
+        self.assertEqual(workbook["Resumen"]["E5"].value, page.context["center_count"])
+        self.assertEqual(
+            workbook["Resumen"]["E9"].value,
+            page.context["overdue_center_count"],
+        )
+        log = ActivityLog.objects.get(action="director_statistics_xlsx_exported")
+        self.assertEqual(log.details["filters"]["department"], "Departamento A")
+        self.assertEqual(log.details["filters"]["quick"], "overdue")
+        self.assertEqual(log.details["rows"]["centers"], page.context["center_count"])

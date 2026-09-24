@@ -20,6 +20,7 @@ from apps.institutions.models import Organization, SchoolBoardPeriod
 
 from .models import (
     ActivityLog,
+    AuditorPortfolioChange,
     AuditCase,
     AuditDocument,
     BusinessDayHoliday,
@@ -37,6 +38,100 @@ from .services import add_business_days, mark_overdue_recommendations
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp(prefix="auditoria-test-")
 SEED_TEST_MEDIA_ROOT = tempfile.mkdtemp(prefix="auditoria-seed-test-")
+
+
+class DirectorAuditorAdministrationTests(TestCase):
+    def setUp(self):
+        self.director = User.objects.create_user(
+            username="direccion.auditores", password="DemoPass123!",
+            role=User.Role.AUDIT_MANAGER, must_change_password=False,
+        )
+        self.auditor = User.objects.create_user(
+            username="auditor.gestion", password="DemoPass123!",
+            role=User.Role.AUDITOR, first_name="Ana", last_name="López",
+            must_change_password=False,
+        )
+        self.organization = Organization.objects.create(
+            code="ORG-AUD-01", name="Centro de prueba",
+            kind=Organization.Kind.EDUCATIONAL_CENTER,
+            department="San Salvador", municipality="San Salvador",
+        )
+        self.client.force_login(self.director)
+
+    def test_director_can_filter_and_assign_organization(self):
+        response = self.client.get(reverse("director_auditor_detail", args=[self.auditor.pk]), {
+            "q": "ORG-AUD", "department": "San Salvador", "assignment": "available",
+        })
+        self.assertContains(response, "Centro de prueba")
+        response = self.client.post(
+            reverse("director_auditor_assignment", args=[self.auditor.pk, self.organization.pk]),
+            {"action": "assign"},
+        )
+        self.assertRedirects(response, reverse("director_auditor_detail", args=[self.auditor.pk]))
+        self.assertTrue(self.auditor.assigned_organizations.filter(pk=self.organization.pk).exists())
+        self.assertTrue(ActivityLog.objects.filter(action="auditor_organization_assigned").exists())
+
+    def test_open_case_blocks_archiving(self):
+        AuditCase.objects.create(
+            reference="AUD-ARCH-01", title="Caso abierto",
+            audited_organization=self.organization, assigned_auditor=self.auditor,
+            created_by=self.auditor,
+        )
+        response = self.client.post(reverse("director_auditor_archive", args=[self.auditor.pk]))
+        self.assertRedirects(response, reverse("director_auditor_detail", args=[self.auditor.pk]))
+        self.auditor.refresh_from_db()
+        self.assertTrue(self.auditor.is_active)
+
+    def test_non_director_cannot_manage_auditors(self):
+        self.client.force_login(self.auditor)
+        response = self.client.get(reverse("director_auditors"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_bulk_assignment_previews_then_applies_and_records_history(self):
+        second = Organization.objects.create(
+            code="ORG-AUD-02", name="Segundo centro",
+            kind=Organization.Kind.EDUCATIONAL_CENTER,
+            department="San Salvador", municipality="Mejicanos",
+        )
+        url = reverse("director_auditor_bulk_assignment", args=[self.auditor.pk])
+        payload = {
+            "action": "assign", "scope": "selected",
+            "reason": "Redistribución territorial",
+            "organization_ids": [self.organization.pk, second.pk],
+        }
+        preview = self.client.post(url, payload)
+        self.assertContains(preview, "Confirmar asignación")
+        self.assertContains(preview, "Se aplicarán")
+        self.assertEqual(self.auditor.assigned_organizations.count(), 0)
+
+        applied = self.client.post(url, {**payload, "phase": "apply"})
+        self.assertRedirects(applied, reverse("director_auditor_detail", args=[self.auditor.pk]))
+        self.assertEqual(self.auditor.assigned_organizations.count(), 2)
+        changes = AuditorPortfolioChange.objects.filter(
+            auditor=self.auditor, outcome=AuditorPortfolioChange.Outcome.APPLIED
+        )
+        self.assertEqual(changes.count(), 2)
+        self.assertEqual(changes.values("batch_id").distinct().count(), 1)
+        self.assertTrue(changes.filter(is_bulk=True, reason="Redistribución territorial").exists())
+
+    def test_bulk_unassignment_reports_open_case_as_blocked(self):
+        self.auditor.assigned_organizations.add(self.organization)
+        AuditCase.objects.create(
+            reference="AUD-BULK-01", title="Caso protegido",
+            audited_organization=self.organization, assigned_auditor=self.auditor,
+            created_by=self.auditor,
+        )
+        url = reverse("director_auditor_bulk_assignment", args=[self.auditor.pk])
+        response = self.client.post(url, {
+            "phase": "apply", "action": "unassign", "scope": "selected",
+            "reason": "Cambio de cobertura", "organization_ids": [self.organization.pk],
+        })
+        self.assertRedirects(response, reverse("director_auditor_detail", args=[self.auditor.pk]))
+        self.assertTrue(self.auditor.assigned_organizations.filter(pk=self.organization.pk).exists())
+        self.assertTrue(AuditorPortfolioChange.objects.filter(
+            auditor=self.auditor, organization=self.organization,
+            outcome=AuditorPortfolioChange.Outcome.BLOCKED,
+        ).exists())
 
 
 def make_docx_upload(filename="informe.docx"):
@@ -477,6 +572,7 @@ class AccessAndWorkflowTests(TestCase):
             organization=self.other_center,
             must_change_password=False,
         )
+        self.auditor.assigned_organizations.add(self.center)
         self.case = AuditCase.objects.create(
             reference="IA-001",
             title="Auditoría de prueba",
@@ -958,13 +1054,13 @@ class AccessAndWorkflowTests(TestCase):
         self.assertEqual(forbidden.status_code, 403)
 
     def test_director_can_download_complete_statistics_xlsx(self):
-        self.case.title = "=HYPERLINK(\"https://example.invalid\",\"texto\")"
-        self.case.save(update_fields=["title"])
+        self.center.name = "=HYPERLINK(\"https://example.invalid\",\"texto\")"
+        self.center.save(update_fields=["name"])
 
         self.client.force_login(self.director)
         result = self.client.get(
             reverse("director_statistics_xlsx"),
-            {"period": "all", "auditor": self.auditor.pk},
+            {"mode": "current", "period": "all", "group_by": "department"},
         )
 
         self.assertEqual(result.status_code, 200)
@@ -981,43 +1077,35 @@ class AccessAndWorkflowTests(TestCase):
             workbook.sheetnames,
             [
                 "Resumen",
-                "Expedientes",
-                "Hallazgos",
-                "Recomendaciones",
-                "Respuestas y revisiones",
-                "Prórrogas",
-                "Auditores",
-                "Instituciones",
-                "Dependencias responsables",
-                "Series mensuales",
-                "Alertas y calidad",
-                "Controles",
-                "Metodología",
+                "Comparación territorial",
+                "Centros educativos",
+                "Actividad del período",
+                "Prioridades",
+                "Calidad y metodología",
             ],
         )
         self.assertEqual(
             workbook["Resumen"]["A1"].value,
-            "Informe estadístico y analítico de Auditoría Interna",
+            "Análisis territorial de centros educativos",
         )
-        self.assertEqual(workbook["Resumen"]["D13"].value, "N/D")
-        self.assertGreaterEqual(len(workbook["Resumen"]._charts), 3)
-        self.assertEqual(workbook["Expedientes"]["A5"].value, self.case.reference)
-        self.assertTrue(workbook["Expedientes"]["B5"].value.startswith("'="))
-        self.assertEqual(workbook["Expedientes"]["B5"].data_type, "s")
-        self.assertEqual(workbook["Recomendaciones"]["A5"].value, self.case.reference)
-        self.assertIsNone(workbook["Auditores"]["N5"].value)
-        self.assertIsNone(workbook["Instituciones"]["O5"].value)
+        self.assertEqual(workbook["Resumen"]["E12"].value, "N/D")
+        center_names = {
+            workbook["Centros educativos"].cell(row=row, column=2).value
+            for row in range(5, workbook["Centros educativos"].max_row + 1)
+        }
+        self.assertTrue(any(value.startswith("'=") for value in center_names))
         self.assertTrue(
             all(
-                workbook["Controles"].cell(row=row, column=4).value == "OK"
-                for row in range(5, workbook["Controles"].max_row + 1)
+                workbook["Calidad y metodología"].cell(row=row, column=5).value == "OK"
+                for row in range(5, 7)
             )
         )
 
         log = ActivityLog.objects.get(action="director_statistics_xlsx_exported")
         self.assertEqual(log.actor, self.director)
-        self.assertEqual(log.details["filters"]["auditor_id"], self.auditor.pk)
-        self.assertEqual(log.details["rows"]["cases"], 1)
+        self.assertEqual(log.details["filters"]["mode"], "current")
+        self.assertEqual(log.details["filters"]["group_by"], "department")
+        self.assertEqual(log.details["rows"]["centers"], 2)
         self.assertEqual(log.details["sha256"], hashlib.sha256(content).hexdigest())
 
     def test_statistics_xlsx_uses_effective_deadline_and_responsible_dependency(self):
@@ -1044,23 +1132,26 @@ class AccessAndWorkflowTests(TestCase):
         content = b"".join(result.streaming_content)
         workbook = load_workbook(BytesIO(content), data_only=False)
 
-        recommendation_row = workbook["Recomendaciones"][5]
-        self.assertEqual(recommendation_row[12].value.date(), original_deadline)
-        self.assertEqual(recommendation_row[13].value.date(), new_deadline)
-        self.assertEqual(recommendation_row[14].value, 0)
-        self.assertEqual(recommendation_row[15].value, 3)
-        self.assertEqual(recommendation_row[17].value, 1)
-        responsible_codes = {
-            workbook["Dependencias responsables"].cell(row=row, column=1).value
-            for row in range(5, workbook["Dependencias responsables"].max_row + 1)
-        }
-        self.assertIn(self.other_center.code, responsible_codes)
+        center_sheet = workbook["Centros educativos"]
+        responsible_row = next(
+            row
+            for row in center_sheet.iter_rows(min_row=5)
+            if row[0].value == self.other_center.code
+        )
+        self.assertEqual(responsible_row[12].value, 1)
+        self.assertEqual(responsible_row[13].value, 0)
+        self.assertEqual(responsible_row[14].value, 1)
 
     def test_statistics_xlsx_rejects_invalid_filters_without_logging(self):
         self.client.force_login(self.director)
         result = self.client.get(
             reverse("director_statistics_xlsx"),
-            {"period": "custom", "start": "2026-08-20", "end": "2026-08-10"},
+            {
+                "mode": "activity",
+                "period": "custom",
+                "start": "2026-08-20",
+                "end": "2026-08-10",
+            },
         )
 
         self.assertEqual(result.status_code, 400)

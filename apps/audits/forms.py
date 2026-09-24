@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
 from django.db import models
 
 from apps.accounts.models import User
@@ -19,6 +20,41 @@ from .models import (
     Response,
     Review,
 )
+
+
+class AuditorCreateForm(UserCreationForm):
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ("username", "first_name", "last_name", "email", "job_title")
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email", "").strip()
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("Ya existe una cuenta con este correo electrónico.")
+        return email
+
+    def save(self, commit=True):
+        auditor = super().save(commit=False)
+        auditor.role = User.Role.AUDITOR
+        auditor.organization = None
+        auditor.is_staff = False
+        auditor.is_superuser = False
+        auditor.must_change_password = True
+        if commit:
+            auditor.save()
+        return auditor
+
+
+class AuditorEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ("username", "first_name", "last_name", "email", "job_title")
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email", "").strip()
+        if email and User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Ya existe una cuenta con este correo electrónico.")
+        return email
 
 
 class AuditCaseForm(forms.ModelForm):
@@ -57,6 +93,11 @@ class AuditCaseForm(forms.ModelForm):
             role=User.Role.AUDITOR,
         ).order_by("first_name", "last_name", "username")
         if user and user.role == User.Role.AUDITOR:
+            assigned = user.assigned_organizations.filter(is_active=True)
+            self.fields["audited_organization"].queryset = assigned.order_by("name")
+            self.fields["audited_organization"].help_text = (
+                "Solo se muestran las organizaciones que Dirección le ha asignado."
+            )
             self.fields["assigned_auditor"].queryset = User.objects.filter(pk=user.pk)
             self.fields["assigned_auditor"].initial = user.pk
             self.fields["assigned_auditor"].disabled = True

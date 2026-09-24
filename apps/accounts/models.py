@@ -24,6 +24,12 @@ class User(AbstractUser):
     activation_requested_at = models.DateTimeField(
         "activación solicitada", null=True, blank=True, editable=False
     )
+    assigned_organizations = models.ManyToManyField(
+        "institutions.Organization",
+        verbose_name="organizaciones asignadas",
+        blank=True,
+        related_name="assigned_auditors",
+    )
 
     class Meta:
         verbose_name = "usuario"

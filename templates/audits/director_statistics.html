@@ -3,7 +3,7 @@
 {% block content %}
 <header class="page-heading heading-row territorial-analysis-heading">
     <div><h1>Análisis de centros educativos</h1></div>
-    <div class="button-group"><span class="button button-secondary is-disabled" aria-disabled="true">Exportar XLSX</span><a class="button button-secondary" href="{% url 'director_dashboard' %}">Volver al inicio</a></div>
+    <div class="button-group">{% if selected_mode == 'activity' and filter_errors %}<span class="button button-secondary is-disabled" aria-disabled="true">Exportar XLSX</span>{% else %}<a class="button button-secondary" href="{% url 'director_statistics_xlsx' %}{% querystring %}">Exportar XLSX</a>{% endif %}<a class="button button-secondary" href="{% url 'director_dashboard' %}">Volver al inicio</a></div>
 </header>
 
 <div class="analysis-mode-switch" aria-label="Perspectiva del análisis">
@@ -100,7 +100,7 @@
 <section class="analysis-section" aria-labelledby="current-title">
     <div class="section-heading"><div><h2 id="current-title">Desde todos los tiempos</h2></div><span class="status status-approved">Corte actual</span></div>
     <div class="territorial-kpis">
-        <article><span>Centros incluidos</span><strong>{{ center_count }}</strong><small>universo después de filtros</small></article>
+        <article><span>Centros incluidos</span><strong>{{ center_count }}</strong></article>
         <article><span>Cobertura de auditoría</span><strong>{{ coverage_rate }}%</strong><small>{{ audited_center_count }} auditados · {{ not_audited_center_count }} sin auditorías</small></article>
         <article class="kpi-danger"><span>Atención inmediata</span><strong>{{ immediate_center_count }}</strong><small>vencimientos o riesgo crítico</small></article>
         <article class="kpi-warning"><span>Con plazos vencidos</span><strong>{{ overdue_center_count }}</strong><small>{{ overdue_obligations }} obligaciones abiertas</small></article>

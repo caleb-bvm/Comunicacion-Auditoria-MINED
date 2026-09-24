@@ -237,6 +237,7 @@ class Command(BaseCommand):
             san_salvador_departmental,
             auditor,
         )
+        auditor.assigned_organizations.add(center, florinda_center, comunidad_center)
 
         self.stdout.write(self.style.SUCCESS("Datos de demostración creados y actualizados."))
         self._write_credentials(

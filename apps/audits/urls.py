@@ -14,6 +14,13 @@ urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("mi-historial/", views.institution_history, name="institution_history"),
     path("direccion/", views.DirectorDashboardView.as_view(), name="director_dashboard"),
+    path("direccion/auditores/", views.director_auditor_list, name="director_auditors"),
+    path("direccion/auditores/nuevo/", views.director_auditor_create, name="director_auditor_create"),
+    path("direccion/auditores/<int:pk>/", views.director_auditor_detail, name="director_auditor_detail"),
+    path("direccion/auditores/<int:pk>/editar/", views.director_auditor_edit, name="director_auditor_edit"),
+    path("direccion/auditores/<int:pk>/archivar/", views.director_auditor_archive, name="director_auditor_archive"),
+    path("direccion/auditores/<int:pk>/organizaciones/<int:organization_pk>/", views.director_auditor_assignment, name="director_auditor_assignment"),
+    path("direccion/auditores/<int:pk>/organizaciones/operacion-masiva/", views.director_auditor_bulk_assignment, name="director_auditor_bulk_assignment"),
     path(
         "direccion/estadisticas/",
         views.DirectorStatisticsView.as_view(),

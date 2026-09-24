@@ -75,8 +75,10 @@
     document.querySelectorAll("[data-location-filters]").forEach((form) => {
         const department = form.querySelector('[name="department"]');
         const district = form.querySelector('[name="district"]');
+        const municipality = form.querySelector('[name="municipality"]');
         department?.addEventListener("change", () => {
             if (district) district.value = "";
+            if (municipality) municipality.value = "";
         });
     });
 
@@ -274,3 +276,19 @@
     updatePeriodFilter();
     restoreAnalysisState();
 })();
+
+document.querySelectorAll("[data-select-page]").forEach((toggle) => {
+    const group = toggle.dataset.selectPage;
+    const items = Array.from(document.querySelectorAll(`[data-selection-item="${group}"]`));
+    const refresh = () => {
+        const checked = items.filter((item) => item.checked).length;
+        toggle.checked = items.length > 0 && checked === items.length;
+        toggle.indeterminate = checked > 0 && checked < items.length;
+    };
+    toggle.addEventListener("change", () => {
+        items.forEach((item) => { item.checked = toggle.checked; });
+        refresh();
+    });
+    items.forEach((item) => item.addEventListener("change", refresh));
+    refresh();
+});

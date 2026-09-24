@@ -99,7 +99,7 @@ La visibilidad se define para cada archivo, con «Solo Auditoría» como valor i
 - El nivel de atención no es un puntaje opaco: la interfaz muestra las razones concretas que originan la prioridad, como vencimientos, riesgo crítico, incumplimiento automático, correcciones o plazos próximos.
 - Un CDE se considera vigente únicamente cuando está marcado como actual y la fecha de consulta se encuentra dentro de su período de inicio y finalización.
 - El cumplimiento territorial se calcula con los totales de recomendaciones cumplidas y recomendaciones con resultado definitivo; no se promedian porcentajes de centros. Si no existe un resultado definitivo, se muestra `N/D`.
-- La página web consume un servicio territorial compartido. La siguiente etapa hará que el XLSX consuma la misma selección y los mismos resultados, evitando que la pantalla y el archivo apliquen reglas diferentes.
+- La página web y el XLSX consumen el mismo servicio territorial y conservan la misma selección y los mismos resultados, evitando que ambos formatos apliquen reglas diferentes.
 
 ## Consejo Directivo Escolar
 

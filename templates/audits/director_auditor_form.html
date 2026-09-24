@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} | Dirección de Auditoría{% endblock %}
+{% block content %}
+<div class="narrow-page"><div class="page-heading"><h1>{{ page_title }}</h1><p>Complete los datos de acceso y contacto del auditor.</p></div>
+<form method="post" class="stacked-form card" novalidate>{% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="form-grid form-grid-two">{% for field in form %}<div class="field{% if field.errors %} field-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text|safe }}</small>{% endif %}{% for error in field.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>{% endfor %}</div>
+  <div class="button-group"><button class="button button-primary" type="submit">{{ submit_label }}</button><a class="button button-secondary" href="{% if auditor %}{% url 'director_auditor_detail' auditor.pk %}{% else %}{% url 'director_auditors' %}{% endif %}">Cancelar</a></div>
+</form></div>
+{% endblock %}

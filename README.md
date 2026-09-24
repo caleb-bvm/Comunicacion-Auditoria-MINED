@@ -16,7 +16,7 @@ Primera base funcional para registrar expedientes, hallazgos, recomendaciones, r
 - Perfil de Dirección de Auditoría con resumen ejecutivo, bandeja de decisiones, aprobación de publicaciones y cierres, y reasignación justificada de auditores.
 - Indicadores operativos en el inicio de cada auditor, limitados estrictamente a sus expedientes asignados, con alertas de revisión, vencimientos y riesgo.
 - Página de Análisis para Dirección centrada en todos los centros educativos, con vista nacional o filtrada por departamento y distrito, situación vigente, actividad por período, comparación territorial y centros prioritarios.
-- Informe estadístico XLSX para Dirección que conserva los filtros aplicados e incluye resumen ejecutivo, gráficos, expedientes, hallazgos, recomendaciones, respuestas, prórrogas, análisis por auditor e institución, dependencias responsables, series mensuales, alertas, controles y metodología.
+- Informe territorial XLSX para Dirección que conserva los filtros aplicados e incluye resumen ejecutivo, comparación territorial, centros educativos, actividad del período, prioridades, controles de calidad y metodología.
 - Inteligencia institucional de centros educativos para Dirección, con priorización explicable, filtros territoriales y de alerta, ficha analítica por centro, estado del CDE, acceso, riesgos, obligaciones, respuestas, documentos e historial de auditoría.
 - Importación validada del catálogo institucional desde CSV, incluido el distrito como dato territorial opcional.
 - Repositorio de informes anteriores en PDF y Word.

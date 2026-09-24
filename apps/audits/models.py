@@ -498,6 +498,54 @@ class Review(models.Model):
         return f"{self.response} - {self.get_outcome_display()}"
 
 
+class AuditorPortfolioChange(models.Model):
+    class Action(models.TextChoices):
+        ASSIGN = "assign", "Asignación"
+        UNASSIGN = "unassign", "Desasignación"
+
+    class Outcome(models.TextChoices):
+        APPLIED = "applied", "Aplicada"
+        SKIPPED = "skipped", "Omitida"
+        BLOCKED = "blocked", "Bloqueada"
+
+    auditor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="auditor",
+        on_delete=models.PROTECT,
+        related_name="portfolio_changes",
+    )
+    organization = models.ForeignKey(
+        "institutions.Organization",
+        verbose_name="organización",
+        on_delete=models.PROTECT,
+        related_name="auditor_portfolio_changes",
+    )
+    action = models.CharField("acción", max_length=12, choices=Action.choices)
+    outcome = models.CharField("resultado", max_length=12, choices=Outcome.choices)
+    reason = models.CharField("motivo", max_length=500, blank=True)
+    outcome_detail = models.CharField("detalle del resultado", max_length=300, blank=True)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="realizado por",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="portfolio_changes_made",
+    )
+    batch_id = models.UUIDField("operación", db_index=True)
+    is_bulk = models.BooleanField("operación masiva", default=False)
+    created_at = models.DateTimeField("fecha", auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "cambio de cartera de auditor"
+        verbose_name_plural = "historial de cartera de auditores"
+        ordering = ("-created_at", "-pk")
+        indexes = [
+            models.Index(fields=("auditor", "created_at"), name="auditor_portfolio_history"),
+            models.Index(fields=("organization", "created_at"), name="org_portfolio_history"),
+        ]
+
+
 class ActivityLog(models.Model):
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL,

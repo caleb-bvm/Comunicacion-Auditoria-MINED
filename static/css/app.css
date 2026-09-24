@@ -549,6 +549,7 @@ td small { display: block; color: var(--md-on-surface-variant); margin-top: .25r
 .filter-bar.analytics-filter { display: grid; }
 .filter-bar.report-filter-bar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; }
 .report-filter-bar .search-field { grid-column: 1 / -1; }
+.auditor-admin-page .filter-bar .auditor-search-field { flex: 1 1 420px; min-width: 220px; }
 .grow { flex: 1; }
 .field { display: flex; flex-direction: column; gap: .45rem; }
 .field label, .stacked-form > p label { color: var(--md-on-surface); font-size: .83rem; font-weight: 780; }
@@ -2338,6 +2339,46 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
 .center-profile-page .document-profile-grid article > strong { font-size: 1rem; line-height: 1.4; }
 .center-profile-page .document-profile-grid article > small { line-height: 1.45; }
 .center-profile-page .document-profile-grid .text-link { align-self: end; }
+
+.portfolio-bulk-bar {
+    margin-bottom: 1rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 1rem;
+}
+.portfolio-bulk-bar > .field {
+    grid-column: 1 / -1;
+}
+.portfolio-bulk-actions {
+    padding: .9rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+    gap: .6rem;
+    background: var(--md-surface-container-low);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--radius-sm);
+}
+.portfolio-bulk-actions strong {
+    grid-column: 1 / -1;
+    font-size: .78rem;
+    color: var(--md-on-surface-variant);
+}
+.portfolio-bulk-actions .button { width: 100%; }
+.auditor-admin-page .executive-stats + .message { margin-top: 1rem; }
+.auditor-admin-page th:first-child,
+.auditor-admin-page td:first-child { width: 48px; text-align: center; }
+
+@media (max-width: 900px) {
+    .portfolio-bulk-bar { grid-template-columns: 1fr; }
+    .portfolio-bulk-bar > .field { grid-column: auto; }
+}
+
+@media (max-width: 520px) {
+    .portfolio-bulk-actions { grid-template-columns: 1fr; }
+    .portfolio-bulk-actions strong { grid-column: auto; }
+}
 
 .center-profile-page .profile-warning {
     padding: 1rem 1.15rem;

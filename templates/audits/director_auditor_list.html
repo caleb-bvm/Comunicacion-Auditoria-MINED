@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Auditores | Dirección de Auditoría{% endblock %}
+{% block content %}
+<div class="auditor-admin-page">
+  <div class="page-heading heading-row">
+    <div><h1>Auditores</h1><p>Administre el equipo y consulte su carga de trabajo.</p></div>
+    <a class="button button-primary" href="{% url 'director_auditor_create' %}">Crear auditor</a>
+  </div>
+  <section class="executive-stats" aria-label="Resumen de auditores">
+    <article class="executive-stat"><span>Activos</span><strong>{{ active_count }}</strong></article>
+    <article class="executive-stat"><span>Archivados</span><strong>{{ archived_count }}</strong></article>
+  </section>
+  <form method="get" class="filter-bar" role="search" data-auto-submit-filters>
+    <div class="field auditor-search-field"><label for="q">Buscar auditor</label><input id="q" name="q" type="search" value="{{ query }}" placeholder="Nombre, usuario o correo"></div>
+    <div class="field"><label for="status">Estado</label><select id="status" name="status"><option value="active" {% if selected_status == 'active' %}selected{% endif %}>Activos</option><option value="archived" {% if selected_status == 'archived' %}selected{% endif %}>Archivados</option><option value="all" {% if selected_status == 'all' %}selected{% endif %}>Todos</option></select></div>
+    <button class="button button-primary" type="submit">Buscar</button><a class="button button-secondary" href="{% url 'director_auditors' %}">Limpiar</a>
+  </form>
+  <section class="table-card"><div class="table-responsive"><table><thead><tr><th>Auditor</th><th>Contacto</th><th>Organizaciones</th><th>Expedientes abiertos</th><th>Estado</th><th></th></tr></thead><tbody>
+    {% for auditor in auditors %}<tr><td><strong>{{ auditor.get_full_name|default:auditor.username }}</strong><br><small>@{{ auditor.username }}{% if auditor.job_title %} · {{ auditor.job_title }}{% endif %}</small></td><td>{{ auditor.email|default:"—" }}</td><td>{{ auditor.organization_count }}</td><td>{{ auditor.open_case_count }}</td><td><span class="status-pill">{% if auditor.is_active %}Activo{% else %}Archivado{% endif %}</span></td><td><a class="button button-secondary button-compact" href="{% url 'director_auditor_detail' auditor.pk %}">Administrar</a></td></tr>
+    {% empty %}<tr><td colspan="6">No se encontraron auditores.</td></tr>{% endfor %}
+  </tbody></table></div></section>
+  {% if page_obj.paginator.num_pages > 1 %}<nav class="pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a href="?q={{ query|urlencode }}&amp;status={{ selected_status }}&amp;page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?q={{ query|urlencode }}&amp;status={{ selected_status }}&amp;page={{ page_obj.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
+</div>
+{% endblock %}

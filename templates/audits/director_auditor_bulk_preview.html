@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Confirmar cambio de cartera | Dirección de Auditoría{% endblock %}
+{% block content %}
+<div class="auditor-admin-page">
+  <div class="page-heading"><a class="text-link" href="{% url 'director_auditor_detail' auditor.pk %}">← Volver sin aplicar</a><h1>Confirmar {% if action == 'assign' %}asignación{% else %}desasignación{% endif %}</h1><p>Revise el resultado previsto para la cartera de {{ auditor.get_full_name|default:auditor.username }}.</p></div>
+  <section class="executive-stats"><article class="executive-stat"><span>Se aplicarán</span><strong>{{ counts.applied }}</strong></article><article class="executive-stat"><span>Se omitirán</span><strong>{{ counts.skipped }}</strong></article><article class="executive-stat executive-stat-warning"><span>Bloqueadas</span><strong>{{ counts.blocked }}</strong></article></section>
+  <div class="card"><strong>Motivo</strong><p>{{ reason|default:"Sin motivo indicado" }}</p></div>
+  <section class="table-card"><div class="table-responsive"><table><thead><tr><th>Organización</th><th>Resultado previsto</th><th>Detalle</th></tr></thead><tbody>{% for row in plan %}<tr><td><strong>{{ row.organization.name }}</strong><br><small>{{ row.organization.code }}</small></td><td>{% if row.outcome == 'applied' %}Se aplicará{% elif row.outcome == 'skipped' %}Se omitirá{% else %}Bloqueada{% endif %}</td><td>{{ row.detail }}</td></tr>{% endfor %}</tbody></table></div></section>
+  <form method="post" action="{% url 'director_auditor_bulk_assignment' auditor.pk %}" class="submit-panel">{% csrf_token %}<input type="hidden" name="phase" value="apply"><input type="hidden" name="action" value="{{ action }}"><input type="hidden" name="scope" value="selected"><input type="hidden" name="reason" value="{{ reason }}">{% for organization_id in selected_ids %}<input type="hidden" name="organization_ids" value="{{ organization_id }}">{% endfor %}<div class="button-group"><button class="button button-primary" type="submit" {% if not counts.applied %}disabled{% endif %}>Confirmar y aplicar {{ counts.applied }} cambio{{ counts.applied|pluralize }}</button><a class="button button-secondary" href="{% url 'director_auditor_detail' auditor.pk %}">Cancelar</a></div></form>
+</div>
+{% endblock %}

@@ -32,7 +32,7 @@
     <div><dt>Seguimientos</dt><dd>{{ center.explicit_followup_count }}</dd></div>
 </dl>
 
-<nav class="center-profile-nav" aria-label="Secciones del centro"><a href="#situacion-auditada">Situación auditada</a><a href="#obligaciones">Obligaciones</a><a href="#respuestas">Respuestas</a><a href="#documentos">Documentos</a><a href="#cde">CDE</a></nav>
+<nav class="center-profile-nav" aria-label="Secciones del centro"><a href="#situacion-auditada">Situación auditada</a><a href="#obligaciones">Obligaciones</a><a href="#respuestas">Respuestas</a><a href="#documentos">Documentos</a><a href="#cartera">Cartera</a><a href="#cde">CDE</a></nav>
 
 <section id="situacion-auditada" class="center-profile-section">
     <div class="section-heading"><div><h2>Situación auditada</h2><p>Incluye únicamente expedientes donde este centro es la institución auditada.</p></div></div>
@@ -57,6 +57,11 @@
     <div class="section-heading"><div><h2>Documentos e informes</h2></div><div class="button-group"><a class="button button-secondary" href="{% url 'center_historical_document_create' center.pk %}">Agregar informe anterior</a><a class="button button-primary" href="{% url 'center_historical_bulk_upload' center.pk %}">Carga múltiple</a></div></div>
     <div class="document-profile-grid">{% for document in documents %}<article><span class="document-profile-type document-status-{{ document.status }}">{{ document.get_document_type_display }} · {{ document.get_status_display }}</span><strong>{{ document.title }}</strong><small>{% if document.reference %}{{ document.reference }} · {% endif %}{% if document.document_date %}{{ document.document_date|date:"d/m/Y" }}{% else %}sin fecha documental{% endif %}{% if document.case %} · {{ document.case.reference }}{% endif %}</small>{% if document.document_type == 'historical_report' %}<a class="text-link" href="{% url 'historical_document_detail' document.pk %}">Ver informe y documentos</a>{% endif %}<a class="text-link" href="{% url 'download_audit_document' document.pk %}">Descargar original</a></article>{% empty %}<div class="compact-empty"><strong>Sin documentos vinculados</strong><p>Los informes y documentos del centro aparecerán aquí.</p></div>{% endfor %}</div>
     {% if historical_recommendations %}<details class="profile-details"><summary>{{ historical_recommendations.count }} recomendación{{ historical_recommendations.count|pluralize:"es" }} histórica{{ historical_recommendations.count|pluralize }}</summary><ul>{% for item in historical_recommendations %}<li><strong>{{ item.source_document.reference|default:item.source_document.title }} · {{ item.number }}</strong> — {{ item.get_status_display }}{% if item.responsible_organization %} · responsable: {{ item.responsible_organization.name }}{% endif %}</li>{% endfor %}</ul></details>{% endif %}
+</section>
+
+<section id="cartera" class="center-profile-section">
+    <div class="section-heading"><div><h2>Historial de auditores responsables</h2><p>Cambios aplicados a la cartera de esta organización.</p></div></div>
+    <div class="profile-table-wrap"><table class="profile-table"><thead><tr><th>Fecha</th><th>Acción</th><th>Auditor</th><th>Realizado por</th><th>Motivo</th></tr></thead><tbody>{% for change in portfolio_history %}<tr><td>{{ change.created_at|date:"d/m/Y H:i" }}</td><td>{{ change.get_action_display }}{% if change.is_bulk %}<small>Operación masiva</small>{% endif %}</td><td>{{ change.auditor.get_full_name|default:change.auditor.username }}</td><td>{% if change.actor %}{{ change.actor.get_full_name|default:change.actor.username }}{% else %}Migración del sistema{% endif %}</td><td>{{ change.reason|default:"Sin motivo indicado" }}</td></tr>{% empty %}<tr><td colspan="5">Todavía no hay cambios de cartera registrados.</td></tr>{% endfor %}</tbody></table></div>
 </section>
 
 <section id="cde" class="center-profile-section">

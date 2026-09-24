@@ -7,7 +7,7 @@
     <meta name="description" content="Sistema institucional de seguimiento de recomendaciones de Auditoría Interna">
     <title>{% block title %}SIGA-MINEDUCYT{% endblock %}</title>
     <meta name="theme-color" content="#f7f9fc">
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260918-3">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260924-3">
 </head>
 <body>
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -35,6 +35,9 @@
             </a>
             <a href="{% url 'director_educational_centers' %}" class="nav-item {% if request.resolver_match.url_name == 'director_educational_centers' or request.resolver_match.url_name == 'director_educational_center_detail' or 'cde_' in request.resolver_match.url_name %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_educational_centers' or request.resolver_match.url_name == 'director_educational_center_detail' or 'cde_' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-centers"></use></svg></span><span>Centros</span>
+            </a>
+            <a href="{% url 'director_auditors' %}" class="nav-item {% if 'director_auditor' in request.resolver_match.url_name %}is-active{% endif %}" {% if 'director_auditor' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
+                <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-council"></use></svg></span><span>Auditores</span>
             </a>
             <a href="{% url 'director_statistics' %}" class="nav-item {% if request.resolver_match.url_name == 'director_statistics' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_statistics' %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-statistics"></use></svg></span><span>Análisis</span>
@@ -107,6 +110,7 @@
             {% if user.role == 'audit_manager' %}
             <a href="{% url 'director_dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'director_dashboard' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_dashboard' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-home"></use></svg><span>Inicio</span></a>
             <a href="{% url 'director_educational_centers' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'director_educational_centers' or request.resolver_match.url_name == 'director_educational_center_detail' or 'cde_' in request.resolver_match.url_name %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_educational_centers' or request.resolver_match.url_name == 'director_educational_center_detail' or 'cde_' in request.resolver_match.url_name %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-centers"></use></svg><span>Centros</span></a>
+            <a href="{% url 'director_auditors' %}" class="mobile-nav-item {% if 'director_auditor' in request.resolver_match.url_name %}is-active{% endif %}" {% if 'director_auditor' in request.resolver_match.url_name %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-council"></use></svg><span>Auditores</span></a>
             <a href="{% url 'director_statistics' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'director_statistics' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_statistics' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-statistics"></use></svg><span>Análisis</span></a>
             <a href="{% url 'director_decisions' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-requests"></use></svg><span>Solicitudes</span></a>
             {% elif user.role == 'institution' %}
@@ -125,12 +129,12 @@
         <aside id="mobile-more-menu" class="mobile-more-menu" aria-label="Más opciones" hidden>
             <div class="mobile-more-heading"><strong>Más opciones</strong><button type="button" class="icon-button mobile-more-close" aria-label="Cerrar menú">×</button></div>
             <a href="{% url 'account_profile' %}">Mi perfil</a>
-            {% if user.role == 'audit_manager' %}<a href="{% url 'case_list' %}"><svg aria-hidden="true"><use href="#nav-files"></use></svg>Expedientes</a><a href="{% url 'historical_document_list' %}"><svg aria-hidden="true"><use href="#nav-reports"></use></svg>Informes</a>{% endif %}
+            {% if user.role == 'audit_manager' %}<a href="{% url 'director_auditors' %}"><svg aria-hidden="true"><use href="#nav-council"></use></svg>Auditores</a><a href="{% url 'case_list' %}"><svg aria-hidden="true"><use href="#nav-files"></use></svg>Expedientes</a><a href="{% url 'historical_document_list' %}"><svg aria-hidden="true"><use href="#nav-reports"></use></svg>Informes</a>{% endif %}
             {% if user.is_superuser or user.role == 'technical_admin' %}<a href="/administracion/"><svg aria-hidden="true"><use href="#nav-admin"></use></svg>Administración</a>{% endif %}
             <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit"><svg aria-hidden="true"><use href="#nav-logout"></use></svg>Cerrar sesión</button></form>
         </aside>
     </div>
-    <script src="{% static 'js/app.js' %}?v=20260918-1" defer></script>
+    <script src="{% static 'js/app.js' %}?v=20260924-2" defer></script>
     {% endif %}
 </body>
 </html>

@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import smtplib
+import uuid
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Exists, Max, OuterRef, Prefetch, Q
+from django.core.paginator import Paginator
 from django.http import FileResponse, Http404, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -24,6 +26,8 @@ from apps.institutions.models import Organization, SchoolBoardPeriod
 
 from .forms import (
     AuditCaseForm,
+    AuditorCreateForm,
+    AuditorEditForm,
     AuditorReassignmentForm,
     CaseReportDocumentForm,
     ClosureRequestForm,
@@ -47,6 +51,7 @@ from .center_analytics import (
 )
 from .models import (
     ActivityLog,
+    AuditorPortfolioChange,
     AuditCase,
     AuditDocument,
     CaseDecision,
@@ -74,7 +79,7 @@ from .statistics import (
     percentage,
 )
 from .territorial_analysis import build_territorial_analysis
-from .xlsx import build_director_statistics_xlsx
+from .xlsx import build_territorial_analysis_xlsx
 
 
 def get_client_ip(request):
@@ -100,6 +105,11 @@ def user_can_create_cases(user):
 
 def user_is_director(user):
     return user.is_authenticated and user.role == User.Role.AUDIT_MANAGER
+
+
+def require_director(user):
+    if not user_is_director(user):
+        raise PermissionDenied("Esta acción corresponde a la Dirección de Auditoría.")
 
 
 def institutional_username(organization):
@@ -857,9 +867,8 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
         territorial = build_territorial_analysis(self.request.GET)
         context.update(territorial)
 
-        # Preserve the established operational filter contract while the web page
-        # moves to the territorial dataset. The XLSX view still uses get_report_data
-        # until it is migrated to this same service in the next development stage.
+        # Preserve the established operational filter contract for bookmarked legacy
+        # URLs. The web page and XLSX export both use the territorial dataset.
         legacy_filter_requested = any(
             self.request.GET.get(name) for name in ("auditor", "organization", "status")
         )
@@ -882,40 +891,34 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
 class DirectorStatisticsXlsxView(DirectorStatisticsView):
     def get(self, request, *args, **kwargs):
         with transaction.atomic():
-            (
-                cases,
-                filters,
-                statistics,
-                auditor_statistics,
-                organization_statistics,
-            ) = self.get_report_data()
-            if filters["filter_errors"]:
-                return HttpResponseBadRequest(" ".join(filters["filter_errors"]))
+            analysis = build_territorial_analysis(request.GET)
+            if analysis["filter_errors"]:
+                return HttpResponseBadRequest(" ".join(analysis["filter_errors"]))
 
             generated_at = timezone.now()
-            workbook_buffer, export_metadata = build_director_statistics_xlsx(
-                cases=cases,
-                filters=filters,
-                statistics=statistics,
-                auditor_statistics=auditor_statistics,
-                organization_statistics=organization_statistics,
+            workbook_buffer, export_metadata = build_territorial_analysis_xlsx(
+                analysis=analysis,
                 generated_by=request.user,
                 generated_at=generated_at,
             )
         sha256 = hashlib.sha256(workbook_buffer.getbuffer()).hexdigest()
         normalized_filters = {
-            "period": filters["selected_period"],
-            "start": filters["start_date"].isoformat() if filters["start_date"] else None,
-            "end": filters["end_date"].isoformat() if filters["end_date"] else None,
-            "auditor_id": filters["selected_auditor"].pk if filters["selected_auditor"] else None,
-            "organization_id": (
-                filters["selected_organization"].pk
-                if filters["selected_organization"]
-                else None
-            ),
-            "status": filters["selected_status"] or None,
+            "mode": analysis["selected_mode"],
+            "period": analysis["selected_period"],
+            "start": analysis["start_date"].isoformat() if analysis["start_date"] else None,
+            "end": analysis["end_date"].isoformat() if analysis["end_date"] else None,
+            "department": analysis["selected_department"] or None,
+            "district": analysis["selected_district"] or None,
+            "group_by": analysis["selected_group_by"],
+            "quick": analysis["selected_quick_filter"] or None,
+            "attention": analysis["selected_attention"] or None,
+            "coverage": analysis["selected_coverage"] or None,
+            "risk": analysis["selected_risk"] or None,
+            "cde": analysis["selected_cde"] or None,
+            "access": analysis["selected_access"] or None,
+            "compliance": analysis["selected_compliance"] or None,
         }
-        filename = f"informe-estadistico-auditoria-{timezone.localtime(generated_at):%Y%m%d-%H%M%S}.xlsx"
+        filename = f"analisis-territorial-centros-{timezone.localtime(generated_at):%Y%m%d-%H%M%S}.xlsx"
         log_activity(
             request,
             "director_statistics_xlsx_exported",
@@ -1212,6 +1215,10 @@ class DirectorEducationalCenterDetailView(LoginRequiredMixin, TemplateView):
                 "recent_responses": recent_responses,
                 "documents": documents,
                 "historical_recommendations": historical_recommendations,
+                "portfolio_history": AuditorPortfolioChange.objects.filter(
+                    organization=center,
+                    outcome=AuditorPortfolioChange.Outcome.APPLIED,
+                ).select_related("auditor", "actor")[:30],
                 "cde_periods": cde_periods,
                 "current_cde": next(
                     (
@@ -2507,3 +2514,318 @@ def response_receipt(request, pk):
     pdf_buffer, folio = build_response_receipt(response)
     log_activity(request, "response_receipt_downloaded", case=case, target=response, details={"folio": folio})
     return FileResponse(pdf_buffer, as_attachment=True, filename=f"{folio}.pdf")
+
+
+def director_auditor_list(request):
+    require_director(request.user)
+    query = request.GET.get("q", "").strip()
+    status = request.GET.get("status", "active")
+    auditors = User.objects.filter(role=User.Role.AUDITOR).annotate(
+        organization_count=Count("assigned_organizations", distinct=True),
+        open_case_count=Count(
+            "assigned_cases",
+            filter=~Q(assigned_cases__status=AuditCase.Status.CLOSED),
+            distinct=True,
+        ),
+    )
+    if query:
+        auditors = auditors.filter(
+            Q(username__icontains=query)
+            | Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+            | Q(email__icontains=query)
+        )
+    if status == "active":
+        auditors = auditors.filter(is_active=True)
+    elif status == "archived":
+        auditors = auditors.filter(is_active=False)
+    elif status != "all":
+        status = "active"
+        auditors = auditors.filter(is_active=True)
+    auditors = auditors.order_by("first_name", "last_name", "username")
+    page_obj = Paginator(auditors, 20).get_page(request.GET.get("page"))
+    return render(request, "audits/director_auditor_list.html", {
+        "auditors": page_obj.object_list,
+        "page_obj": page_obj,
+        "query": query,
+        "selected_status": status,
+        "active_count": User.objects.filter(role=User.Role.AUDITOR, is_active=True).count(),
+        "archived_count": User.objects.filter(role=User.Role.AUDITOR, is_active=False).count(),
+    })
+
+
+def director_auditor_create(request):
+    require_director(request.user)
+    form = AuditorCreateForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            auditor = form.save()
+            log_activity(request, "auditor_created", target=auditor, details={
+                "username": auditor.username, "email": auditor.email,
+            })
+        messages.success(request, "Auditor creado. Deberá cambiar su contraseña al ingresar.")
+        return redirect("director_auditor_detail", pk=auditor.pk)
+    return render(request, "audits/director_auditor_form.html", {
+        "form": form, "page_title": "Crear auditor", "submit_label": "Crear auditor",
+    })
+
+
+def director_auditor_edit(request, pk):
+    require_director(request.user)
+    auditor = get_object_or_404(User, pk=pk, role=User.Role.AUDITOR)
+    form = AuditorEditForm(request.POST or None, instance=auditor)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            auditor = form.save()
+            log_activity(request, "auditor_updated", target=auditor, details={
+                "username": auditor.username, "email": auditor.email,
+            })
+        messages.success(request, "Datos del auditor actualizados.")
+        return redirect("director_auditor_detail", pk=auditor.pk)
+    return render(request, "audits/director_auditor_form.html", {
+        "form": form, "auditor": auditor, "page_title": "Editar auditor",
+        "submit_label": "Guardar cambios",
+    })
+
+
+def director_auditor_detail(request, pk):
+    require_director(request.user)
+    auditor = get_object_or_404(User, pk=pk, role=User.Role.AUDITOR)
+    organizations = Organization.objects.all().annotate(
+        is_assigned=Exists(auditor.assigned_organizations.filter(pk=OuterRef("pk")))
+    )
+    query = request.GET.get("q", "").strip()
+    department = request.GET.get("department", "").strip()
+    municipality = request.GET.get("municipality", "").strip()
+    kind = request.GET.get("kind", "").strip()
+    assignment = request.GET.get("assignment", "all")
+    if query:
+        organizations = organizations.filter(Q(code__icontains=query) | Q(name__icontains=query))
+    if department:
+        organizations = organizations.filter(department=department)
+    if municipality:
+        organizations = organizations.filter(municipality=municipality)
+    if kind:
+        organizations = organizations.filter(kind=kind)
+    if assignment == "assigned":
+        organizations = organizations.filter(is_assigned=True)
+    elif assignment == "available":
+        organizations = organizations.filter(is_assigned=False, is_active=True)
+    elif assignment != "all":
+        assignment = "all"
+    locations = Organization.objects.all()
+    municipality_options = locations.filter(department=department) if department else locations
+    page_obj = Paginator(organizations.order_by("name"), 25).get_page(request.GET.get("page"))
+    open_cases = auditor.assigned_cases.exclude(status=AuditCase.Status.CLOSED).count()
+    history = AuditorPortfolioChange.objects.filter(auditor=auditor).select_related(
+        "organization", "actor"
+    )
+    history_action = request.GET.get("history_action", "")
+    if history_action in {choice[0] for choice in AuditorPortfolioChange.Action.choices}:
+        history = history.filter(action=history_action)
+    else:
+        history_action = ""
+    return render(request, "audits/director_auditor_detail.html", {
+        "auditor": auditor,
+        "organizations": page_obj.object_list,
+        "page_obj": page_obj,
+        "query": query,
+        "selected_department": department,
+        "selected_municipality": municipality,
+        "selected_kind": kind,
+        "selected_assignment": assignment,
+        "department_options": locations.exclude(department="").values_list("department", flat=True).distinct().order_by("department"),
+        "municipality_options": municipality_options.exclude(municipality="").values_list("municipality", flat=True).distinct().order_by("municipality"),
+        "kind_options": Organization.Kind.choices,
+        "assigned_count": auditor.assigned_organizations.count(),
+        "open_case_count": open_cases,
+        "closed_case_count": auditor.assigned_cases.filter(status=AuditCase.Status.CLOSED).count(),
+        "portfolio_history": history[:50],
+        "history_action": history_action,
+    })
+
+
+def _portfolio_bulk_queryset(data):
+    organizations = Organization.objects.all()
+    query = data.get("q", "").strip()
+    department = data.get("department", "").strip()
+    municipality = data.get("municipality", "").strip()
+    kind = data.get("kind", "").strip()
+    assignment = data.get("assignment", "all")
+    if query:
+        organizations = organizations.filter(Q(code__icontains=query) | Q(name__icontains=query))
+    if department:
+        organizations = organizations.filter(department=department)
+    if municipality:
+        organizations = organizations.filter(municipality=municipality)
+    if kind in {choice[0] for choice in Organization.Kind.choices}:
+        organizations = organizations.filter(kind=kind)
+    return organizations, assignment
+
+
+def _portfolio_change_plan(auditor, organizations, action):
+    assigned_ids = set(auditor.assigned_organizations.values_list("pk", flat=True))
+    open_case_ids = set(
+        auditor.assigned_cases.exclude(status=AuditCase.Status.CLOSED)
+        .values_list("audited_organization_id", flat=True)
+    )
+    rows = []
+    for organization in organizations:
+        if action == AuditorPortfolioChange.Action.ASSIGN:
+            if organization.pk in assigned_ids:
+                outcome, detail = AuditorPortfolioChange.Outcome.SKIPPED, "Ya estaba asignada."
+            elif not auditor.is_active:
+                outcome, detail = AuditorPortfolioChange.Outcome.BLOCKED, "El auditor está archivado."
+            elif not organization.is_active:
+                outcome, detail = AuditorPortfolioChange.Outcome.BLOCKED, "La organización está archivada."
+            else:
+                outcome, detail = AuditorPortfolioChange.Outcome.APPLIED, "Lista para asignar."
+        else:
+            if organization.pk not in assigned_ids:
+                outcome, detail = AuditorPortfolioChange.Outcome.SKIPPED, "No estaba asignada."
+            elif organization.pk in open_case_ids:
+                outcome, detail = AuditorPortfolioChange.Outcome.BLOCKED, "Tiene expedientes abiertos con este auditor."
+            else:
+                outcome, detail = AuditorPortfolioChange.Outcome.APPLIED, "Lista para desasignar."
+        rows.append({"organization": organization, "outcome": outcome, "detail": detail})
+    return rows
+
+
+@require_POST
+def director_auditor_bulk_assignment(request, pk):
+    require_director(request.user)
+    auditor = get_object_or_404(User, pk=pk, role=User.Role.AUDITOR)
+    action = request.POST.get("action")
+    scope = request.POST.get("scope")
+    reason = request.POST.get("reason", "").strip()
+    if action not in {choice[0] for choice in AuditorPortfolioChange.Action.choices}:
+        return HttpResponseBadRequest("Acción no válida.")
+    if scope not in {"selected", "filtered"}:
+        return HttpResponseBadRequest("Alcance no válido.")
+    organizations, assignment_filter = _portfolio_bulk_queryset(request.POST)
+    if scope == "selected":
+        selected_ids = [value for value in request.POST.getlist("organization_ids") if value.isdigit()]
+        organizations = organizations.filter(pk__in=selected_ids)
+    elif assignment_filter == "assigned":
+        organizations = organizations.filter(assigned_auditors=auditor)
+    elif assignment_filter == "available":
+        organizations = organizations.exclude(assigned_auditors=auditor).filter(is_active=True)
+    organizations = list(organizations.order_by("name"))
+    if not organizations:
+        messages.error(request, "Seleccione al menos una organización.")
+        return redirect("director_auditor_detail", pk=auditor.pk)
+    plan = _portfolio_change_plan(auditor, organizations, action)
+    counts = {
+        outcome: sum(row["outcome"] == outcome for row in plan)
+        for outcome in AuditorPortfolioChange.Outcome.values
+    }
+    if request.POST.get("phase") != "apply":
+        return render(request, "audits/director_auditor_bulk_preview.html", {
+            "auditor": auditor, "plan": plan, "counts": counts, "action": action,
+            "scope": scope, "reason": reason, "filters": request.POST,
+            "selected_ids": [row["organization"].pk for row in plan],
+        })
+
+    batch_id = uuid.uuid4()
+    is_bulk = len(plan) > 1 or scope == "filtered"
+    with transaction.atomic():
+        # Recalculate inside the transaction in case the portfolio changed after preview.
+        auditor = User.objects.select_for_update().get(pk=auditor.pk)
+        locked_organizations = list(Organization.objects.select_for_update().filter(
+            pk__in=[row["organization"].pk for row in plan]
+        ).order_by("name"))
+        plan = _portfolio_change_plan(auditor, locked_organizations, action)
+        applied_ids = [row["organization"].pk for row in plan
+                       if row["outcome"] == AuditorPortfolioChange.Outcome.APPLIED]
+        if action == AuditorPortfolioChange.Action.ASSIGN:
+            auditor.assigned_organizations.add(*applied_ids)
+        else:
+            auditor.assigned_organizations.remove(*applied_ids)
+        AuditorPortfolioChange.objects.bulk_create([
+            AuditorPortfolioChange(
+                auditor=auditor, organization=row["organization"], action=action,
+                outcome=row["outcome"], reason=reason, outcome_detail=row["detail"],
+                actor=request.user, batch_id=batch_id, is_bulk=is_bulk,
+            ) for row in plan
+        ])
+        log_activity(request, "auditor_portfolio_bulk_changed", target=auditor, details={
+            "batch_id": str(batch_id), "action": action, "scope": scope,
+            "requested": len(plan), "applied": len(applied_ids),
+        })
+    blocked = sum(row["outcome"] == AuditorPortfolioChange.Outcome.BLOCKED for row in plan)
+    skipped = sum(row["outcome"] == AuditorPortfolioChange.Outcome.SKIPPED for row in plan)
+    messages.success(
+        request,
+        f"Operación completada: {len(applied_ids)} aplicada(s), {skipped} omitida(s) y {blocked} bloqueada(s).",
+    )
+    return redirect("director_auditor_detail", pk=auditor.pk)
+
+
+@require_POST
+def director_auditor_assignment(request, pk, organization_pk):
+    require_director(request.user)
+    auditor = get_object_or_404(User, pk=pk, role=User.Role.AUDITOR)
+    organization = get_object_or_404(Organization, pk=organization_pk)
+    action = request.POST.get("action")
+    reason = "Cambio individual realizado desde la administración de cartera."
+    batch_id = uuid.uuid4()
+    with transaction.atomic():
+        if action == "assign":
+            if auditor.assigned_organizations.filter(pk=organization.pk).exists():
+                messages.info(request, "La organización ya estaba asignada a este auditor.")
+                return redirect("director_auditor_detail", pk=auditor.pk)
+            if not auditor.is_active:
+                messages.error(request, "Reactive al auditor antes de asignarle organizaciones.")
+                return redirect("director_auditor_detail", pk=auditor.pk)
+            if not organization.is_active:
+                messages.error(request, "No se puede asignar una organización archivada.")
+                return redirect("director_auditor_detail", pk=auditor.pk)
+            auditor.assigned_organizations.add(organization)
+            label = "asignada"
+        elif action == "unassign":
+            if not auditor.assigned_organizations.filter(pk=organization.pk).exists():
+                messages.info(request, "La organización ya no estaba asignada a este auditor.")
+                return redirect("director_auditor_detail", pk=auditor.pk)
+            if auditor.assigned_cases.filter(
+                audited_organization=organization
+            ).exclude(status=AuditCase.Status.CLOSED).exists():
+                messages.error(
+                    request,
+                    "No puede desasignarla mientras el auditor tenga expedientes abiertos en esta organización.",
+                )
+                return redirect("director_auditor_detail", pk=auditor.pk)
+            auditor.assigned_organizations.remove(organization)
+            label = "desasignada"
+        else:
+            return HttpResponseBadRequest("Acción no válida.")
+        log_activity(request, f"auditor_organization_{action}ed", target=auditor, details={
+            "auditor_id": auditor.pk, "organization_id": organization.pk,
+            "organization_code": organization.code,
+        })
+        AuditorPortfolioChange.objects.create(
+            auditor=auditor,
+            organization=organization,
+            action=action,
+            outcome=AuditorPortfolioChange.Outcome.APPLIED,
+            reason=reason,
+            actor=request.user,
+            batch_id=batch_id,
+            is_bulk=False,
+        )
+    messages.success(request, f"Organización {label} correctamente.")
+    return redirect("director_auditor_detail", pk=auditor.pk)
+
+
+@require_POST
+def director_auditor_archive(request, pk):
+    require_director(request.user)
+    auditor = get_object_or_404(User, pk=pk, role=User.Role.AUDITOR)
+    if auditor.is_active and auditor.assigned_cases.exclude(status=AuditCase.Status.CLOSED).exists():
+        messages.error(request, "Reasigne o cierre los expedientes activos antes de archivar al auditor.")
+        return redirect("director_auditor_detail", pk=auditor.pk)
+    auditor.is_active = not auditor.is_active
+    auditor.save(update_fields=["is_active"])
+    action = "reactivated" if auditor.is_active else "archived"
+    log_activity(request, f"auditor_{action}", target=auditor)
+    messages.success(request, "Auditor reactivado." if auditor.is_active else "Auditor archivado.")
+    return redirect("director_auditor_detail", pk=auditor.pk)
