@@ -54,10 +54,7 @@ def _can_manage_cde(user, organization):
 def _can_view_cde(user, organization):
     if not user.is_authenticated:
         return False
-    if user.is_superuser or user.role in {
-        User.Role.TECHNICAL_ADMIN,
-        User.Role.AUDIT_MANAGER,
-    }:
+    if user.is_superuser or user.role == User.Role.AUDIT_MANAGER:
         return True
     if _can_manage_cde(user, organization):
         return True

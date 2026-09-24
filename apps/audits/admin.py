@@ -4,6 +4,9 @@ from .models import (
     ActivityLog,
     AuditCase,
     AuditDocument,
+    AuditInquiry,
+    AuditInquiryAttachment,
+    AuditInquiryMessage,
     BusinessDayHoliday,
     CaseDecision,
     DeadlineExtension,
@@ -19,6 +22,28 @@ from .models import (
 class NoDeleteAdminMixin:
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+class AuditInquiryMessageInline(admin.TabularInline):
+    model = AuditInquiryMessage
+    extra = 0
+    can_delete = False
+    readonly_fields = ("author", "body", "created_at")
+
+
+@admin.register(AuditInquiry)
+class AuditInquiryAdmin(NoDeleteAdminMixin, admin.ModelAdmin):
+    list_display = ("id", "subject", "organization", "status", "priority", "assigned_auditor", "updated_at")
+    list_filter = ("status", "priority", "category")
+    search_fields = ("subject", "organization__name", "case__reference")
+    readonly_fields = ("organization", "case", "created_by", "created_at", "updated_at", "closed_at")
+    inlines = (AuditInquiryMessageInline,)
+
+
+@admin.register(AuditInquiryAttachment)
+class AuditInquiryAttachmentAdmin(NoDeleteAdminMixin, admin.ModelAdmin):
+    list_display = ("original_filename", "inquiry", "uploaded_by", "uploaded_at")
+    readonly_fields = ("inquiry", "message", "file", "original_filename", "size", "sha256", "uploaded_by", "uploaded_at")
 
 
 class RecommendationInline(admin.StackedInline):

@@ -23,6 +23,12 @@ def audit_document_upload_path(instance, filename):
     return f"documentos/{location}/{uuid.uuid4().hex}{extension}"
 
 
+def inquiry_attachment_upload_path(instance, filename):
+    extension = Path(filename).suffix.lower()
+    inquiry_id = getattr(instance, "inquiry_id", None) or "pendiente"
+    return f"consultas/{inquiry_id}/{uuid.uuid4().hex}{extension}"
+
+
 class AuditCase(models.Model):
     class Status(models.TextChoices):
         DRAFT = "draft", "Borrador"
@@ -496,6 +502,123 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.response} - {self.get_outcome_display()}"
+
+
+class AuditInquiry(models.Model):
+    class Category(models.TextChoices):
+        REQUIREMENTS = "requirements", "Requisitos y documentación"
+        DEADLINES = "deadlines", "Fechas y plazos"
+        FINDINGS = "findings", "Observaciones o hallazgos"
+        IMPROVEMENT = "improvement", "Plan de mejora"
+        EVIDENCE = "evidence", "Evidencias presentadas"
+        SYSTEM = "system", "Uso del sistema"
+        MEETING = "meeting", "Solicitud de reunión"
+        OTHER = "other", "Otra consulta"
+
+    class Priority(models.TextChoices):
+        NORMAL = "normal", "Normal"
+        HIGH = "high", "Alta"
+        URGENT = "urgent", "Urgente"
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Abierta"
+        IN_PROGRESS = "in_progress", "En atención"
+        WAITING_INSTITUTION = "waiting_institution", "Pendiente de información"
+        ANSWERED = "answered", "Respondida"
+        CLOSED = "closed", "Cerrada"
+        REOPENED = "reopened", "Reabierta"
+
+    case = models.ForeignKey(
+        AuditCase, verbose_name="expediente", on_delete=models.PROTECT,
+        related_name="inquiries",
+    )
+    organization = models.ForeignKey(
+        "institutions.Organization", verbose_name="organización", on_delete=models.PROTECT,
+        related_name="audit_inquiries",
+    )
+    subject = models.CharField("asunto", max_length=180)
+    category = models.CharField("categoría", max_length=24, choices=Category.choices)
+    priority = models.CharField(
+        "prioridad", max_length=12, choices=Priority.choices, default=Priority.NORMAL,
+    )
+    status = models.CharField(
+        "estado", max_length=24, choices=Status.choices, default=Status.OPEN,
+    )
+    assigned_auditor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name="auditor responsable", on_delete=models.PROTECT,
+        related_name="assigned_audit_inquiries",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name="creada por", on_delete=models.PROTECT,
+        related_name="created_audit_inquiries",
+    )
+    created_at = models.DateTimeField("creada", auto_now_add=True)
+    updated_at = models.DateTimeField("actualizada", auto_now=True)
+    closed_at = models.DateTimeField("cerrada", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "consulta de auditoría"
+        verbose_name_plural = "consultas de auditoría"
+        ordering = ("-updated_at",)
+
+    def clean(self):
+        super().clean()
+        if (self.case_id and self.organization_id
+                and self.organization_id != self.case.audited_organization_id):
+            raise ValidationError({"case": "El expediente no pertenece a la organización indicada."})
+
+    def __str__(self):
+        return f"Consulta #{self.pk or 'nueva'} - {self.subject}"
+
+
+class AuditInquiryMessage(models.Model):
+    inquiry = models.ForeignKey(
+        AuditInquiry, verbose_name="consulta", on_delete=models.PROTECT, related_name="messages",
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name="autor", on_delete=models.PROTECT,
+        related_name="audit_inquiry_messages",
+    )
+    body = models.TextField("mensaje")
+    created_at = models.DateTimeField("enviado", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "mensaje de consulta"
+        verbose_name_plural = "mensajes de consulta"
+        ordering = ("created_at",)
+
+    def __str__(self):
+        return f"Mensaje de {self.author} en {self.inquiry}"
+
+
+class AuditInquiryAttachment(models.Model):
+    inquiry = models.ForeignKey(
+        AuditInquiry, verbose_name="consulta", on_delete=models.PROTECT, related_name="attachments",
+    )
+    message = models.ForeignKey(
+        AuditInquiryMessage, verbose_name="mensaje", on_delete=models.PROTECT,
+        related_name="attachments",
+    )
+    file = models.FileField(
+        "archivo", upload_to=inquiry_attachment_upload_path,
+        validators=[validate_evidence_file],
+    )
+    original_filename = models.CharField("nombre original", max_length=255)
+    size = models.PositiveBigIntegerField("tamaño", default=0)
+    sha256 = models.CharField("huella SHA-256", max_length=64)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name="subido por", on_delete=models.PROTECT,
+        related_name="uploaded_audit_inquiry_attachments",
+    )
+    uploaded_at = models.DateTimeField("subido", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "archivo de consulta"
+        verbose_name_plural = "archivos de consulta"
+        ordering = ("uploaded_at",)
+
+    def __str__(self):
+        return self.original_filename
 
 
 class AuditorPortfolioChange(models.Model):

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Administración técnica | SIGA{% endblock %}
+{% block content %}
+<div class="page-heading heading-row">
+  <div><span class="eyebrow">Operación de la plataforma</span><h1>Administración técnica</h1><p>Supervise accesos y eventos técnicos sin intervenir en las decisiones de Auditoría.</p></div>
+  <a class="button button-primary" href="{% url 'technical_user_create' %}">Nueva cuenta interna</a>
+</div>
+<section class="stats-grid" aria-label="Resumen técnico">
+  <article class="stat-card"><div><span>Usuarios activos</span><strong>{{ active_users }}</strong></div></article>
+  <article class="stat-card stat-warning"><div><span>Cambio de contraseña pendiente</span><strong>{{ forced_password_changes }}</strong></div></article>
+  <article class="stat-card"><div><span>Cuentas suspendidas</span><strong>{{ inactive_users }}</strong></div></article>
+  <article class="stat-card {% if pending_scans %}stat-danger{% endif %}"><div><span>Archivos pendientes de análisis</span><strong>{{ pending_scans }}</strong></div></article>
+  <article class="stat-card {% if open_support_requests %}stat-warning{% endif %}"><div><span>Solicitudes técnicas abiertas</span><strong>{{ open_support_requests }}</strong></div></article>
+</section>
+<section class="section-block">
+  <div class="section-heading"><div><h2>Estado de servicios</h2><p>Comprobaciones que no exponen información de los expedientes.</p></div></div>
+  <div class="technical-service-grid">
+    <article class="card service-status"><span class="status-dot {% if database_ok %}status-dot-success{% else %}status-dot-error{% endif %}"></span><div><strong>Base de datos</strong><small>{% if database_ok %}Disponible{% else %}No responde{% endif %}</small></div></article>
+    <article class="card service-status"><span class="status-dot {% if pending_scans %}status-dot-warning{% else %}status-dot-success{% endif %}"></span><div><strong>Análisis de archivos</strong><small>{% if pending_scans %}{{ pending_scans }} elemento{{ pending_scans|pluralize }} pendiente{{ pending_scans|pluralize }}{% else %}Sin pendientes{% endif %}</small></div></article>
+  </div>
+</section>
+<section class="section-block">
+  <div class="section-heading"><div><h2>Actividad reciente</h2></div><a class="text-link" href="{% url 'technical_activity_log' %}">Ver todos los logs</a></div>
+  <div class="card table-card"><div class="table-responsive"><table><thead><tr><th>Fecha</th><th>Actor</th><th>Acción</th><th>Objeto</th></tr></thead><tbody>{% for event in recent_activity %}<tr><td>{{ event.created_at|date:"d/m/Y H:i" }}</td><td>{{ event.actor.username|default:"Sistema" }}</td><td><code>{{ event.action }}</code></td><td>{{ event.target_type|default:"—" }} {{ event.target_id }}</td></tr>{% empty %}<tr><td colspan="4">Todavía no existen eventos registrados.</td></tr>{% endfor %}</tbody></table></div></div>
+</section>
+{% endblock %}

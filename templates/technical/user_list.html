@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Usuarios | Administración técnica{% endblock %}
+{% block content %}
+<div class="page-heading heading-row"><div><span class="eyebrow">Administración técnica</span><h1>Usuarios y accesos</h1><p>Consulte el estado de las cuentas y aplique medidas de acceso con trazabilidad.</p></div><a class="button button-primary" href="{% url 'technical_user_create' %}">Nueva cuenta interna</a></div>
+<form class="filter-bar" method="get">
+  <div class="field search-field"><label for="q">Buscar</label><input id="q" name="q" value="{{ query }}" placeholder="Usuario, nombre, correo o institución"></div>
+  <div class="field"><label for="role">Rol</label><select id="role" name="role"><option value="">Todos</option>{% for value,label in roles %}<option value="{{ value }}" {% if role_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="status">Estado</label><select id="status" name="status"><option value="">Todos</option><option value="active" {% if status_filter == 'active' %}selected{% endif %}>Activos</option><option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Suspendidos</option></select></div>
+  <button class="button button-tonal" type="submit">Aplicar</button>
+</form>
+<div class="card table-card"><div class="table-responsive"><table><thead><tr><th>Usuario</th><th>Rol</th><th>Institución</th><th>Estado</th><th></th></tr></thead><tbody>{% for item in page_obj %}<tr><td><strong>{{ item.get_full_name|default:item.username }}</strong><small>{{ item.username }}{% if item.email %} · {{ item.email }}{% endif %}</small></td><td>{{ item.get_role_display }}</td><td>{{ item.organization.name|default:"Sin institución" }}</td><td><span class="status {% if item.is_active %}status-approved{% else %}status-returned{% endif %}">{% if item.is_active %}Activa{% else %}Suspendida{% endif %}</span>{% if item.must_change_password %}<small>Cambio de contraseña pendiente</small>{% endif %}</td><td><a class="button button-secondary button-compact" href="{% url 'technical_user_detail' item.pk %}">Administrar</a></td></tr>{% empty %}<tr><td colspan="5">No se encontraron cuentas.</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "technical/_pagination.html" %}
+{% endblock %}

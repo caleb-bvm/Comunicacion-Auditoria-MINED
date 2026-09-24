@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Logs | Administración técnica{% endblock %}
+{% block content %}
+<div class="page-heading"><span class="eyebrow">Administración técnica</span><h1>Logs del sistema</h1><p>Registro de eventos funcionales, administrativos y de seguridad para consulta y diagnóstico.</p></div>
+<form class="filter-bar" method="get"><div class="field search-field"><label for="q">Buscar</label><input id="q" name="q" value="{{ query }}" placeholder="Actor, acción u objeto"></div><div class="field"><label for="action">Tipo de acción</label><select id="action" name="action"><option value="">Todas</option>{% for value in actions %}<option value="{{ value }}" {% if action_filter == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></div><button class="button button-tonal" type="submit">Aplicar</button></form>
+<div class="card table-card"><div class="table-responsive"><table><thead><tr><th>Fecha</th><th>Actor</th><th>Acción</th><th>Objeto</th><th>Dirección IP</th></tr></thead><tbody>{% for event in page_obj %}<tr><td>{{ event.created_at|date:"d/m/Y H:i:s" }}</td><td>{{ event.actor.username|default:"Sistema" }}</td><td><code>{{ event.action }}</code></td><td>{{ event.target_type|default:"—" }} {{ event.target_id }}</td><td>{{ event.ip_address|default:"—" }}</td></tr>{% empty %}<tr><td colspan="5">No se encontraron eventos.</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "technical/_pagination.html" %}
+{% endblock %}

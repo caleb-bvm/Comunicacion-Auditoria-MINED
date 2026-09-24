@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Alertas | Dirección{% endblock %}
+{% block content %}
+<div class="page-heading"><span class="eyebrow">Seguimiento</span><h1>Alertas de gestión</h1><p>Situaciones que requieren una decisión o coordinación de Dirección.</p></div>
+<section class="stats-grid"><article class="stat-card stat-warning"><div><span>Invitaciones vencidas</span><strong>{{ expired_invitations_count }}</strong></div></article><article class="stat-card"><div><span>Centros sin correo</span><strong>{{ missing_email_count }}</strong></div></article><article class="stat-card stat-danger"><div><span>Expedientes sin actividad</span><strong>{{ stalled_cases_count }}</strong></div></article><article class="stat-card stat-warning"><div><span>Respuestas por revisar</span><strong>{{ pending_reviews_count }}</strong></div></article></section>
+<div class="technical-detail-grid">
+<section class="card"><h2>Invitaciones vencidas</h2><ul class="plain-list">{% for account in expired_invitations %}<li><div><strong>{{ account.organization.name }}</strong><small>{{ account.activation_requested_at|date:"d/m/Y H:i" }}</small></div><a href="{% url 'director_access_accounts' %}?q={{ account.username|urlencode }}">Revisar</a></li>{% empty %}<li>Sin invitaciones vencidas.</li>{% endfor %}</ul></section>
+<section class="card"><h2>Centros sin correo</h2><ul class="plain-list">{% for center in missing_email %}<li><div><strong>{{ center.name }}</strong><small>{{ center.code }}</small></div><a href="{% url 'director_educational_center_detail' center.pk %}">Ver centro</a></li>{% empty %}<li>Todos los centros activos tienen correo.</li>{% endfor %}</ul></section>
+<section class="card"><h2>Expedientes sin actividad por 30 días</h2><ul class="plain-list">{% for case in stalled_cases %}<li><div><strong>{{ case.reference }}</strong><small>{{ case.audited_organization.name }} · {{ case.updated_at|date:"d/m/Y" }}</small></div><a href="{% url 'case_detail' case.pk %}">Revisar</a></li>{% empty %}<li>No hay expedientes detenidos.</li>{% endfor %}</ul></section>
+<section class="card"><h2>Auditores inactivos con carga</h2><ul class="plain-list">{% for auditor in inactive_auditors %}<li><div><strong>{{ auditor.get_full_name|default:auditor.username }}</strong><small>{{ auditor.open_cases_count }} expediente{{ auditor.open_cases_count|pluralize }}</small></div><a href="{% url 'director_auditor_detail' auditor.pk %}">Reasignar</a></li>{% empty %}<li>No hay conflictos de asignación.</li>{% endfor %}</ul></section>
+</div>
+{% endblock %}

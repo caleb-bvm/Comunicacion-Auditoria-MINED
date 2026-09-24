@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Nueva cuenta interna | Administración técnica{% endblock %}
+{% block content %}
+<div class="page-heading"><a class="text-link" href="{% url 'technical_users' %}">← Volver a usuarios</a><h1>Nueva cuenta interna</h1><p>Esta función crea cuentas de personal técnico o auditor. Las cuentas institucionales se activan desde el flujo de Dirección.</p></div>
+<form class="card editor-form" method="post">{% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="form-grid form-grid-two">{% for field in form %}<div class="field {% if field.name == 'reason' %}field-wide{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text|safe }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</div>
+  <div class="button-group"><button class="button button-primary" type="submit">Crear cuenta</button><a class="button button-secondary" href="{% url 'technical_users' %}">Cancelar</a></div>
+</form>
+{% endblock %}

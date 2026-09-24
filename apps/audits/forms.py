@@ -12,6 +12,7 @@ from apps.core.validators import validate_evidence_file
 from .models import (
     AuditCase,
     AuditDocument,
+    AuditInquiry,
     DeadlineExtension,
     Evidence,
     Finding,
@@ -20,6 +21,65 @@ from .models import (
     Response,
     Review,
 )
+
+
+class AuditInquiryCreateForm(forms.ModelForm):
+    body = forms.CharField(
+        label="Detalle de la consulta",
+        widget=forms.Textarea(attrs={"rows": 6}),
+        help_text="Describa la duda y el resultado que necesita obtener.",
+    )
+    attachment = forms.FileField(
+        label="Archivo de respaldo", required=False,
+        validators=[validate_evidence_file],
+        help_text="Opcional. PDF, imagen, Word o Excel.",
+    )
+
+    class Meta:
+        model = AuditInquiry
+        fields = ("case", "category", "subject", "priority", "body", "attachment")
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["case"].queryset = AuditCase.objects.none()
+        if user and user.role == User.Role.INSTITUTION and user.organization_id:
+            self.fields["case"].queryset = AuditCase.objects.filter(
+                audited_organization_id=user.organization_id,
+            ).exclude(
+                status__in=[AuditCase.Status.DRAFT, AuditCase.Status.PENDING_PUBLICATION]
+            ).select_related("audited_organization", "assigned_auditor")
+
+
+class AuditInquiryReplyForm(forms.Form):
+    body = forms.CharField(label="Mensaje", widget=forms.Textarea(attrs={"rows": 5}))
+    attachment = forms.FileField(
+        label="Archivo adjunto", required=False, validators=[validate_evidence_file],
+    )
+    status_after = forms.ChoiceField(
+        label="Estado después de enviar", required=False,
+        choices=(
+            (AuditInquiry.Status.ANSWERED, "Respondida"),
+            (AuditInquiry.Status.WAITING_INSTITUTION, "Pendiente de información de la organización"),
+            (AuditInquiry.Status.IN_PROGRESS, "Continuar en atención"),
+        ),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not user or user.role == User.Role.INSTITUTION:
+            self.fields.pop("status_after")
+
+
+class AuditInquiryManageForm(forms.Form):
+    status = forms.ChoiceField(label="Nuevo estado", choices=AuditInquiry.Status.choices)
+    assigned_auditor = forms.ModelChoiceField(
+        label="Auditor responsable",
+        queryset=User.objects.filter(role=User.Role.AUDITOR, is_active=True),
+    )
+    note = forms.CharField(
+        label="Motivo del cambio", max_length=500, required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
 
 
 class AuditorCreateForm(UserCreationForm):

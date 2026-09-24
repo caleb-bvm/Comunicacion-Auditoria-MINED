@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Consultas de auditoría | SIGA{% endblock %}
+{% block content %}
+<div class="page-heading heading-row">
+  <div><span class="eyebrow">Canal de atención</span><h1>Consultas de auditoría</h1><p>Seguimiento centralizado de dudas relacionadas con los expedientes de auditoría.</p></div>
+  {% if user.role == 'institution' %}<a class="button button-primary" href="{% url 'audit_inquiry_create' %}">Nueva consulta</a>{% endif %}
+</div>
+<form method="get" class="filter-bar" role="search">
+  <div class="field grow"><label for="q">Buscar</label><input id="q" name="q" value="{{ query }}" placeholder="Asunto, expediente u organización"></div>
+  <div class="field"><label for="status">Estado</label><select id="status" name="status"><option value="">Todos</option>{% for value,label in status_choices %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  <button class="button button-secondary" type="submit">Aplicar</button>
+</form>
+<div class="inquiry-grid">
+{% for inquiry in inquiries %}
+  <article class="card inquiry-card">
+    <header><span class="case-reference">Consulta #{{ inquiry.pk }} · {{ inquiry.case.reference }}</span><span class="status status-{{ inquiry.status }}">{{ inquiry.get_status_display }}</span></header>
+    <h2><a href="{% url 'audit_inquiry_detail' inquiry.pk %}">{{ inquiry.subject }}</a></h2>
+    <p>{{ inquiry.organization.name }}</p>
+    <dl class="meta-list"><div><dt>Categoría</dt><dd>{{ inquiry.get_category_display }}</dd></div><div><dt>Responsable</dt><dd>{{ inquiry.assigned_auditor.get_full_name|default:inquiry.assigned_auditor.username }}</dd></div><div><dt>Actualizada</dt><dd>{{ inquiry.updated_at|date:"d/m/Y H:i" }}</dd></div></dl>
+    <footer><span class="priority priority-{{ inquiry.priority }}">Prioridad {{ inquiry.get_priority_display|lower }}</span><a class="button button-ghost button-compact" href="{% url 'audit_inquiry_detail' inquiry.pk %}">Ver conversación →</a></footer>
+  </article>
+{% empty %}<div class="empty-state card"><h2>No hay consultas</h2><p>Las consultas que correspondan a su cuenta aparecerán aquí.</p>{% if user.role == 'institution' %}<a class="button button-primary" href="{% url 'audit_inquiry_create' %}">Crear la primera consulta</a>{% endif %}</div>{% endfor %}
+</div>
+{% endblock %}

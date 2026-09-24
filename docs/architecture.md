@@ -111,6 +111,15 @@ La visibilidad se define para cada archivo, con «Solo Auditoría» como valor i
 - Los documentos del CDE permanecen en almacenamiento privado y pasan por la misma validación de formato y autorización aplicada al resto de los documentos institucionales.
 - Cada respuesta institucional conserva una referencia al CDE que estaba vigente al presentarla. Un cambio posterior de período no modifica esa referencia histórica.
 
+## Consultas de auditoría
+
+- Una organización puede abrir una consulta únicamente desde uno de sus expedientes publicados o en seguimiento.
+- La consulta conserva la organización, el expediente y el auditor que estaba asignado al momento de su creación. Una reasignación posterior es explícita y corresponde a Dirección.
+- La organización, el auditor asignado y Dirección comparten un historial cronológico de mensajes; los demás usuarios no pueden acceder al detalle ni a los archivos.
+- Los adjuntos se almacenan con nombres internos aleatorios, se validan al cargar y pasan por la verificación de seguridad antes de descargarse.
+- Los estados disponibles son abierta, en atención, pendiente de información, respondida, cerrada y reabierta. La organización confirma el cierre de una consulta respondida.
+- La creación, respuesta, reasignación, cierre y descarga de archivos se registran en la bitácora institucional.
+
 ## Decisiones pendientes de infraestructura
 
 - Integración con antivirus o sistema de análisis utilizado por el Ministerio.

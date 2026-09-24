@@ -5,20 +5,62 @@ from django.contrib import messages
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import urlsafe_base64_decode
 from django.views import View
 from django.views.generic import TemplateView
 from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
+from django.views.decorators.http import require_http_methods
 
 from .activation import activation_token_generator
-from .models import User
+from .forms import PublicPasswordSupportRequestForm
+from .models import TechnicalSupportRequest, User
 
 
 class AccountProfileView(LoginRequiredMixin, TemplateView):
     template_name = "registration/profile.html"
+
+
+@require_http_methods(["GET", "POST"])
+def password_support_request(request):
+    if request.user.is_authenticated:
+        return redirect("dashboard")
+    form = PublicPasswordSupportRequestForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        last_request = request.session.get("password_support_requested_at")
+        now = timezone.now()
+        if not last_request or now.timestamp() - last_request >= 60:
+            identifier = form.cleaned_data["identifier"].strip()
+            category = form.cleaned_data["category"]
+            category_labels = dict(TechnicalSupportRequest.Category.choices)
+            user = User.objects.filter(
+                Q(username__iexact=identifier) | Q(email__iexact=identifier)
+            ).select_related("organization").first()
+            support_request = TechnicalSupportRequest.objects.create(
+                category=category,
+                subject=f"Solicitud de soporte: {category_labels[category]}",
+                description=form.cleaned_data["description"],
+                organization=user.organization if user else None,
+                requested_by=user,
+                requester_name=form.cleaned_data["full_name"],
+                requester_identifier=identifier,
+                requester_contact=form.cleaned_data["contact_email"],
+                is_public_request=True,
+            )
+            from apps.audits.models import ActivityLog
+            ActivityLog.objects.create(
+                actor=None, action="public_password_support_requested",
+                target_type="TechnicalSupportRequest", target_id=str(support_request.pk),
+                details={"account_matched": user is not None},
+                ip_address=request.META.get("REMOTE_ADDR"),
+            )
+            request.session["password_support_requested_at"] = now.timestamp()
+        return render(request, "registration/password_support_requested.html", status=202)
+    return render(request, "registration/password_support_request.html", {"form": form})
 
 
 class RequiredPasswordChangeView(PasswordChangeView):

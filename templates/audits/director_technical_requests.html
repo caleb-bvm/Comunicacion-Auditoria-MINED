@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Soporte técnico | Dirección{% endblock %}
+{% block content %}
+<div class="page-heading"><span class="eyebrow">Accesos</span><h1>Solicitudes a Administración Técnica</h1><p>Canalice incidencias y acciones técnicas con trazabilidad. Hay {{ open_count }} solicitud{{ open_count|pluralize:"es" }} abierta{{ open_count|pluralize }}.</p></div>
+<div class="technical-detail-grid"><form class="card" method="post">{% csrf_token %}<h2>Nueva solicitud</h2>{% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}<button class="button button-primary" type="submit">Enviar solicitud</button></form><section class="card"><h2>Historial</h2><div class="request-list">{% for item in support_requests %}<article class="request-item"><header><strong>{{ item.subject }}</strong><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></header><small>{{ item.get_category_display }} · {{ item.created_at|date:"d/m/Y H:i" }}</small><p>{{ item.description }}</p>{% if item.resolution %}<div class="message message-info"><strong>Respuesta técnica:</strong> {{ item.resolution }}</div>{% endif %}</article>{% empty %}<p>No existen solicitudes técnicas.</p>{% endfor %}</div></section></div>
+{% endblock %}

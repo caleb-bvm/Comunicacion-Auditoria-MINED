@@ -16,16 +16,21 @@ from django.http import FileResponse, Http404, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import ListView, TemplateView
 
 from apps.accounts.models import User
+from apps.accounts.models import TechnicalSupportRequest
+from apps.accounts.forms import TechnicalSupportRequestForm
 from apps.accounts.activation import invite_center
 from apps.core.scanning import protected_file_response
 from apps.institutions.models import Organization, SchoolBoardPeriod
 
 from .forms import (
     AuditCaseForm,
+    AuditInquiryCreateForm,
+    AuditInquiryManageForm,
+    AuditInquiryReplyForm,
     AuditorCreateForm,
     AuditorEditForm,
     AuditorReassignmentForm,
@@ -51,6 +56,9 @@ from .center_analytics import (
 )
 from .models import (
     ActivityLog,
+    AuditInquiry,
+    AuditInquiryAttachment,
+    AuditInquiryMessage,
     AuditorPortfolioChange,
     AuditCase,
     AuditDocument,
@@ -125,10 +133,7 @@ def user_can_edit_case(user, case):
 
 def user_can_access_response(user, response):
     case = response.recommendation.finding.case
-    if user.is_superuser or user.role in {
-        User.Role.TECHNICAL_ADMIN,
-        User.Role.AUDIT_MANAGER,
-    }:
+    if user.is_superuser or user.role == User.Role.AUDIT_MANAGER:
         return True
     if user.role == User.Role.AUDITOR:
         return case.assigned_auditor_id == user.pk
@@ -146,10 +151,7 @@ def user_can_access_document(user, document):
         if (document.organization_id != document.parent_report.organization_id
                 or not user_can_access_document(user, document.parent_report)):
             return False
-    if user.is_superuser or user.role in {
-        User.Role.TECHNICAL_ADMIN,
-        User.Role.AUDIT_MANAGER,
-    }:
+    if user.is_superuser or user.role == User.Role.AUDIT_MANAGER:
         return True
     if user.role == User.Role.AUDITOR:
         return bool(
@@ -233,8 +235,10 @@ def closure_issues(case):
 
 def accessible_cases(user):
     queryset = AuditCase.objects.select_related("audited_organization", "assigned_auditor")
-    if user.is_superuser or user.role in {User.Role.TECHNICAL_ADMIN, User.Role.AUDIT_MANAGER}:
+    if user.is_superuser or user.role == User.Role.AUDIT_MANAGER:
         return queryset
+    if user.role == User.Role.TECHNICAL_ADMIN:
+        return queryset.none()
     if user.role == User.Role.AUDITOR:
         return queryset.filter(assigned_auditor=user)
     if not user.organization_id:
@@ -251,10 +255,206 @@ def get_accessible_case(user, pk):
     return get_object_or_404(accessible_cases(user), pk=pk)
 
 
+def accessible_inquiries(user):
+    queryset = AuditInquiry.objects.select_related(
+        "case", "organization", "assigned_auditor", "created_by"
+    )
+    if user.is_superuser or user.role == User.Role.AUDIT_MANAGER:
+        return queryset
+    if user.role == User.Role.AUDITOR:
+        return queryset.filter(assigned_auditor=user)
+    if user.role == User.Role.INSTITUTION and user.organization_id:
+        return queryset.filter(organization_id=user.organization_id)
+    return queryset.none()
+
+
+def save_inquiry_attachment(*, inquiry, message, upload, user):
+    if not upload:
+        return None
+    digest = hashlib.sha256()
+    for chunk in upload.chunks():
+        digest.update(chunk)
+    upload.seek(0)
+    return AuditInquiryAttachment.objects.create(
+        inquiry=inquiry,
+        message=message,
+        file=upload,
+        original_filename=Path(upload.name).name,
+        size=upload.size,
+        sha256=digest.hexdigest(),
+        uploaded_by=user,
+    )
+
+
+def audit_inquiry_list(request):
+    if not request.user.is_authenticated:
+        return redirect(f"/ingresar/?next={request.path}")
+    inquiries = accessible_inquiries(request.user)
+    status = request.GET.get("status", "")
+    if status in AuditInquiry.Status.values:
+        inquiries = inquiries.filter(status=status)
+    query = request.GET.get("q", "").strip()
+    if query:
+        inquiries = inquiries.filter(
+            Q(subject__icontains=query)
+            | Q(case__reference__icontains=query)
+            | Q(organization__name__icontains=query)
+        )
+    return render(request, "audits/inquiry_list.html", {
+        "inquiries": inquiries,
+        "status_filter": status,
+        "query": query,
+        "status_choices": AuditInquiry.Status.choices,
+    })
+
+
+@transaction.atomic
+def audit_inquiry_create(request):
+    if not request.user.is_authenticated:
+        return redirect(f"/ingresar/?next={request.path}")
+    if request.user.role != User.Role.INSTITUTION or not request.user.organization_id:
+        raise PermissionDenied("Esta acción corresponde a una organización auditada.")
+    form = AuditInquiryCreateForm(
+        request.POST or None, request.FILES or None, user=request.user
+    )
+    if request.method == "POST" and form.is_valid():
+        inquiry = form.save(commit=False)
+        inquiry.organization = request.user.organization
+        inquiry.assigned_auditor = inquiry.case.assigned_auditor
+        inquiry.created_by = request.user
+        inquiry.full_clean()
+        inquiry.save()
+        initial_message = AuditInquiryMessage.objects.create(
+            inquiry=inquiry, author=request.user, body=form.cleaned_data["body"]
+        )
+        save_inquiry_attachment(
+            inquiry=inquiry, message=initial_message,
+            upload=form.cleaned_data.get("attachment"), user=request.user,
+        )
+        log_activity(request, "audit_inquiry_created", case=inquiry.case, target=inquiry, details={
+            "assigned_auditor_id": inquiry.assigned_auditor_id,
+            "priority": inquiry.priority,
+        })
+        messages.success(request, "La consulta fue enviada al auditor responsable.")
+        return redirect("audit_inquiry_detail", pk=inquiry.pk)
+    return render(request, "audits/inquiry_form.html", {"form": form})
+
+
+@transaction.atomic
+def audit_inquiry_detail(request, pk):
+    if not request.user.is_authenticated:
+        return redirect(f"/ingresar/?next={request.path}")
+    inquiry = get_object_or_404(
+        accessible_inquiries(request.user).prefetch_related(
+            "messages__author", "messages__attachments"
+        ), pk=pk,
+    )
+    reply_form = AuditInquiryReplyForm(
+        request.POST or None, request.FILES or None, user=request.user
+    )
+    manage_form = None
+    if request.user.role == User.Role.AUDIT_MANAGER or request.user.is_superuser:
+        manage_form = AuditInquiryManageForm(initial={
+            "status": inquiry.status, "assigned_auditor": inquiry.assigned_auditor,
+        })
+    if request.method == "POST" and reply_form.is_valid():
+        if inquiry.status == AuditInquiry.Status.CLOSED:
+            messages.error(request, "Reabra la consulta antes de agregar un mensaje.")
+        else:
+            reply = AuditInquiryMessage.objects.create(
+                inquiry=inquiry, author=request.user, body=reply_form.cleaned_data["body"]
+            )
+            save_inquiry_attachment(
+                inquiry=inquiry, message=reply,
+                upload=reply_form.cleaned_data.get("attachment"), user=request.user,
+            )
+            previous_status = inquiry.status
+            if request.user.role == User.Role.INSTITUTION:
+                inquiry.status = AuditInquiry.Status.REOPENED
+            else:
+                inquiry.status = (
+                    reply_form.cleaned_data.get("status_after")
+                    or AuditInquiry.Status.ANSWERED
+                )
+            inquiry.closed_at = None
+            inquiry.save(update_fields=["status", "closed_at", "updated_at"])
+            log_activity(request, "audit_inquiry_message_added", case=inquiry.case, target=inquiry,
+                         details={"previous_status": previous_status, "new_status": inquiry.status})
+            messages.success(request, "El mensaje fue enviado.")
+            return redirect("audit_inquiry_detail", pk=inquiry.pk)
+    return render(request, "audits/inquiry_detail.html", {
+        "inquiry": inquiry, "reply_form": reply_form, "manage_form": manage_form,
+    })
+
+
+@require_POST
+@transaction.atomic
+def audit_inquiry_manage(request, pk):
+    if not request.user.is_authenticated:
+        return redirect(f"/ingresar/?next={request.path}")
+    require_director(request.user)
+    inquiry = get_object_or_404(AuditInquiry.objects.select_for_update().select_related("case"), pk=pk)
+    form = AuditInquiryManageForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Revise el estado y el auditor seleccionados.")
+        return redirect("audit_inquiry_detail", pk=pk)
+    previous_status = inquiry.status
+    previous_auditor_id = inquiry.assigned_auditor_id
+    inquiry.status = form.cleaned_data["status"]
+    inquiry.assigned_auditor = form.cleaned_data["assigned_auditor"]
+    inquiry.closed_at = timezone.now() if inquiry.status == AuditInquiry.Status.CLOSED else None
+    inquiry.save(update_fields=["status", "assigned_auditor", "closed_at", "updated_at"])
+    log_activity(request, "audit_inquiry_managed", case=inquiry.case, target=inquiry, details={
+        "previous_status": previous_status, "new_status": inquiry.status,
+        "previous_auditor_id": previous_auditor_id,
+        "new_auditor_id": inquiry.assigned_auditor_id,
+        "note": form.cleaned_data["note"],
+    })
+    messages.success(request, "La asignación y el estado fueron actualizados.")
+    return redirect("audit_inquiry_detail", pk=pk)
+
+
+@require_POST
+@transaction.atomic
+def audit_inquiry_close(request, pk):
+    if not request.user.is_authenticated:
+        return redirect(f"/ingresar/?next={request.path}")
+    inquiry = get_object_or_404(accessible_inquiries(request.user).select_for_update(), pk=pk)
+    if request.user.role != User.Role.INSTITUTION:
+        raise PermissionDenied("La organización debe confirmar el cierre de la consulta.")
+    if inquiry.status != AuditInquiry.Status.ANSWERED:
+        return HttpResponseBadRequest("La consulta debe estar respondida para poder cerrarla.")
+    inquiry.status = AuditInquiry.Status.CLOSED
+    inquiry.closed_at = timezone.now()
+    inquiry.save(update_fields=["status", "closed_at", "updated_at"])
+    log_activity(request, "audit_inquiry_closed", case=inquiry.case, target=inquiry)
+    messages.success(request, "La consulta fue cerrada. Gracias por confirmar la respuesta.")
+    return redirect("audit_inquiry_detail", pk=pk)
+
+
+def download_audit_inquiry_attachment(request, pk):
+    if not request.user.is_authenticated:
+        return redirect(f"/ingresar/?next={request.path}")
+    attachment = get_object_or_404(
+        AuditInquiryAttachment.objects.select_related("inquiry__case"), pk=pk
+    )
+    if not accessible_inquiries(request.user).filter(pk=attachment.inquiry_id).exists():
+        raise PermissionDenied("No tiene autorización para descargar este archivo.")
+    response = protected_file_response(
+        attachment.file.open("rb"), as_attachment=True, filename=attachment.original_filename
+    )
+    if response.status_code == 200:
+        log_activity(request, "audit_inquiry_attachment_downloaded",
+                     case=attachment.inquiry.case, target=attachment)
+    return response
+
+
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "audits/dashboard.html"
 
     def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and request.user.role == User.Role.TECHNICAL_ADMIN:
+            return redirect("technical_dashboard")
         if request.user.is_authenticated and request.user.role == User.Role.AUDIT_MANAGER:
             return redirect("director_dashboard")
         return super().dispatch(request, *args, **kwargs)
@@ -1253,6 +1453,152 @@ def director_activate_educational_center(request, pk):
         else:
             messages.success(request, f"Invitación enviada a {account.email}. El acceso se habilitará al establecer la contraseña.")
     return redirect("director_educational_centers")
+
+
+def director_access_accounts(request):
+    require_director(request.user)
+    query = request.GET.get("q", "").strip()
+    status = request.GET.get("status", "")
+    accounts = User.objects.filter(role=User.Role.INSTITUTION).select_related("organization")
+    if query:
+        accounts = accounts.filter(
+            Q(username__icontains=query) | Q(email__icontains=query)
+            | Q(organization__name__icontains=query) | Q(organization__code__icontains=query)
+        )
+    if status == "active":
+        accounts = accounts.filter(is_active=True)
+    elif status == "invited":
+        accounts = accounts.filter(is_active=False, activation_requested_at__isnull=False)
+    elif status == "suspended":
+        accounts = accounts.filter(is_active=False, activation_requested_at__isnull=True)
+    accounts = accounts.order_by("organization__name", "username")
+    return render(request, "audits/director_access_accounts.html", {
+        "page_obj": Paginator(accounts, 30).get_page(request.GET.get("page")),
+        "query": query,
+        "status_filter": status,
+        "active_count": User.objects.filter(role=User.Role.INSTITUTION, is_active=True).count(),
+        "invited_count": User.objects.filter(
+            role=User.Role.INSTITUTION, is_active=False, activation_requested_at__isnull=False
+        ).count(),
+        "suspended_count": User.objects.filter(
+            role=User.Role.INSTITUTION, is_active=False, activation_requested_at__isnull=True
+        ).count(),
+        "centers_without_account": Organization.objects.filter(
+            kind=Organization.Kind.EDUCATIONAL_CENTER, users__isnull=True
+        ).count(),
+    })
+
+
+@require_POST
+def director_suspend_institutional_account(request, pk):
+    require_director(request.user)
+    account = get_object_or_404(User, pk=pk, role=User.Role.INSTITUTION)
+    reason = request.POST.get("reason", "").strip()
+    if len(reason) < 10:
+        messages.error(request, "Indique un motivo de al menos 10 caracteres.")
+        return redirect("director_access_accounts")
+    if account.is_active:
+        account.is_active = False
+        account.activation_requested_at = None
+        account.save(update_fields=["is_active", "activation_requested_at"])
+        log_activity(request, "institutional_account_suspended", target=account, details={
+            "reason": reason, "organization_id": account.organization_id,
+            "username": account.username,
+        })
+        messages.success(request, "La cuenta institucional fue suspendida.")
+    return redirect("director_access_accounts")
+
+
+def director_alerts(request):
+    require_director(request.user)
+    now = timezone.now()
+    active_case_statuses = [
+        AuditCase.Status.PUBLISHED, AuditCase.Status.IN_RESPONSE,
+        AuditCase.Status.UNDER_REVIEW, AuditCase.Status.CORRECTION_REQUIRED,
+        AuditCase.Status.PENDING_CLOSURE,
+    ]
+    expired_invitations = User.objects.filter(
+        role=User.Role.INSTITUTION, is_active=False,
+        activation_requested_at__lt=now - timedelta(seconds=settings.PASSWORD_RESET_TIMEOUT),
+    ).select_related("organization")
+    missing_email = Organization.objects.filter(
+        kind=Organization.Kind.EDUCATIONAL_CENTER, email="", is_active=True
+    ).order_by("name")
+    inactive_auditors = User.objects.filter(
+        role=User.Role.AUDITOR, is_active=False,
+        assigned_cases__status__in=active_case_statuses,
+    ).annotate(open_cases_count=Count("assigned_cases", distinct=True)).distinct()
+    stalled_cases = AuditCase.objects.filter(
+        status__in=active_case_statuses,
+        updated_at__lt=now - timedelta(days=30),
+    ).select_related("audited_organization", "assigned_auditor").order_by("updated_at")
+    pending_reviews = Response.objects.filter(review__isnull=True).select_related(
+        "recommendation__finding__case__audited_organization"
+    ).order_by("submitted_at")
+    return render(request, "audits/director_alerts.html", {
+        "expired_invitations": expired_invitations[:20],
+        "expired_invitations_count": expired_invitations.count(),
+        "missing_email": missing_email[:20], "missing_email_count": missing_email.count(),
+        "inactive_auditors": inactive_auditors,
+        "stalled_cases": stalled_cases[:20], "stalled_cases_count": stalled_cases.count(),
+        "pending_reviews": pending_reviews[:20], "pending_reviews_count": pending_reviews.count(),
+    })
+
+
+DIRECTOR_ACTIVITY_ACTIONS = (
+    "case_publication_requested", "case_publication_approved", "case_publication_returned",
+    "case_closure_requested", "case_closure_approved", "case_closure_returned",
+    "case_reassigned", "response_submitted", "response_reviewed",
+    "deadline_extension_granted", "educational_center_invited",
+    "educational_center_activated", "institutional_account_suspended",
+    "cde_period_created", "cde_period_corrected", "cde_member_added",
+    "cde_member_departed", "director_statistics_xlsx_exported",
+    "technical_support_requested", "technical_support_updated",
+)
+
+
+def director_activity(request):
+    require_director(request.user)
+    query = request.GET.get("q", "").strip()
+    action = request.GET.get("action", "")
+    logs = ActivityLog.objects.filter(action__in=DIRECTOR_ACTIVITY_ACTIONS).select_related("actor", "case")
+    if query:
+        logs = logs.filter(
+            Q(actor__username__icontains=query) | Q(case__reference__icontains=query)
+            | Q(target_id__icontains=query) | Q(action__icontains=query)
+        )
+    if action in DIRECTOR_ACTIVITY_ACTIONS:
+        logs = logs.filter(action=action)
+    return render(request, "audits/director_activity.html", {
+        "page_obj": Paginator(logs, 50).get_page(request.GET.get("page")),
+        "query": query, "action_filter": action,
+        "actions": DIRECTOR_ACTIVITY_ACTIONS,
+    })
+
+
+@require_http_methods(["GET", "POST"])
+def director_technical_requests(request):
+    require_director(request.user)
+    form = TechnicalSupportRequestForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        support_request = form.save(commit=False)
+        support_request.requested_by = request.user
+        support_request.save()
+        log_activity(request, "technical_support_requested", target=support_request, details={
+            "category": support_request.category, "subject": support_request.subject,
+            "organization_id": support_request.organization_id,
+        })
+        messages.success(request, "La solicitud fue enviada a Administración Técnica.")
+        return redirect("director_technical_requests")
+    requests = TechnicalSupportRequest.objects.select_related(
+        "organization", "requested_by", "handled_by"
+    )
+    return render(request, "audits/director_technical_requests.html", {
+        "form": form, "support_requests": requests,
+        "open_count": requests.filter(status__in=[
+            TechnicalSupportRequest.Status.OPEN, TechnicalSupportRequest.Status.IN_PROGRESS
+        ]).count(),
+    })
 
 
 def director_decision_list(request):

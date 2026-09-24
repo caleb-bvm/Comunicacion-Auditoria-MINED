@@ -7,7 +7,7 @@
     <meta name="description" content="Sistema institucional de seguimiento de recomendaciones de Auditoría Interna">
     <title>{% block title %}SIGA-MINEDUCYT{% endblock %}</title>
     <meta name="theme-color" content="#f7f9fc">
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260924-3">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260924-8">
 </head>
 <body>
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -28,8 +28,20 @@
                 <symbol id="nav-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></symbol>
                 <symbol id="nav-logout" viewBox="0 0 24 24"><path d="M10 4H5v16h5M14 8l4 4-4 4M8 12h10"/></symbol>
             </svg>
-            <div class="nav-section-label">Navegación</div>
-            {% if user.role == 'audit_manager' %}
+            {% if user.role != 'technical_admin' %}<div class="nav-section-label">Navegación</div>{% endif %}
+            {% if user.role == 'technical_admin' %}
+            <div class="nav-section-label">Operación</div>
+            <a href="{% url 'technical_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'technical_dashboard' %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-home"></use></svg></span><span>Inicio</span></a>
+            <div class="nav-section-label nav-section-spaced">Accesos</div>
+            <a href="{% url 'technical_users' %}" class="nav-item {% if request.resolver_match.url_name == 'technical_users' and not request.GET.status or request.resolver_match.url_name == 'technical_user_detail' %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-council"></use></svg></span><span>Todos los usuarios</span></a>
+            <a href="{% url 'technical_users' %}?status=active" class="nav-item {% if request.resolver_match.url_name == 'technical_users' and request.GET.status == 'active' %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-requests"></use></svg></span><span>Cuentas activas</span></a>
+            <a href="{% url 'technical_users' %}?status=inactive" class="nav-item {% if request.resolver_match.url_name == 'technical_users' and request.GET.status == 'inactive' %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-history"></use></svg></span><span>Suspendidas</span></a>
+            <a href="{% url 'technical_user_create' %}" class="nav-item {% if request.resolver_match.url_name == 'technical_user_create' %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-new-file"></use></svg></span><span>Nueva cuenta</span></a>
+            <div class="nav-section-label nav-section-spaced">Supervisión</div>
+            <a href="{% url 'technical_support_requests' %}" class="nav-item {% if 'technical_support_request' in request.resolver_match.url_name %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-requests"></use></svg></span><span>Solicitudes</span></a>
+            <a href="{% url 'technical_activity_log' %}" class="nav-item {% if request.resolver_match.url_name == 'technical_activity_log' %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-history"></use></svg></span><span>Logs</span></a>
+            {% elif user.role == 'audit_manager' %}
+            <div class="nav-section-label">Gestión</div>
             <a href="{% url 'director_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'director_dashboard' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_dashboard' %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-home"></use></svg></span><span>Inicio</span>
             </a>
@@ -48,9 +60,16 @@
             <a href="{% url 'director_decisions' %}" class="nav-item {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-requests"></use></svg></span><span>Solicitudes</span>
             </a>
+            <a href="{% url 'audit_inquiries' %}" class="nav-item {% if 'audit_inquiry' in request.resolver_match.url_name %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-requests"></use></svg></span><span>Consultas</span></a>
+            <div class="nav-section-label nav-section-spaced">Seguimiento</div>
+            <a href="{% url 'director_alerts' %}" class="nav-item {% if request.resolver_match.url_name == 'director_alerts' %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-requests"></use></svg></span><span>Alertas</span></a>
+            <a href="{% url 'director_activity' %}" class="nav-item {% if request.resolver_match.url_name == 'director_activity' %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-history"></use></svg></span><span>Actividad</span></a>
             <a href="{% url 'historical_document_list' %}" class="nav-item {% if 'historical_' in request.resolver_match.url_name %}is-active{% endif %}" {% if 'historical_' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-reports"></use></svg></span><span>Informes</span>
             </a>
+            <div class="nav-section-label nav-section-spaced">Accesos</div>
+            <a href="{% url 'director_access_accounts' %}" class="nav-item {% if request.resolver_match.url_name == 'director_access_accounts' %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-council"></use></svg></span><span>Cuentas</span></a>
+            <a href="{% url 'director_technical_requests' %}" class="nav-item {% if request.resolver_match.url_name == 'director_technical_requests' %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-admin"></use></svg></span><span>Soporte técnico</span></a>
             {% else %}
             <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-home"></use></svg></span><span>Inicio</span>
@@ -58,13 +77,14 @@
             <a href="{% url 'case_list' %}" class="nav-item {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'respond_recommendation' or request.resolver_match.url_name == 'review_response' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'respond_recommendation' or request.resolver_match.url_name == 'review_response' %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-files"></use></svg></span><span>Expedientes</span>
             </a>
+            <a href="{% url 'audit_inquiries' %}" class="nav-item {% if 'audit_inquiry' in request.resolver_match.url_name %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-requests"></use></svg></span><span>Consultas</span></a>
             {% if user.role == 'institution' %}<a href="{% url 'institution_history' %}" class="nav-item {% if request.resolver_match.url_name == 'institution_history' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'institution_history' %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-history"></use></svg></span><span>Historial</span></a><a href="{% url 'cde_home' %}" class="nav-item {% if 'cde_' in request.resolver_match.url_name %}is-active{% endif %}" {% if 'cde_' in request.resolver_match.url_name %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-council"></use></svg></span><span>Consejo Directivo</span></a>{% endif %}
             {% if user.role == 'auditor' %}
             <a href="{% url 'historical_document_list' %}" class="nav-item {% if 'historical_' in request.resolver_match.url_name %}is-active{% endif %}">
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-reports"></use></svg></span><span>Informes</span>
             </a>
             {% endif %}
-            {% if user.is_superuser or user.role == 'technical_admin' %}
+            {% if user.is_superuser %}
             <a href="/administracion/" class="nav-item">
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-admin"></use></svg></span><span>Administración</span>
             </a>
@@ -107,7 +127,11 @@
     </main>
     {% if user.is_authenticated %}
         <nav class="mobile-navigation" aria-label="Navegación móvil">
-            {% if user.role == 'audit_manager' %}
+            {% if user.role == 'technical_admin' %}
+            <a href="{% url 'technical_dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'technical_dashboard' %}is-active{% endif %}"><svg aria-hidden="true"><use href="#nav-home"></use></svg><span>Inicio</span></a>
+            <a href="{% url 'technical_users' %}" class="mobile-nav-item {% if 'technical_user' in request.resolver_match.url_name %}is-active{% endif %}"><svg aria-hidden="true"><use href="#nav-council"></use></svg><span>Usuarios</span></a>
+            <a href="{% url 'technical_activity_log' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'technical_activity_log' %}is-active{% endif %}"><svg aria-hidden="true"><use href="#nav-history"></use></svg><span>Logs</span></a>
+            {% elif user.role == 'audit_manager' %}
             <a href="{% url 'director_dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'director_dashboard' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_dashboard' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-home"></use></svg><span>Inicio</span></a>
             <a href="{% url 'director_educational_centers' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'director_educational_centers' or request.resolver_match.url_name == 'director_educational_center_detail' or 'cde_' in request.resolver_match.url_name %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_educational_centers' or request.resolver_match.url_name == 'director_educational_center_detail' or 'cde_' in request.resolver_match.url_name %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-centers"></use></svg><span>Centros</span></a>
             <a href="{% url 'director_auditors' %}" class="mobile-nav-item {% if 'director_auditor' in request.resolver_match.url_name %}is-active{% endif %}" {% if 'director_auditor' in request.resolver_match.url_name %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-council"></use></svg><span>Auditores</span></a>
@@ -129,8 +153,10 @@
         <aside id="mobile-more-menu" class="mobile-more-menu" aria-label="Más opciones" hidden>
             <div class="mobile-more-heading"><strong>Más opciones</strong><button type="button" class="icon-button mobile-more-close" aria-label="Cerrar menú">×</button></div>
             <a href="{% url 'account_profile' %}">Mi perfil</a>
+            {% if user.role != 'technical_admin' %}<a href="{% url 'audit_inquiries' %}"><svg aria-hidden="true"><use href="#nav-requests"></use></svg>Consultas de auditoría</a>{% endif %}
             {% if user.role == 'audit_manager' %}<a href="{% url 'director_auditors' %}"><svg aria-hidden="true"><use href="#nav-council"></use></svg>Auditores</a><a href="{% url 'case_list' %}"><svg aria-hidden="true"><use href="#nav-files"></use></svg>Expedientes</a><a href="{% url 'historical_document_list' %}"><svg aria-hidden="true"><use href="#nav-reports"></use></svg>Informes</a>{% endif %}
-            {% if user.is_superuser or user.role == 'technical_admin' %}<a href="/administracion/"><svg aria-hidden="true"><use href="#nav-admin"></use></svg>Administración</a>{% endif %}
+            {% if user.role == 'audit_manager' %}<a href="{% url 'director_alerts' %}"><svg aria-hidden="true"><use href="#nav-requests"></use></svg>Alertas</a><a href="{% url 'director_activity' %}"><svg aria-hidden="true"><use href="#nav-history"></use></svg>Actividad</a><a href="{% url 'director_access_accounts' %}"><svg aria-hidden="true"><use href="#nav-council"></use></svg>Cuentas</a><a href="{% url 'director_technical_requests' %}"><svg aria-hidden="true"><use href="#nav-admin"></use></svg>Soporte técnico</a>{% endif %}
+            {% if user.role == 'technical_admin' %}<a href="{% url 'technical_support_requests' %}"><svg aria-hidden="true"><use href="#nav-requests"></use></svg>Solicitudes</a><a href="{% url 'technical_activity_log' %}"><svg aria-hidden="true"><use href="#nav-history"></use></svg>Logs</a>{% elif user.is_superuser %}<a href="/administracion/"><svg aria-hidden="true"><use href="#nav-admin"></use></svg>Administración avanzada</a>{% endif %}
             <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit"><svg aria-hidden="true"><use href="#nav-logout"></use></svg>Cerrar sesión</button></form>
         </aside>
     </div>

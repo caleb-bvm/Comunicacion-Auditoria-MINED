@@ -201,6 +201,20 @@ class Command(BaseCommand):
                 "must_change_password": False,
             },
         )
+        technical_admin, technical_admin_created = User.objects.update_or_create(
+            username="tecnico.demo",
+            defaults={
+                "first_name": "Soporte",
+                "last_name": "Técnico",
+                "email": "tecnico.demo@localhost",
+                "role": User.Role.TECHNICAL_ADMIN,
+                "organization": audit_unit,
+                "job_title": "Administrador técnico",
+                "is_active": True,
+                "is_staff": False,
+                "must_change_password": False,
+            },
+        )
         if not User.objects.filter(username=center.code).exists():
             User.objects.filter(username=f"centro.{center.code}", organization=center).update(username=center.code)
         institutional, institutional_created = User.objects.update_or_create(
@@ -221,6 +235,7 @@ class Command(BaseCommand):
             [
                 (auditor, auditor_created),
                 (director, director_created),
+                (technical_admin, technical_admin_created),
                 (institutional, institutional_created),
             ],
             reset_passwords,
@@ -243,6 +258,7 @@ class Command(BaseCommand):
         self._write_credentials(
             auditor_created,
             director_created,
+            technical_admin_created,
             institutional_created,
             reset_passwords,
             password,
@@ -272,6 +288,7 @@ class Command(BaseCommand):
         self,
         auditor_created,
         director_created,
+        technical_admin_created,
         institutional_created,
         reset_passwords,
         password,
@@ -279,6 +296,7 @@ class Command(BaseCommand):
         credentials = [
             ("Auditoría", "auditor.demo", auditor_created),
             ("Dirección", "directora.demo", director_created),
+            ("Administración técnica", "tecnico.demo", technical_admin_created),
             ("Centro educativo", "10754", institutional_created),
         ]
         for label, username, created in credentials:

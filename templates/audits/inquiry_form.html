@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Nueva consulta | SIGA{% endblock %}
+{% block content %}
+<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'audit_inquiries' %}">Consultas</a><span>/</span><span>Nueva</span></nav>
+<div class="page-heading"><span class="eyebrow">Canal de atención</span><h1>Nueva consulta de auditoría</h1><p>Seleccione el expediente. El sistema enviará la consulta directamente al auditor responsable.</p></div>
+<form method="post" enctype="multipart/form-data" class="card stacked-form inquiry-form">{% csrf_token %}
+  {% if form.non_field_errors %}<div class="message message-error">{{ form.non_field_errors }}</div>{% endif %}
+  <fieldset class="form-section"><legend>Información de la consulta</legend>{% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</fieldset>
+  <div class="submit-panel"><a class="button button-ghost" href="{% url 'audit_inquiries' %}">Cancelar</a><button class="button button-primary" type="submit">Enviar consulta</button></div>
+</form>
+{% endblock %}
