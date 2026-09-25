@@ -1,10 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import include, path, reverse_lazy
+from django.urls import include, path
 
 from apps.accounts.views import (
     AccountProfileView, ActivateAccountView, RequiredPasswordChangeView,
-    password_support_request,
+    SecurePasswordResetConfirmView, institution_technical_support,
+    password_reset_request, password_support_request,
 )
 
 
@@ -21,16 +22,16 @@ urlpatterns = [
     ),
     path("salir/", auth_views.LogoutView.as_view(), name="logout"),
     path("soporte/restablecer-contrasena/", password_support_request, name="password_support_request"),
+    path("restablecer-contrasena/", password_reset_request, name="password_reset_request"),
     path(
         "restablecer/<uidb64>/<token>/",
-        auth_views.PasswordResetConfirmView.as_view(
-            template_name="registration/password_reset_confirm.html",
-            success_url=reverse_lazy("login"),
-        ),
+        SecurePasswordResetConfirmView.as_view(),
         name="password_reset_confirm",
     ),
     path("cambiar-contrasena/", RequiredPasswordChangeView.as_view(), name="password_change"),
     path("mi-perfil/", AccountProfileView.as_view(), name="account_profile"),
+    path("mi-organizacion/soporte-tecnico/", institution_technical_support,
+         name="institution_technical_support"),
     path("activar-cuenta/<uidb64>/<token>/", ActivateAccountView.as_view(), name="activate_account"),
     path("cde/", include("apps.institutions.urls")),
     path("", include("apps.audits.urls")),

@@ -3,7 +3,20 @@
 {% block content %}
 <header class="page-heading heading-row territorial-analysis-heading">
     <div><h1>Análisis de centros educativos</h1></div>
-    <div class="button-group">{% if selected_mode == 'activity' and filter_errors %}<span class="button button-secondary is-disabled" aria-disabled="true">Exportar XLSX</span>{% else %}<a class="button button-secondary" href="{% url 'director_statistics_xlsx' %}{% querystring %}">Exportar XLSX</a>{% endif %}<a class="button button-secondary" href="{% url 'director_dashboard' %}">Volver al inicio</a></div>
+    <div class="button-group">
+        {% if filter_errors %}
+        <span class="button button-secondary is-disabled" aria-disabled="true">Exportar XLSX</span>
+        {% else %}
+        <details class="analysis-export">
+            <summary class="button button-secondary">Exportar XLSX</summary>
+            <div class="analysis-export-options">
+                <a href="{% url 'director_statistics_xlsx' %}{% querystring depth='light' %}">Ligero</a>
+                <a href="{% url 'director_statistics_xlsx' %}{% querystring depth='deep' %}">Profundo</a>
+            </div>
+        </details>
+        {% endif %}
+        <a class="button button-secondary" href="{% url 'director_dashboard' %}">Volver al inicio</a>
+    </div>
 </header>
 
 <div class="analysis-mode-switch" aria-label="Perspectiva del análisis">

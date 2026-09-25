@@ -2,19 +2,12 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth.tokens import default_token_generator
-from django.contrib.sessions.models import Session
 from django.core.exceptions import PermissionDenied
-from django.core.mail import send_mail
-from django.conf import settings
 from django.core.paginator import Paginator
 from django.db import connection
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.utils import timezone
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
 from django.views.decorators.http import require_http_methods, require_POST
 
 from apps.audits.models import ActivityLog, Evidence
@@ -22,6 +15,7 @@ from apps.institutions.models import Organization
 
 from .forms import TechnicalSupportResolutionForm
 from .models import TechnicalSupportRequest, User
+from .security import close_user_sessions
 
 
 def require_technical_admin(user):
@@ -165,15 +159,6 @@ def technical_user_detail(request, pk):
     })
 
 
-def close_user_sessions(user):
-    for session in Session.objects.filter(expire_date__gte=timezone.now()).iterator():
-        try:
-            if str(session.get_decoded().get("_auth_user_id")) == str(user.pk):
-                session.delete()
-        except Exception:
-            continue
-
-
 @login_required
 @require_POST
 def technical_user_action(request, pk, action):
@@ -248,44 +233,6 @@ def technical_support_requests(request, pk=None):
             pk=pk,
         )
         form = TechnicalSupportResolutionForm(request.POST or None, initial={"status": selected.status})
-        if request.method == "POST" and request.POST.get("action") == "send-reset":
-            target = selected.requested_by
-            if selected.category != TechnicalSupportRequest.Category.PASSWORD_RESET:
-                messages.error(request, "Esta solicitud no corresponde a un restablecimiento de contraseña.")
-            elif not target or not target.is_active or not target.email:
-                messages.error(request, "No hay una cuenta activa con correo registrado para completar la operación.")
-            else:
-                uid = urlsafe_base64_encode(force_bytes(target.pk))
-                token = default_token_generator.make_token(target)
-                reset_url = request.build_absolute_uri(
-                    reverse("password_reset_confirm", kwargs={"uidb64": uid, "token": token})
-                )
-                try:
-                    sent = send_mail(
-                        "Restablecimiento de contraseña autorizado",
-                        "El administrador técnico autorizó su solicitud. "
-                        f"Use este enlace durante la próxima hora:\n\n{reset_url}\n\n"
-                        "Si no realizó la solicitud, informe al administrador técnico.",
-                        settings.DEFAULT_FROM_EMAIL, [target.email], fail_silently=False,
-                    )
-                except Exception:
-                    sent = 0
-                    messages.error(request, "No fue posible enviar el correo. La solicitud continúa pendiente.")
-                if sent == 1:
-                    close_user_sessions(target)
-                    selected.status = TechnicalSupportRequest.Status.RESOLVED
-                    selected.resolution = "Identidad verificada. Enlace seguro enviado al correo registrado."
-                    selected.handled_by = request.user
-                    selected.resolved_at = timezone.now()
-                    selected.reset_sent_at = selected.resolved_at
-                    selected.save(update_fields=[
-                        "status", "resolution", "handled_by", "resolved_at", "reset_sent_at", "updated_at"
-                    ])
-                    record(request, "password_reset_authorized", selected, {
-                        "user_id": target.pk, "username": target.username,
-                    })
-                    messages.success(request, "El enlace seguro fue enviado al correo registrado.")
-            return redirect("technical_support_request_detail", pk=selected.pk)
         if request.method == "POST" and form.is_valid():
             before = selected.status
             selected.status = form.cleaned_data["status"]

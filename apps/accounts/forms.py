@@ -17,11 +17,28 @@ class TechnicalSupportRequestForm(forms.ModelForm):
         self.fields["organization"].required = False
 
 
+class InstitutionTechnicalSupportRequestForm(forms.ModelForm):
+    class Meta:
+        model = TechnicalSupportRequest
+        fields = ("category", "subject", "description")
+        widgets = {"description": forms.Textarea(attrs={"rows": 5})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        excluded = {
+            TechnicalSupportRequest.Category.PASSWORD_RESET,
+            TechnicalSupportRequest.Category.ACCOUNT_REACTIVATION,
+        }
+        self.fields["category"].choices = [
+            choice for choice in TechnicalSupportRequest.Category.choices
+            if choice[0] not in excluded
+        ]
+
+
 class PublicPasswordSupportRequestForm(forms.Form):
     category = forms.ChoiceField(
         label="¿Qué problema necesita resolver?",
         choices=(
-            (TechnicalSupportRequest.Category.PASSWORD_RESET, "Olvidé mi contraseña"),
             (TechnicalSupportRequest.Category.ACCOUNT_REACTIVATION, "Mi cuenta está bloqueada o inactiva"),
             (TechnicalSupportRequest.Category.ACCESS_DATA, "Mi usuario o datos de acceso son incorrectos"),
             (TechnicalSupportRequest.Category.TECHNICAL_ERROR, "El sistema muestra un error al ingresar"),
@@ -40,6 +57,20 @@ class PublicPasswordSupportRequestForm(forms.Form):
     description = forms.CharField(
         label="Detalle del problema", min_length=10, max_length=1500,
         widget=forms.Textarea(attrs={"rows": 4}),
+    )
+    website = forms.CharField(required=False, widget=forms.HiddenInput)
+
+    def clean_website(self):
+        if self.cleaned_data.get("website"):
+            raise forms.ValidationError("No fue posible procesar la solicitud.")
+        return ""
+
+
+class PasswordResetRequestForm(forms.Form):
+    identifier = forms.CharField(
+        label="Usuario, código del centro o correo institucional",
+        max_length=254,
+        help_text="El enlace se enviará únicamente al correo registrado en la cuenta.",
     )
     website = forms.CharField(required=False, widget=forms.HiddenInput)
 

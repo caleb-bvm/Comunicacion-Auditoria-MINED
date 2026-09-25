@@ -129,6 +129,13 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .button-large { min-height: 56px; }
 .button-block { width: 100%; }
 .button-group { display: flex; align-items: center; flex-wrap: wrap; gap: .7rem; }
+.analysis-export { position: relative; }
+.analysis-export > summary { cursor: pointer; list-style: none; }
+.analysis-export > summary::-webkit-details-marker { display: none; }
+.analysis-export > summary::after { content: "▾"; margin-left: .5rem; }
+.analysis-export-options { position: absolute; left: 0; top: calc(100% + .4rem); z-index: 30; width: 100%; padding: .4rem; background: #fff; border: 1px solid #d7e0e8; border-radius: .65rem; box-shadow: 0 8px 24px #102a4326; }
+.analysis-export-options a { display: block; padding: .65rem .8rem; color: #102a43; text-decoration: none; border-radius: .4rem; }
+.analysis-export-options a:hover, .analysis-export-options a:focus-visible { background: #eaf3fb; }
 .button-danger { color: var(--md-error); background: var(--md-error-container); }
 .button-danger-link { color: var(--md-error); background: transparent; }
 .button:disabled { color: var(--md-on-surface-variant); background: var(--md-surface-container-highest); cursor: not-allowed; box-shadow: none; opacity: .72; }

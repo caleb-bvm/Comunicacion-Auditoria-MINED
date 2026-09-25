@@ -2435,12 +2435,12 @@ def _create_territorial_summary_sheet(
     for row, (label, value) in enumerate(identification, start=5):
         worksheet.cell(row=row, column=1, value=label).font = Font(name="Aptos", size=10, bold=True, color=NAVY)
         worksheet.merge_cells(start_row=row, start_column=2, end_row=row, end_column=3)
-        cell = worksheet.cell(row=row, column=2, value=value)
+        cell = worksheet.cell(row=row, column=2, value=_safe_text(value) if isinstance(value, str) else value)
         cell.font = Font(name="Aptos", size=10, color="17212B")
         if isinstance(value, datetime):
             cell.number_format = "dd/mm/yyyy hh:mm"
 
-    _write_section_title_range(worksheet, 4, 4, 8, "Indicadores principales")
+    _write_section_title_range(worksheet, 4, 4, 8, "Situación vigente")
     indicators = (
         ("Centros en el alcance", analysis["center_count"], "count"),
         ("Centros auditados", analysis["audited_center_count"], "count"),
@@ -2543,20 +2543,204 @@ def _territorial_center_rows(centers):
     return rows
 
 
+TERRITORIAL_EXPORT_DEPTHS = {
+    "light": "Análisis ligero",
+    "deep": "Análisis profundo",
+}
+
+
+def _create_light_center_sheet(workbook, analysis):
+    rows = [
+        [
+            center.code, center.name, center.department,
+            getattr(center, "district", ""), center.attention_label,
+            center.obligation_count, center.overdue_count, center.due_soon_count,
+            center.submitted_count + center.under_review_count,
+            center.correction_count,
+            center.compliance_rate / 100 if center.compliance_rate is not None else "N/D",
+            "; ".join(reason["label"] for reason in center.attention_reasons) or "Sin alertas actuales",
+        ]
+        for center in analysis["centers"]
+    ]
+    sheet = _create_data_sheet(
+        workbook,
+        title="Centros educativos",
+        description=(
+            "Todos los centros de los filtros seleccionados. Cumplimiento: cumplidas / resultados "
+            "definitivos. N/D: sin resultados definitivos. Plazos según la última prórroga."
+        ),
+        headers=(
+            "Código", "Centro educativo", "Departamento", "Distrito", "Nivel de atención",
+            "Obligaciones", "Vencidas", "Vencen en 7 días", "Enviadas o en revisión",
+            "Por corregir", "Cumplimiento", "Razones de atención",
+        ),
+        rows=rows,
+        table_name="TablaCentrosEducativos",
+        widths={1: 16, 2: 40, 3: 22, 4: 22, 5: 22, 8: 19, 9: 23, 11: 18, 12: 60},
+        integer_columns=(6, 7, 8, 9, 10),
+        percentage_columns=(11,),
+        wrap_columns=(2, 3, 4, 5, 12),
+    )
+    if rows:
+        sheet.conditional_formatting.add(
+            f"G5:G{4 + len(rows)}",
+            CellIsRule(operator="greaterThan", formula=["0"], fill=PatternFill("solid", fgColor=LIGHT_RED), font=Font(color=RED, bold=True)),
+        )
+    return len(rows)
+
+
+def _create_territorial_priority_sheet(workbook, analysis):
+    rows = [
+        [
+            center.code, center.name, center.department, getattr(center, "district", ""),
+            center.attention_label,
+            "; ".join(reason["label"] for reason in center.attention_reasons),
+            center.overdue_count, center.critical_active_count,
+            center.automatic_no_response_count, center.correction_count,
+            center.due_soon_count,
+        ]
+        for center in analysis["all_priority_centers"]
+    ]
+    sheet = _create_data_sheet(
+        workbook,
+        title="Prioridades",
+        description="Todos los centros con alertas, ordenados por vencimientos y riesgo. Las razones explican su nivel de atención.",
+        headers=(
+            "Código", "Centro educativo", "Departamento", "Distrito", "Nivel de atención",
+            "Razones", "Vencidas", "Riesgo crítico", "Incumplimientos automáticos",
+            "Por corregir", "Vencen en 7 días",
+        ),
+        rows=rows,
+        table_name="TablaPrioridades",
+        widths={1: 16, 2: 40, 3: 22, 4: 22, 5: 22, 6: 60, 9: 27, 11: 20},
+        integer_columns=(7, 8, 9, 10, 11),
+        wrap_columns=(2, 3, 4, 5, 6),
+    )
+    if rows:
+        sheet.conditional_formatting.add(
+            f"E5:E{4 + len(rows)}",
+            FormulaRule(formula=['$E5="Atención inmediata"'], fill=PatternFill("solid", fgColor=LIGHT_RED), font=Font(color=RED, bold=True)),
+        )
+    return len(rows)
+
+
+def _finish_territorial_workbook(workbook, analysis, depth, report_id, counts):
+    """Apply shared reading aids without changing the shared analysis metrics."""
+    summary = workbook["Resumen"]
+    summary["A8"] = "Tipo de análisis"
+    summary.merge_cells("B8:C8")
+    summary["B8"] = TERRITORIAL_EXPORT_DEPTHS[depth]
+    summary["A8"].font = Font(name="Aptos", size=10, bold=True, color=NAVY)
+    summary["B8"].font = Font(name="Aptos", size=10, color=NAVY)
+    summary.column_dimensions["B"].width = 38
+    summary.column_dimensions["D"].width = 36
+    # Wrapped metadata must remain legible for long names and filter labels.
+    for row in range(5, 25):
+        summary.row_dimensions[row].height = 24
+        for column in (1, 2, 4):
+            summary.cell(row, column).alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+        summary.cell(row, 5).alignment = Alignment(horizontal="right", vertical="center")
+
+    _write_section_title(summary, 27, "Cómo leer los resultados", 8)
+    explanations = [
+        f"Obligaciones vencidas: {analysis['overdue_obligations']}. Centros con vencimientos: "
+        f"{analysis['overdue_center_count']}. Centros con atención inmediata: {analysis['immediate_center_count']}.",
+        f"Cumplimiento: {analysis['complied_obligations']} cumplidas / "
+        f"{analysis['terminal_obligations']} resultados definitivos. No mide el avance de todas las obligaciones.",
+        "N/D significa que no hay resultados definitivos. Un 0 % significa que hay resultados definitivos y ninguno está cumplido.",
+        "La situación vigente incluye el historial consolidado y excluye borradores. La actividad del período usa la fecha propia de cada evento.",
+        "Riesgos: centro auditado. Plazos y cumplimiento: institución responsable. Los vencimientos consideran la última prórroga.",
+        "Los indicadores son una fotografía de la fecha de generación. Editar o filtrar las tablas en Excel no recalcula el resumen.",
+    ]
+    for row, value in enumerate(explanations, start=28):
+        summary.merge_cells(start_row=row, start_column=1, end_row=row, end_column=8)
+        cell = summary.cell(row, 1, value)
+        cell.font = Font(name="Aptos", size=10, color=NAVY)
+        cell.alignment = Alignment(wrap_text=True, vertical="center")
+        summary.row_dimensions[row].height = 30
+
+    _write_section_title(summary, 35, "Hojas del reporte", 8)
+    for row, sheet in enumerate(workbook.worksheets[1:], start=36):
+        summary.merge_cells(start_row=row, start_column=1, end_row=row, end_column=8)
+        cell = summary.cell(row, 1, sheet.title)
+        cell.hyperlink = f"#'{sheet.title}'!A1"
+        cell.font = Font(name="Aptos", size=10, color=BLUE, underline="single")
+        summary.row_dimensions[row].height = 22
+    last_row = 35 + len(workbook.worksheets) - 1
+
+    if depth == "light":
+        # A compact comparison keeps the light report to three sheets.
+        start = last_row + 3
+        _write_section_title(summary, start, "Comparación territorial", 8)
+        for column, end, title in (
+            (1, 3, analysis["selected_group_label"]),
+            (4, 4, "Centros"), (5, 5, "Atención inmediata"), (6, 8, "Obligaciones vencidas"),
+        ):
+            if end > column:
+                summary.merge_cells(start_row=start + 1, start_column=column, end_row=start + 1, end_column=end)
+            summary.cell(start + 1, column, title)
+        _style_table_header(summary[start + 1])
+        summary.row_dimensions[start + 1].height = 32
+        for row, territory in enumerate(analysis["territory_rows"], start=start + 2):
+            summary.merge_cells(start_row=row, start_column=1, end_row=row, end_column=3)
+            summary.merge_cells(start_row=row, start_column=6, end_row=row, end_column=8)
+            for column, value in ((1, territory["name"]), (4, territory["center_count"]), (5, territory["immediate_count"]), (6, territory["overdue_count"])):
+                cell = summary.cell(row, column, _safe_text(value) if isinstance(value, str) else value)
+                cell.font = Font(name="Aptos", size=10, color=NAVY)
+                cell.alignment = Alignment(wrap_text=True, vertical="center")
+            summary.row_dimensions[row].height = 30
+        last_row = start + 1 + len(analysis["territory_rows"])
+        if not analysis["territory_rows"]:
+            last_row += 1
+            summary.merge_cells(start_row=last_row, start_column=1, end_row=last_row, end_column=8)
+            summary.cell(last_row, 1, "Sin registros para los filtros seleccionados.")
+
+    summary.print_area = f"A1:H{last_row}"
+    summary.page_setup.fitToHeight = 0
+    summary.sheet_properties.tabColor = NAVY
+    for sheet in workbook.worksheets[1:]:
+        sheet["A3"] = "Volver al resumen"
+        sheet["A3"].hyperlink = "#'Resumen'!A1"
+        sheet["A3"].font = Font(name="Aptos", size=9, color=BLUE, underline="single")
+        sheet.freeze_panes = "C5" if sheet.title in ("Centros educativos", "Prioridades") else "A5"
+        # Explicit N/D keeps missing outcomes distinct from zero in either depth.
+        for cell in sheet[4]:
+            if cell.value == "Cumplimiento" and sheet.tables:
+                for row in range(5, sheet.max_row + 1):
+                    target = sheet.cell(row, cell.column)
+                    if target.value is None and sheet.cell(row, 1).value:
+                        target.value = "N/D"
+        for row in sheet.iter_rows(min_row=5):
+            lines = max((
+                sum(max(1, ceil(len(part) / max(1, sheet.column_dimensions[cell.column_letter].width - 2))) for part in str(cell.value).split("\n"))
+                for cell in row if cell.value is not None and cell.alignment.wrap_text
+            ), default=1)
+            sheet.row_dimensions[row[0].row].height = min(409, max(24, 15 * lines + 6))
+
+    workbook.active = 0
+    buffer = BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+    return buffer, {"report_id": report_id, "depth": depth, "counts": counts}
+
+
 def build_territorial_analysis_xlsx(
     *,
     analysis,
     generated_by,
     generated_at=None,
+    depth="deep",
 ):
     """Render the shared territorial analysis without recalculating its metrics."""
 
+    if depth not in TERRITORIAL_EXPORT_DEPTHS:
+        raise ValueError("Tipo de análisis no válido.")
     generated_at = generated_at or timezone.now()
     report_id = f"DAI-TERR-{timezone.localtime(generated_at):%Y%m%d-%H%M%S}-{generated_by.pk}"
     workbook = Workbook()
     workbook.properties.creator = _display_user(generated_by)
     workbook.properties.lastModifiedBy = _display_user(generated_by)
-    workbook.properties.title = "Análisis territorial de centros educativos"
+    workbook.properties.title = TERRITORIAL_EXPORT_DEPTHS[depth]
     workbook.properties.subject = report_id
     workbook.properties.description = "Corte territorial generado por SIGA-MINEDUCYT."
     workbook.properties.keywords = "auditoría, centros educativos, territorio, cumplimiento, riesgo"
@@ -2571,6 +2755,14 @@ def build_territorial_analysis_xlsx(
         generated_by=generated_by,
         generated_at=generated_at,
     )
+
+    if depth == "light":
+        priority_count = _create_territorial_priority_sheet(workbook, analysis)
+        center_count = _create_light_center_sheet(workbook, analysis)
+        return _finish_territorial_workbook(
+            workbook, analysis, depth, report_id,
+            {"centers": center_count, "priority_centers": priority_count, "territories": len(analysis["territory_rows"])},
+        )
 
     territory_rows = [
         [
@@ -2686,42 +2878,12 @@ def build_territorial_analysis_xlsx(
         integer_columns=tuple(range(3, 12)),
     )
 
-    priority_rows = [
-        [
-            center.code, center.name, center.department, getattr(center, "district", ""),
-            center.attention_label,
-            "; ".join(reason["label"] for reason in center.attention_reasons),
-            center.overdue_count, center.critical_active_count,
-            center.automatic_no_response_count, center.correction_count,
-            center.due_soon_count,
-        ]
-        for center in analysis["priority_centers"]
-    ]
-    priority_sheet = _create_data_sheet(
-        workbook,
-        title="Prioridades",
-        description="Centros priorizados con las razones concretas que originan su nivel de atención.",
-        headers=(
-            "Código", "Centro educativo", "Departamento", "Distrito", "Nivel de atención",
-            "Razones", "Vencidas", "Riesgo crítico", "Incumplimientos automáticos",
-            "Por corregir", "Vencen en 7 días",
-        ),
-        rows=priority_rows,
-        table_name="TablaPrioridades",
-        widths={1: 16, 2: 40, 3: 20, 4: 20, 5: 20, 6: 60, 9: 27, 11: 20},
-        integer_columns=(7, 8, 9, 10, 11),
-        wrap_columns=(2, 6),
-    )
-    if priority_rows:
-        priority_sheet.conditional_formatting.add(
-            f"E5:E{4 + len(priority_rows)}",
-            FormulaRule(formula=['$E5="Atención inmediata"'], fill=PatternFill("solid", fgColor=LIGHT_RED), font=Font(color=RED, bold=True)),
-        )
+    priority_count = _create_territorial_priority_sheet(workbook, analysis)
 
     exported_counts = {
         "centers": len(center_rows),
         "territories": len(territory_rows),
-        "priority_centers": len(priority_rows),
+        "priority_centers": priority_count,
         "activity_months": len(analysis["monthly_activity"]),
     }
     method_rows = [
@@ -2752,8 +2914,6 @@ def build_territorial_analysis_xlsx(
         FormulaRule(formula=['$E5="ERROR"'], fill=PatternFill("solid", fgColor=LIGHT_RED), font=Font(color=RED, bold=True)),
     )
 
-    workbook.active = 0
-    buffer = BytesIO()
-    workbook.save(buffer)
-    buffer.seek(0)
-    return buffer, {"report_id": report_id, "counts": exported_counts}
+    return _finish_territorial_workbook(
+        workbook, analysis, depth, report_id, exported_counts,
+    )

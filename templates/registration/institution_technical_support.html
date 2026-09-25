@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Soporte técnico | Mi organización{% endblock %}
+{% block content %}
+<div class="page-heading"><span class="eyebrow">Mi organización</span><h1>Soporte técnico</h1><p>Informe problemas técnicos o solicite ayuda con los datos y accesos de su organización.</p></div>
+<div class="technical-detail-grid">
+    <form class="card stacked-form" method="post" novalidate>{% csrf_token %}
+        <h2>Nueva solicitud</h2>
+        {% if form.non_field_errors %}<div class="form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        {% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<div class="field-error-message" role="alert">{{ error }}</div>{% endfor %}</div>{% endfor %}
+        <button class="button button-primary" type="submit">Enviar solicitud</button>
+    </form>
+    <section class="card"><h2>Mis solicitudes</h2><div class="request-list">
+        {% for item in support_requests %}<article class="request-item"><header><strong>{{ item.subject }}</strong><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></header><small>{{ item.get_category_display }} · {{ item.created_at|date:"d/m/Y H:i" }}</small><p>{{ item.description }}</p>{% if item.resolution %}<div class="message message-info"><strong>Respuesta técnica:</strong> {{ item.resolution }}</div>{% endif %}</article>{% empty %}<p>No ha enviado solicitudes de soporte.</p>{% endfor %}
+    </div></section>
+</div>
+{% endblock %}

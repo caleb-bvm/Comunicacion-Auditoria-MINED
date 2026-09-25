@@ -1090,6 +1090,9 @@ class DirectorStatisticsView(LoginRequiredMixin, TemplateView):
 
 class DirectorStatisticsXlsxView(DirectorStatisticsView):
     def get(self, request, *args, **kwargs):
+        depth = request.GET.get("depth", "deep")
+        if depth not in ("light", "deep"):
+            return HttpResponseBadRequest("Seleccione Análisis ligero o Análisis profundo.")
         with transaction.atomic():
             analysis = build_territorial_analysis(request.GET)
             if analysis["filter_errors"]:
@@ -1100,6 +1103,7 @@ class DirectorStatisticsXlsxView(DirectorStatisticsView):
                 analysis=analysis,
                 generated_by=request.user,
                 generated_at=generated_at,
+                depth=depth,
             )
         sha256 = hashlib.sha256(workbook_buffer.getbuffer()).hexdigest()
         normalized_filters = {
@@ -1118,12 +1122,14 @@ class DirectorStatisticsXlsxView(DirectorStatisticsView):
             "access": analysis["selected_access"] or None,
             "compliance": analysis["selected_compliance"] or None,
         }
-        filename = f"analisis-territorial-centros-{timezone.localtime(generated_at):%Y%m%d-%H%M%S}.xlsx"
+        depth_name = "ligero" if depth == "light" else "profundo"
+        filename = f"analisis-{depth_name}-centros-{timezone.localtime(generated_at):%Y%m%d-%H%M%S}.xlsx"
         log_activity(
             request,
             "director_statistics_xlsx_exported",
             details={
                 "report_id": export_metadata["report_id"],
+                "depth": depth,
                 "filename": filename,
                 "sha256": sha256,
                 "filters": normalized_filters,

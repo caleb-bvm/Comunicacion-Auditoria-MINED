@@ -129,7 +129,6 @@ SECURE_REFERRER_POLICY = "same-origin"
 
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-responder@localhost")
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "")
-PASSWORD_RESET_TIMEOUT = 24 * 60 * 60
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))

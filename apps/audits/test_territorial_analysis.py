@@ -1,5 +1,8 @@
+import re
 from datetime import date, timedelta
+from html import unescape
 from io import BytesIO
+from urllib.parse import parse_qs, urlsplit
 
 from django.test import TestCase
 from django.urls import reverse
@@ -527,3 +530,110 @@ class TerritorialAnalysisTests(TestCase):
         self.assertEqual(log.details["filters"]["department"], "Departamento A")
         self.assertEqual(log.details["filters"]["quick"], "overdue")
         self.assertEqual(log.details["rows"]["centers"], page.context["center_count"])
+
+    def _export_workbook(self, **params):
+        response = self.client.get(reverse("director_statistics_xlsx"), params)
+        self.assertEqual(response.status_code, 200)
+        return load_workbook(BytesIO(b"".join(response.streaming_content))), response
+
+    def test_export_depths_preserve_scope_metrics_and_names(self):
+        self._recommendation(
+            audited=self.center_a, responsible=self.center_a,
+            reference="EXPORT-DEPTH", deadline=date.today() - timedelta(days=3),
+        )
+        self.client.force_login(self.director)
+        params = {"mode": "current", "department": "Departamento A"}
+        light, response = self._export_workbook(depth="light", **params)
+        deep, _ = self._export_workbook(depth="deep", **params)
+        self.assertIn("analisis-ligero-centros", response["Content-Disposition"])
+        self.assertEqual(light.sheetnames, ["Resumen", "Prioridades", "Centros educativos"])
+        self.assertEqual(len(deep.sheetnames), 6)
+        for book, label, depth in ((light, "Análisis ligero", "light"), (deep, "Análisis profundo", "deep")):
+            with self.subTest(depth=depth):
+                self.assertEqual(book.properties.title, label)
+                self.assertEqual(book["Resumen"]["B8"].value, label)
+                sheet = book["Centros educativos"]
+                self.assertEqual(
+                    {sheet.cell(row, 1).value for row in range(5, sheet.max_row + 1)},
+                    {self.center_a.code, self.center_without_audits.code},
+                )
+                self.assertEqual(sheet.freeze_panes, "C5")
+                self.assertEqual(sheet["A3"].hyperlink.target, "#'Resumen'!A1")
+                log = ActivityLog.objects.get(action="director_statistics_xlsx_exported", details__depth=depth)
+                self.assertEqual(log.details["rows"]["centers"], 2)
+                self.assertEqual(log.details["filters"]["department"], "Departamento A")
+        self.assertEqual(light["Centros educativos"].max_column, 12)
+        self.assertEqual(deep["Centros educativos"].max_column, 27)
+        for row in (*range(5, 13), *range(16, 25)):
+            self.assertEqual(light["Resumen"].cell(row, 5).value, deep["Resumen"].cell(row, 5).value)
+
+    def test_both_depths_export_all_priorities_beyond_page_limit(self):
+        for index in range(13):
+            center = Organization.objects.create(
+                code=f"PRIORITY-{index}", name=f"Centro {index:02}",
+                kind=Organization.Kind.EDUCATIONAL_CENTER,
+            )
+            self._recommendation(
+                audited=center, responsible=center, reference=f"PRIORITY-{index}",
+                deadline=date.today() - timedelta(days=index + 1),
+            )
+        self.client.force_login(self.director)
+        page = self.client.get(reverse("director_statistics"), {"quick": "overdue"})
+        self.assertEqual(len(page.context["priority_centers"]), 12)
+        for depth in ("light", "deep"):
+            with self.subTest(depth=depth):
+                book, _ = self._export_workbook(depth=depth, quick="overdue")
+                sheet = book["Prioridades"]
+                self.assertEqual(sheet.max_row - 4, 13)
+                self.assertEqual({sheet.cell(row, 1).value for row in range(5, 18)}, {f"PRIORITY-{i}" for i in range(13)})
+                log = ActivityLog.objects.get(action="director_statistics_xlsx_exported", details__depth=depth)
+                self.assertEqual(log.details["rows"]["priority_centers"], 13)
+
+    def test_depths_distinguish_missing_results_from_zero_and_escape_text(self):
+        self.center_a.name = '=HYPERLINK("https://example.invalid","Centro")'
+        self.center_a.save(update_fields=["name"])
+        self._recommendation(
+            audited=self.center_a, responsible=self.center_a, reference="EXPORT-ZERO",
+            status=Recommendation.Status.NOT_COMPLIED,
+        )
+        self.client.force_login(self.director)
+        for depth in ("light", "deep"):
+            book, _ = self._export_workbook(depth=depth)
+            sheet = book["Centros educativos"]
+            headers = {cell.value: cell.column for cell in sheet[4]}
+            rows = {sheet.cell(row, 1).value: row for row in range(5, sheet.max_row + 1)}
+            self.assertEqual(sheet.cell(rows[self.center_a.code], headers["Cumplimiento"]).value, 0)
+            self.assertEqual(sheet.cell(rows[self.center_without_audits.code], headers["Cumplimiento"]).value, "N/D")
+            self.assertTrue(sheet.cell(rows[self.center_a.code], 2).value.startswith("'="))
+            self.assertEqual(sheet.cell(rows[self.center_a.code], 2).data_type, "s")
+
+    def test_export_empty_scope_and_invalid_depth(self):
+        self.client.force_login(self.director)
+        for depth in ("light", "deep"):
+            book, _ = self._export_workbook(depth=depth, quick="overdue")
+            self.assertEqual(book["Resumen"]["E5"].value, 0)
+            self.assertIn("Sin registros", book["Centros educativos"]["A5"].value)
+        logs_before = ActivityLog.objects.filter(action="director_statistics_xlsx_exported").count()
+        response = self.client.get(reverse("director_statistics_xlsx"), {"depth": "invalid"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(ActivityLog.objects.filter(action="director_statistics_xlsx_exported").count(), logs_before)
+
+    def test_export_links_preserve_filters_and_activity_period(self):
+        self.client.force_login(self.director)
+        params = {"mode": "activity", "period": "custom", "start": "2025-01-01", "end": "2025-01-31", "department": "Departamento A"}
+        page = self.client.get(reverse("director_statistics"), params)
+        self.assertContains(page, ">Ligero</a>")
+        self.assertContains(page, ">Profundo</a>")
+        links = re.findall(r'href="([^"]*exportar.xlsx[^"]*)"', page.content.decode())
+        self.assertEqual(len(links), 2)
+        self.assertEqual({parse_qs(urlsplit(unescape(link)).query)["depth"][0] for link in links}, {"light", "deep"})
+        for link in links:
+            query = {key: values[0] for key, values in parse_qs(urlsplit(unescape(link)).query).items()}
+            for key, value in params.items():
+                self.assertEqual(query[key], value)
+            book, _ = self._export_workbook(**query)
+            self.assertEqual(book["Resumen"]["B13"].value.date(), date(2025, 1, 1))
+            self.assertEqual(book["Resumen"]["B14"].value.date(), date(2025, 1, 31))
+        invalid_page = self.client.get(reverse("director_statistics"), {**params, "end": "2024-01-01"})
+        self.assertNotContains(invalid_page, "depth=light")
+        self.assertNotContains(invalid_page, "depth=deep")

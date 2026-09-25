@@ -591,7 +591,7 @@ def build_territorial_analysis(params, today=None):
             -center.high_active_count,
             center.name,
         ),
-    )[:12]
+    )
 
     cases = AuditCase.objects.filter(
         audited_organization_id__in=center_ids,
@@ -673,7 +673,8 @@ def build_territorial_analysis(params, today=None):
         "territorial_compliance_rate": _nullable_rate(
             complied_count, terminal_count
         ),
-        "priority_centers": priority_centers,
+        "priority_centers": priority_centers[:12],
+        "all_priority_centers": priority_centers,
         "territory_rows": _territory_rows(centers, selected_group),
         "activity_case_count": cases.count(),
         "activity_report_count": reports_issued.count(),
