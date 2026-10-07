@@ -108,6 +108,56 @@
         });
     });
 
+    const centerDirectory = document.querySelector("[data-center-directory]");
+    const centerViewButtons = Array.from(document.querySelectorAll("[data-center-view]"));
+    const centerViewKey = "director-center-directory-view";
+    const setCenterView = (view) => {
+        if (!centerDirectory || !centerViewButtons.length) return;
+        const compact = view === "compact";
+        centerDirectory.classList.toggle("is-compact", compact);
+        centerViewButtons.forEach((button) => {
+            const active = button.dataset.centerView === view;
+            button.classList.toggle("is-active", active);
+            button.setAttribute("aria-pressed", String(active));
+        });
+        try {
+            localStorage.setItem(centerViewKey, view);
+        } catch (_error) {
+            // The view still works when local storage is unavailable.
+        }
+    };
+    if (centerDirectory && centerViewButtons.length) {
+        let savedCenterView = "cards";
+        try {
+            savedCenterView = localStorage.getItem(centerViewKey) || "cards";
+        } catch (_error) {
+            savedCenterView = "cards";
+        }
+        setCenterView(savedCenterView === "compact" ? "compact" : "cards");
+        centerViewButtons.forEach((button) => {
+            button.addEventListener("click", () => setCenterView(button.dataset.centerView));
+        });
+    }
+
+    const suspensionDialog = document.querySelector("[data-suspend-dialog]");
+    const suspensionForm = suspensionDialog?.querySelector("[data-suspend-form]");
+    const suspensionName = suspensionDialog?.querySelector("[data-suspend-account-name]");
+    document.querySelectorAll("[data-suspend-account]").forEach((button) => {
+        button.addEventListener("click", () => {
+            if (!suspensionDialog || !suspensionForm || !suspensionName) return;
+            suspensionForm.action = button.dataset.action;
+            suspensionName.textContent = button.dataset.accountName || "esta institución";
+            suspensionDialog.showModal();
+            suspensionDialog.querySelector("textarea")?.focus();
+        });
+    });
+    suspensionDialog?.querySelectorAll("[data-close-dialog]").forEach((button) => {
+        button.addEventListener("click", () => suspensionDialog.close());
+    });
+    suspensionDialog?.addEventListener("click", (event) => {
+        if (event.target === suspensionDialog) suspensionDialog.close();
+    });
+
     const analysisForm = document.querySelector(".territorial-filter[data-analysis-mode]");
     const periodFilter = analysisForm?.querySelector("[data-period-filter]");
     const periodOptions = periodFilter
