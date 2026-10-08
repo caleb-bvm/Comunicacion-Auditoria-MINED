@@ -1,46 +1,113 @@
 {% extends "base.html" %}
 {% block title %}Inicio | Dirección de Auditoría{% endblock %}
 {% block content %}
-<section class="executive-hero">
-    <div><h1>Inicio</h1></div>
-</section>
+<div class="director-workspace">
+    <header class="director-welcome">
+        <div>
+            <span class="eyebrow">Mesa de trabajo</span>
+            <h1>Buenos días{% if user.first_name %}, {{ user.first_name }}{% endif %}</h1>
+            <p>Revise primero lo urgente y continúe con la siguiente acción pendiente.</p>
+        </div>
+        <form class="director-quick-search" method="get" action="{% url 'director_educational_centers' %}" role="search">
+            <label class="visually-hidden" for="director-global-search">Buscar un centro educativo</label>
+            <input id="director-global-search" name="q" type="search" placeholder="Buscar centro por nombre o código" enterkeyhint="search">
+            <button class="button button-primary" type="submit">Buscar</button>
+        </form>
+    </header>
 
-<section class="executive-stats center-dashboard-stats" aria-label="Resumen institucional de centros educativos">
-    <a class="executive-stat executive-stat-risk" href="{% url 'director_educational_centers' %}?attention=immediate"><span>Atención inmediata</span><strong>{{ centers_immediate_attention_count }}</strong><small>con vencimientos o riesgo crítico</small></a>
-    <a class="executive-stat executive-stat-warning" href="{% url 'director_educational_centers' %}?attention=overdue"><span>Plazos vencidos</span><strong>{{ centers_overdue_count }}</strong><small>centros con obligaciones abiertas</small></a>
-    <a class="executive-stat executive-stat-risk" href="{% url 'director_educational_centers' %}?risk=critical"><span>Riesgo crítico</span><strong>{{ centers_critical_count }}</strong><small>centros con hallazgos críticos activos</small></a>
-    <a class="executive-stat executive-stat-attention" href="{% url 'director_decisions' %}"><span>Solicitudes pendientes</span><strong>{{ pending_decisions_count }}</strong><small>publicación o cierre</small></a>
-</section>
-<dl class="secondary-metrics" aria-label="Otros indicadores institucionales">
-    <div><dt>Centros educativos</dt><dd>{{ educational_centers_count }}</dd></div>
-    <div><dt>Con auditorías</dt><dd>{{ audited_centers_count }}</dd></div>
-    <div><dt>Sin CDE vigente</dt><dd>{{ centers_without_current_cde_count }}</dd></div>
-</dl>
-
-<section class="priority-centers-section">
-    <div class="section-heading"><div><h2>Centros prioritarios</h2></div><a class="button button-secondary" href="{% url 'director_educational_centers' %}">Ver todos los centros</a></div>
-    <div class="priority-center-grid">{% for center in priority_centers %}<article class="priority-center-card attention-{{ center.attention_level }}"><header><div><span>{{ center.code }}</span><h3><a href="{% url 'director_educational_center_detail' center.pk %}">{{ center.name }}</a></h3><small>{{ center.municipality|default:"Municipio sin registrar" }}{% if center.department %} · {{ center.department }}{% endif %}</small></div><span class="attention-badge attention-badge-{{ center.attention_level }}">{{ center.attention_label }}</span></header>{% if center.attention_reasons %}<ul>{% for reason in center.attention_reasons|slice:":2" %}<li class="reason-{{ reason.kind }}">{{ reason.label }}</li>{% endfor %}</ul>{% endif %}<footer><span>{{ center.active_case_count }} casos activos</span><span>{{ center.obligation_count }} obligaciones</span><a class="text-link" href="{% url 'director_educational_center_detail' center.pk %}">Ver detalle</a></footer></article>{% empty %}<div class="compact-empty"><strong>No hay centros que requieran atención</strong></div>{% endfor %}</div>
-</section>
-
-<div class="executive-layout">
-    <section class="card executive-panel executive-panel-wide">
-        <div class="section-heading"><div><h2>Solicitudes pendientes</h2></div><a class="text-link" href="{% url 'director_decisions' %}">Ver todas</a></div>
-        {% if pending_decisions %}<div class="decision-list">{% for decision in pending_decisions %}<a class="decision-row" href="{% url 'director_decision_detail' decision.pk %}"><span class="decision-kind decision-kind-{{ decision.kind }}">{{ decision.get_kind_display }}</span><div><strong>{{ decision.case.reference }} · {{ decision.case.audited_organization.name }}</strong><small>{{ decision.requested_by.get_full_name|default:decision.requested_by.username }} · {{ decision.requested_at|date:"d/m/Y H:i" }}</small></div><span class="decision-arrow" aria-hidden="true">→</span></a>{% endfor %}</div>{% else %}<div class="compact-empty"><strong>No hay solicitudes pendientes</strong></div>{% endif %}
+    <section class="work-summary" aria-label="Resumen de trabajo pendiente">
+        <a href="{% url 'director_decisions' %}"><span>Decisiones pendientes</span><strong>{{ pending_decisions_count }}</strong><small>Revisar publicación o cierre</small></a>
+        <a href="{% url 'director_alerts' %}#expedientes-detenidos"><span>Expedientes detenidos</span><strong>{{ stalled_cases_count }}</strong><small>Sin actividad por más de 30 días</small></a>
+        <a href="{% url 'director_alerts' %}#respuestas-pendientes"><span>Respuestas por revisar</span><strong>{{ pending_reviews }}</strong><small>Esperan dictamen del auditor</small></a>
+        <a href="{% url 'director_alerts' %}#invitaciones-vencidas"><span>Invitaciones vencidas</span><strong>{{ expired_invitations_count }}</strong><small>Requieren reenvío</small></a>
     </section>
 
-    <section class="card executive-panel">
-        <div class="section-heading"><div><h2>Centros sin acceso</h2></div><a class="text-link" href="{% url 'director_educational_centers' %}?access=pending">Ver {{ centers_without_users_count }}</a></div>
-        {% if centers_without_users %}<ul class="plain-list">{% for organization in centers_without_users %}<li><div><strong>{{ organization.name }}</strong><small>{{ organization.code }}{% if organization.department %} · {{ organization.department }}{% endif %}</small></div><span class="status-dot status-dot-warning" title="Sin usuario activo"></span></li>{% endfor %}</ul>{% else %}<div class="compact-empty"><strong>Todos los centros tienen acceso</strong></div>{% endif %}
-    </section>
+    <div class="director-work-grid">
+        <section class="card work-inbox" aria-labelledby="work-inbox-title">
+            <div class="section-heading">
+                <div><span class="eyebrow">Prioridad</span><h2 id="work-inbox-title">Requiere su atención</h2></div>
+                <a class="text-link" href="{% url 'director_alerts' %}">Ver todas las alertas</a>
+            </div>
 
-    <section class="card executive-panel executive-panel-wide">
-        <div class="section-heading"><div><h2>Carga del equipo auditor</h2></div><span class="muted">{{ pending_reviews }} respuestas sin revisar</span></div>
-        {% if auditor_workload %}<div class="workload-table"><div class="workload-head"><span>Auditor</span><span>Expedientes activos</span><span>Revisiones pendientes</span><span></span></div>{% for auditor in auditor_workload %}<div class="workload-row"><div class="auditor-identity"><span>{{ auditor.first_name|default:auditor.username|first|upper }}</span><div><strong>{{ auditor.get_full_name|default:auditor.username }}</strong><small>{{ auditor.job_title|default:"Auditor asignado" }}</small></div></div><strong>{{ auditor.open_cases_count }}</strong><strong>{{ auditor.pending_reviews_count }}</strong><a class="text-link" href="{% url 'case_list' %}?q={{ auditor.username|urlencode }}">Ver carga</a></div>{% endfor %}</div>{% else %}<div class="compact-empty"><strong>No hay auditores activos</strong><p>Registre al equipo auditor para comenzar la asignación de expedientes.</p></div>{% endif %}
-    </section>
+            {% if pending_decisions or stalled_cases or pending_review_items or expired_invitations %}
+            <div class="work-item-list">
+                {% for decision in pending_decisions %}
+                <article class="work-item work-item-decision">
+                    <span class="work-item-signal" aria-hidden="true"></span>
+                    <div class="work-item-copy">
+                        <div><span class="decision-kind decision-kind-{{ decision.kind }}">{{ decision.get_kind_display }}</span><small>Solicitada hace {{ decision.requested_at|timesince }}</small></div>
+                        <h3>{{ decision.case.reference }} · {{ decision.case.audited_organization.name }}</h3>
+                        <p>Decidir si el expediente puede continuar a {{ decision.get_kind_display|lower }}.</p>
+                    </div>
+                    <a class="button button-primary button-compact" href="{% url 'director_decision_detail' decision.pk %}">Revisar ahora</a>
+                </article>
+                {% endfor %}
 
-    <section class="card executive-panel">
-        <div class="section-heading"><div><h2>Solicitudes resueltas</h2></div></div>
-        {% if recent_decisions %}<ul class="timeline-list">{% for decision in recent_decisions %}<li><span class="timeline-marker status-{{ decision.status }}"></span><div><strong>{{ decision.get_kind_display }} {{ decision.get_status_display|lower }}</strong><a href="{% url 'director_decision_detail' decision.pk %}">{{ decision.case.reference }}</a><small>{{ decision.decided_at|date:"d/m/Y H:i" }} · {{ decision.decided_by.get_full_name|default:decision.decided_by.username }}</small></div></li>{% endfor %}</ul>{% else %}<div class="compact-empty"><strong>No hay solicitudes resueltas</strong></div>{% endif %}
+                {% for case in stalled_cases %}
+                <article class="work-item work-item-warning">
+                    <span class="work-item-signal" aria-hidden="true"></span>
+                    <div class="work-item-copy">
+                        <div><span class="work-item-type">Sin actividad</span><small>Desde {{ case.updated_at|date:"d/m/Y" }}</small></div>
+                        <h3>{{ case.reference }} · {{ case.audited_organization.name }}</h3>
+                        <p>{% if case.assigned_auditor %}A cargo de {{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}.{% else %}No tiene auditor asignado.{% endif %}</p>
+                    </div>
+                    <a class="button button-secondary button-compact" href="{% url 'case_detail' case.pk %}">Revisar expediente</a>
+                </article>
+                {% endfor %}
+
+                {% for response in pending_review_items %}
+                <article class="work-item">
+                    <span class="work-item-signal" aria-hidden="true"></span>
+                    <div class="work-item-copy">
+                        <div><span class="work-item-type">Respuesta pendiente</span><small>Recibida hace {{ response.submitted_at|timesince }}</small></div>
+                        <h3>{{ response.recommendation.finding.case.reference }} · {{ response.recommendation.finding.case.audited_organization.name }}</h3>
+                        <p>El auditor debe emitir un dictamen sobre la respuesta presentada.</p>
+                    </div>
+                    <a class="button button-secondary button-compact" href="{% url 'case_detail' response.recommendation.finding.case.pk %}">Ver respuesta</a>
+                </article>
+                {% endfor %}
+
+                {% for account in expired_invitations %}
+                <article class="work-item">
+                    <span class="work-item-signal" aria-hidden="true"></span>
+                    <div class="work-item-copy">
+                        <div><span class="work-item-type">Acceso vencido</span><small>{{ account.activation_requested_at|date:"d/m/Y" }}</small></div>
+                        <h3>{{ account.organization.name }}</h3>
+                        <p>El enlace de activación venció y debe enviarse nuevamente.</p>
+                    </div>
+                    <form method="post" action="{% url 'director_activate_educational_center' account.organization_id %}">{% csrf_token %}<button class="button button-secondary button-compact" type="submit">Reenviar enlace</button></form>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="work-complete-state"><span aria-hidden="true">✓</span><div><strong>Todo está al día</strong><p>No hay decisiones ni alertas que requieran atención inmediata.</p></div></div>
+            {% endif %}
+        </section>
+
+        <aside class="director-side-column">
+            <section class="card quick-actions" aria-labelledby="quick-actions-title">
+                <h2 id="quick-actions-title">Accesos rápidos</h2>
+                <a href="{% url 'director_decisions' %}"><span>Revisar decisiones</span><small>{{ pending_decisions_count }} pendientes</small><b aria-hidden="true">→</b></a>
+                <a href="{% url 'director_educational_centers' %}"><span>Consultar centros</span><small>{{ educational_centers_count }} registrados</small><b aria-hidden="true">→</b></a>
+                <a href="{% url 'director_statistics' %}"><span>Ver análisis</span><small>Estado actual y actividad</small><b aria-hidden="true">→</b></a>
+                <a href="{% url 'director_auditors' %}"><span>Gestionar auditores</span><small>Asignaciones y carga</small><b aria-hidden="true">→</b></a>
+            </section>
+
+            <section class="card institutional-pulse" aria-labelledby="institutional-pulse-title">
+                <div class="section-heading"><h2 id="institutional-pulse-title">Estado institucional</h2><a class="text-link" href="{% url 'director_statistics' %}">Explorar</a></div>
+                <dl>
+                    <div><dt>Atención inmediata</dt><dd class="metric-danger">{{ centers_immediate_attention_count }}</dd></div>
+                    <div><dt>Plazos vencidos</dt><dd>{{ centers_overdue_count }}</dd></div>
+                    <div><dt>Riesgo crítico</dt><dd>{{ centers_critical_count }}</dd></div>
+                    <div><dt>Sin CDE vigente</dt><dd>{{ centers_without_current_cde_count }}</dd></div>
+                </dl>
+            </section>
+        </aside>
+    </div>
+
+    <section class="priority-centers-section">
+        <div class="section-heading"><div><span class="eyebrow">Seguimiento</span><h2>Centros prioritarios</h2><p>Ordenados por vencimientos y nivel de riesgo.</p></div><a class="button button-secondary" href="{% url 'director_educational_centers' %}?attention=immediate">Ver directorio priorizado</a></div>
+        <div class="priority-center-grid">{% for center in priority_centers %}<article class="priority-center-card attention-{{ center.attention_level }}"><header><div><span>{{ center.code }}</span><h3><a href="{% url 'director_educational_center_detail' center.pk %}">{{ center.name }}</a></h3><small>{{ center.municipality|default:"Municipio sin registrar" }}{% if center.department %} · {{ center.department }}{% endif %}</small></div><span class="attention-badge attention-badge-{{ center.attention_level }}">{{ center.attention_label }}</span></header>{% if center.attention_reasons %}<p class="center-primary-reason">{{ center.attention_reasons.0.label }}</p>{% endif %}<footer><span>{{ center.active_case_count }} casos activos</span><a class="text-link" href="{% url 'director_educational_center_detail' center.pk %}">Abrir ficha</a></footer></article>{% empty %}<div class="compact-empty"><strong>No hay centros que requieran atención</strong></div>{% endfor %}</div>
     </section>
 </div>
 {% endblock %}

@@ -20,8 +20,8 @@
 </header>
 
 <div class="analysis-mode-switch" aria-label="Perspectiva del análisis">
-    <a href="{% querystring mode='current' %}" class="{% if selected_mode == 'current' %}is-active{% endif %}" {% if selected_mode == 'current' %}aria-current="page"{% endif %}><strong>Desde todos los tiempos</strong></a>
-    <a href="{% querystring mode='activity' %}" class="{% if selected_mode == 'activity' %}is-active{% endif %}" {% if selected_mode == 'activity' %}aria-current="page"{% endif %}><strong>Periodo de tiempo personalizado</strong></a>
+    <a href="{% querystring mode='current' %}" class="{% if selected_mode == 'current' %}is-active{% endif %}" title="Desde todos los tiempos" {% if selected_mode == 'current' %}aria-current="page"{% endif %}><strong>Estado actual</strong></a>
+    <a href="{% querystring mode='activity' %}" class="{% if selected_mode == 'activity' %}is-active{% endif %}" {% if selected_mode == 'activity' %}aria-current="page"{% endif %}><strong>Actividad por período</strong></a>
 </div>
 
 <form class="territorial-filter" method="get" aria-label="Filtros del análisis territorial" data-analysis-mode="{{ selected_mode }}">
@@ -87,11 +87,11 @@
     </div>
 </form>
 
-<section class="analysis-scope-note"><div><strong>Ámbito territorial</strong><span>{% if selected_district %}Distrito {{ selected_district }}{% elif selected_department %}Departamento {{ selected_department }}{% else %}Todo el país{% endif %}</span></div>{% if selected_mode == 'current' %}<div><strong>Desde todos los tiempos</strong><span>Todo el historial consolidado al día de hoy</span></div>{% else %}<div><strong>Periodo de tiempo personalizado</strong><span>{{ selected_period_label }}{% if start_date and end_date %} · {{ start_date|date:"d/m/Y" }}–{{ end_date|date:"d/m/Y" }}{% endif %}</span></div>{% endif %}</section>
+<section class="analysis-scope-note"><div><strong>Ámbito territorial</strong><span>{% if selected_district %}Distrito {{ selected_district }}{% elif selected_department %}Departamento {{ selected_department }}{% else %}Todo el país{% endif %}</span></div>{% if selected_mode == 'current' %}<div><strong>Estado actual</strong><span>Historial consolidado al día de hoy</span></div>{% else %}<div><strong>Actividad por período</strong><span>{{ selected_period_label }}{% if start_date and end_date %} · {{ start_date|date:"d/m/Y" }}–{{ end_date|date:"d/m/Y" }}{% endif %}</span></div>{% endif %}</section>
 
 {% if selected_mode == 'activity' %}
 <section class="analysis-section" aria-labelledby="activity-title">
-    <div class="section-heading"><div><h2 id="activity-title">Periodo de tiempo personalizado</h2><p>Actividad registrada en {{ selected_period_label|lower }}. No incluye borradores ni publicaciones pendientes.</p></div></div>
+    <div class="section-heading"><div><h2 id="activity-title">Actividad por período</h2><p>Actividad registrada en {{ selected_period_label|lower }}. No incluye borradores ni publicaciones pendientes.</p></div></div>
     <div class="territorial-kpis activity-kpis">
         <article><span>Expedientes registrados</span><strong>{{ activity_case_count }}</strong><small>creados en el período</small></article>
         <article><span>Informes emitidos</span><strong>{{ activity_report_count }}</strong><small>por fecha del informe</small></article>
@@ -111,7 +111,7 @@
 
 {% if selected_mode == 'current' %}
 <section class="analysis-section" aria-labelledby="current-title">
-    <div class="section-heading"><div><h2 id="current-title">Desde todos los tiempos</h2></div><span class="status status-approved">Corte actual</span></div>
+    <div class="section-heading"><div><h2 id="current-title">Estado actual</h2></div><span class="status status-approved">Corte actual</span></div>
     <div class="territorial-kpis">
         <article><span>Centros incluidos</span><strong>{{ center_count }}</strong></article>
         <article><span>Cobertura de auditoría</span><strong>{{ coverage_rate }}%</strong><small>{{ audited_center_count }} auditados · {{ not_audited_center_count }} sin auditorías</small></article>
@@ -150,6 +150,6 @@
     <div class="coverage-gaps-layout"><div><h3>Nunca auditados</h3>{% if never_audited_centers %}<ul class="plain-list">{% for center in never_audited_centers %}<li><div><strong><a href="{% url 'director_educational_center_detail' center.pk %}">{{ center.name }}</a></strong><small>{{ center.code }} · {{ center.district|default:"Ubicación incompleta" }}{% if center.department %} · {{ center.department }}{% endif %}</small></div><span>Sin auditorías</span></li>{% endfor %}</ul>{% else %}<div class="compact-empty"><strong>Todos tienen cobertura</strong></div>{% endif %}</div><div><h3>Datos territoriales pendientes</h3><dl class="data-quality-list"><div><dt>Sin departamento</dt><dd>{{ data_quality.without_department }}</dd></div><div><dt>Sin distrito</dt><dd>{{ data_quality.without_district }}</dd></div></dl><p>Corrija estos datos en el catálogo institucional.</p></div></div>
 </section>
 
-<section class="activity-teaser"><div><h2>Periodo de tiempo personalizado</h2><p>Consulta la actividad de {{ selected_period_label|lower }}.</p></div><a class="button button-primary" href="{% querystring mode='activity' %}">Ver actividad</a></section>
+<section class="activity-teaser"><div><h2>Actividad por período</h2><p>Consulte movimientos dentro de un rango de fechas.</p></div><a class="button button-primary" href="{% querystring mode='activity' %}">Ver actividad</a></section>
 {% endif %}
 {% endblock %}

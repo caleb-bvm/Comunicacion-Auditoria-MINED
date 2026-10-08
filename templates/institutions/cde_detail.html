@@ -17,6 +17,8 @@
 {% if not current_period %}
 <div class="empty-state card cde-current-empty">
     <h2>No hay un período vigente</h2>
+    <p>Registre el período actual para identificar a sus integrantes y representante legal.</p>
+    {% if can_manage %}<a class="button button-primary" href="{% url 'cde_period_create' organization.pk %}">Registrar período actual</a>{% endif %}
 </div>
 {% endif %}
 

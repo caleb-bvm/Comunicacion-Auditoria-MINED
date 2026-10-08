@@ -474,6 +474,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 ]
             ).count()
         elif self.request.user.organization_id:
+            today = timezone.localdate()
+            context["today"] = today
             organization_pending = Recommendation.objects.filter(
                 responsible_organization_id=self.request.user.organization_id,
                 status__in=[Recommendation.Status.PENDING, Recommendation.Status.CORRECTION_REQUIRED],
@@ -485,17 +487,43 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                     AuditCase.Status.CLOSED,
                 ]
             )
-            context["pending_recommendations"] = organization_pending.count()
+            organization_attention = with_effective_deadline(organization_pending)
+            context["pending_recommendations"] = organization_attention.count()
+            context["organization_overdue_count"] = organization_attention.filter(
+                current_deadline__lt=today
+            ).count()
+            context["organization_due_soon_count"] = organization_attention.filter(
+                current_deadline__gte=today,
+                current_deadline__lte=today + timedelta(days=7),
+            ).count()
             context["organization_attention_items"] = list(
-                with_effective_deadline(
-                    organization_pending.select_related("finding__case")
-                ).order_by("current_deadline", "finding__case__reference")[:5]
+                organization_attention.select_related("finding__case").order_by(
+                    "current_deadline", "finding__case__reference"
+                )[:5]
             )
+            current_cde = SchoolBoardPeriod.objects.filter(
+                organization_id=self.request.user.organization_id,
+                is_current=True,
+                start_date__lte=today,
+                end_date__gte=today,
+            ).first()
+            context["current_cde"] = current_cde
+            context["open_support_requests"] = TechnicalSupportRequest.objects.filter(
+                requested_by=self.request.user,
+                status__in=[
+                    TechnicalSupportRequest.Status.OPEN,
+                    TechnicalSupportRequest.Status.IN_PROGRESS,
+                ],
+            ).count()
         else:
             context["pending_recommendations"] = 0
 
         if self.request.user.role == User.Role.AUDITOR:
             today = timezone.localdate()
+            context["draft_cases"] = cases.filter(status=AuditCase.Status.DRAFT).count()
+            context["assigned_organizations_count"] = (
+                self.request.user.assigned_organizations.filter(is_active=True).count()
+            )
             pending_responses = (
                 Response.objects.filter(
                     recommendation__finding__case__in=cases,
@@ -612,6 +640,7 @@ class DirectorDashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.localdate()
+        now = timezone.now()
         cases = AuditCase.objects.all()
         pending_decisions = CaseDecision.objects.filter(status=CaseDecision.Status.PENDING)
         terminal_recommendations = Recommendation.objects.filter(
@@ -689,6 +718,28 @@ class DirectorDashboardView(LoginRequiredMixin, TemplateView):
             "name",
         )[:6]
         priority_centers = enrich_centers(list(priority_center_queryset), today=today)
+        active_case_statuses = [
+            AuditCase.Status.PUBLISHED,
+            AuditCase.Status.IN_RESPONSE,
+            AuditCase.Status.UNDER_REVIEW,
+            AuditCase.Status.CORRECTION_REQUIRED,
+            AuditCase.Status.PENDING_CLOSURE,
+        ]
+        stalled_cases = AuditCase.objects.filter(
+            status__in=active_case_statuses,
+            updated_at__lt=now - timedelta(days=30),
+        ).select_related("audited_organization", "assigned_auditor").order_by("updated_at")
+        expired_invitations = User.objects.filter(
+            role=User.Role.INSTITUTION,
+            is_active=False,
+            activation_requested_at__lt=now
+            - timedelta(seconds=settings.PASSWORD_RESET_TIMEOUT),
+        ).select_related("organization").order_by("activation_requested_at")
+        pending_review_items = Response.objects.filter(
+            review__isnull=True
+        ).select_related(
+            "recommendation__finding__case__audited_organization"
+        ).order_by("submitted_at")
 
         context.update(
             {
@@ -710,6 +761,11 @@ class DirectorDashboardView(LoginRequiredMixin, TemplateView):
                 .exclude(case__status=AuditCase.Status.CLOSED)
                 .count(),
                 "pending_reviews": Response.objects.filter(review__isnull=True).count(),
+                "pending_review_items": pending_review_items[:4],
+                "stalled_cases": stalled_cases[:4],
+                "stalled_cases_count": stalled_cases.count(),
+                "expired_invitations": expired_invitations[:4],
+                "expired_invitations_count": expired_invitations.count(),
                 "compliance_rate": round((complied / terminal_count) * 100) if terminal_count else 0,
                 "centers_without_users_count": centers_without_users.count(),
                 "centers_without_users": centers_without_users.order_by("name")[:6],
@@ -1243,6 +1299,8 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
         )
         if selected_department:
             districts = districts.filter(department=selected_department)
+        else:
+            districts = districts.none()
         context.update(
             {
                 "query": self.request.GET.get("q", "").strip(),
@@ -1621,6 +1679,7 @@ def director_decision_list(request):
         decisions = decisions.filter(status=status)
     if kind in CaseDecision.Kind.values:
         decisions = decisions.filter(kind=kind)
+    all_decisions = CaseDecision.objects.all()
     return render(
         request,
         "audits/director_decision_list.html",
@@ -1630,6 +1689,11 @@ def director_decision_list(request):
             "selected_kind": kind,
             "statuses": CaseDecision.Status.choices,
             "kinds": CaseDecision.Kind.choices,
+            "decision_counts": {
+                "pending": all_decisions.filter(status=CaseDecision.Status.PENDING).count(),
+                "returned": all_decisions.filter(status=CaseDecision.Status.RETURNED).count(),
+                "approved": all_decisions.filter(status=CaseDecision.Status.APPROVED).count(),
+            },
         },
     )
 
@@ -1762,11 +1826,9 @@ class CaseListView(LoginRequiredMixin, ListView):
             .distinct()
             .order_by("department")
         )
-        district_organizations = geographic_organizations
+        district_organizations = geographic_organizations.none()
         if department:
-            district_organizations = district_organizations.filter(
-                department=department
-            )
+            district_organizations = geographic_organizations.filter(department=department)
         self.district_options = list(
             district_organizations.exclude(district="")
             .values_list("district", flat=True)

@@ -1,12 +1,38 @@
 {% extends "base.html" %}
 {% block title %}Alertas | Dirección{% endblock %}
 {% block content %}
-<div class="page-heading"><span class="eyebrow">Seguimiento</span><h1>Alertas de gestión</h1><p>Situaciones que requieren una decisión o coordinación de Dirección.</p></div>
-<section class="stats-grid"><article class="stat-card stat-warning"><div><span>Invitaciones vencidas</span><strong>{{ expired_invitations_count }}</strong></div></article><article class="stat-card"><div><span>Centros sin correo</span><strong>{{ missing_email_count }}</strong></div></article><article class="stat-card stat-danger"><div><span>Expedientes sin actividad</span><strong>{{ stalled_cases_count }}</strong></div></article><article class="stat-card stat-warning"><div><span>Respuestas por revisar</span><strong>{{ pending_reviews_count }}</strong></div></article></section>
-<div class="technical-detail-grid">
-<section class="card"><h2>Invitaciones vencidas</h2><ul class="plain-list">{% for account in expired_invitations %}<li><div><strong>{{ account.organization.name }}</strong><small>{{ account.activation_requested_at|date:"d/m/Y H:i" }}</small></div><a href="{% url 'director_access_accounts' %}?q={{ account.username|urlencode }}">Revisar</a></li>{% empty %}<li>Sin invitaciones vencidas.</li>{% endfor %}</ul></section>
-<section class="card"><h2>Centros sin correo</h2><ul class="plain-list">{% for center in missing_email %}<li><div><strong>{{ center.name }}</strong><small>{{ center.code }}</small></div><a href="{% url 'director_educational_center_detail' center.pk %}">Ver centro</a></li>{% empty %}<li>Todos los centros activos tienen correo.</li>{% endfor %}</ul></section>
-<section class="card"><h2>Expedientes sin actividad por 30 días</h2><ul class="plain-list">{% for case in stalled_cases %}<li><div><strong>{{ case.reference }}</strong><small>{{ case.audited_organization.name }} · {{ case.updated_at|date:"d/m/Y" }}</small></div><a href="{% url 'case_detail' case.pk %}">Revisar</a></li>{% empty %}<li>No hay expedientes detenidos.</li>{% endfor %}</ul></section>
-<section class="card"><h2>Auditores inactivos con carga</h2><ul class="plain-list">{% for auditor in inactive_auditors %}<li><div><strong>{{ auditor.get_full_name|default:auditor.username }}</strong><small>{{ auditor.open_cases_count }} expediente{{ auditor.open_cases_count|pluralize }}</small></div><a href="{% url 'director_auditor_detail' auditor.pk %}">Reasignar</a></li>{% empty %}<li>No hay conflictos de asignación.</li>{% endfor %}</ul></section>
+<div class="alerts-workspace">
+    <header class="page-heading"><span class="eyebrow">Seguimiento</span><h1>Alertas de gestión</h1><p>Situaciones pendientes ordenadas por el tipo de acción que requieren.</p></header>
+
+    <nav class="alert-summary-nav" aria-label="Tipos de alerta">
+        <a href="#expedientes-detenidos"><strong>{{ stalled_cases_count }}</strong><span>Expedientes detenidos</span><small>Revisar seguimiento</small></a>
+        <a href="#respuestas-pendientes"><strong>{{ pending_reviews_count }}</strong><span>Respuestas pendientes</span><small>Coordinar dictamen</small></a>
+        <a href="#invitaciones-vencidas"><strong>{{ expired_invitations_count }}</strong><span>Invitaciones vencidas</span><small>Reenviar acceso</small></a>
+        <a href="#datos-incompletos"><strong>{{ missing_email_count }}</strong><span>Centros sin correo</span><small>Completar datos</small></a>
+    </nav>
+
+    <div class="alert-action-sections">
+        <section id="expedientes-detenidos" class="card alert-action-section">
+            <div class="section-heading"><div><h2>Expedientes sin actividad</h2><p>Sin cambios durante más de 30 días.</p></div><span class="status status-returned">{{ stalled_cases_count }} pendientes</span></div>
+            <div class="actionable-list">{% for case in stalled_cases %}<article><div><strong>{{ case.reference }} · {{ case.audited_organization.name }}</strong><small>Último cambio: {{ case.updated_at|date:"d/m/Y" }}{% if case.assigned_auditor %} · {{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}{% endif %}</small></div><a class="button button-secondary button-compact" href="{% url 'case_detail' case.pk %}">Revisar expediente</a></article>{% empty %}<div class="compact-empty"><strong>No hay expedientes detenidos</strong></div>{% endfor %}</div>
+        </section>
+
+        <section id="respuestas-pendientes" class="card alert-action-section">
+            <div class="section-heading"><div><h2>Respuestas por revisar</h2><p>Presentaciones institucionales que todavía no tienen dictamen.</p></div><span class="status status-pending">{{ pending_reviews_count }} pendientes</span></div>
+            <div class="actionable-list">{% for response in pending_reviews %}<article><div><strong>{{ response.recommendation.finding.case.reference }} · {{ response.recommendation.finding.case.audited_organization.name }}</strong><small>Recibida el {{ response.submitted_at|date:"d/m/Y H:i" }}</small></div><a class="button button-secondary button-compact" href="{% url 'case_detail' response.recommendation.finding.case.pk %}">Ver respuesta</a></article>{% empty %}<div class="compact-empty"><strong>No hay respuestas pendientes</strong></div>{% endfor %}</div>
+        </section>
+
+        <section id="invitaciones-vencidas" class="card alert-action-section">
+            <div class="section-heading"><div><h2>Invitaciones vencidas</h2><p>El centro no activó su cuenta dentro del plazo.</p></div><span class="status status-pending">{{ expired_invitations_count }} pendientes</span></div>
+            <div class="actionable-list">{% for account in expired_invitations %}<article><div><strong>{{ account.organization.name }}</strong><small>Enviada el {{ account.activation_requested_at|date:"d/m/Y H:i" }}</small></div><form method="post" action="{% url 'director_activate_educational_center' account.organization_id %}">{% csrf_token %}<button class="button button-secondary button-compact" type="submit">Reenviar enlace</button></form></article>{% empty %}<div class="compact-empty"><strong>No hay invitaciones vencidas</strong></div>{% endfor %}</div>
+        </section>
+
+        <section id="datos-incompletos" class="card alert-action-section">
+            <div class="section-heading"><div><h2>Centros sin correo institucional</h2><p>Necesitan este dato antes de recibir acceso.</p></div><span class="status">{{ missing_email_count }} pendientes</span></div>
+            <div class="actionable-list">{% for center in missing_email %}<article><div><strong>{{ center.name }}</strong><small>Código {{ center.code }}</small></div><a class="button button-secondary button-compact" href="{% url 'director_educational_center_detail' center.pk %}">Abrir ficha</a></article>{% empty %}<div class="compact-empty"><strong>Todos los centros activos tienen correo</strong></div>{% endfor %}</div>
+        </section>
+
+        {% if inactive_auditors %}<section class="card alert-action-section"><div class="section-heading"><div><h2>Auditores inactivos con carga</h2><p>Sus expedientes necesitan una nueva asignación.</p></div></div><div class="actionable-list">{% for auditor in inactive_auditors %}<article><div><strong>{{ auditor.get_full_name|default:auditor.username }}</strong><small>{{ auditor.open_cases_count }} expediente{{ auditor.open_cases_count|pluralize }}</small></div><a class="button button-secondary button-compact" href="{% url 'director_auditor_detail' auditor.pk %}">Reasignar carga</a></article>{% endfor %}</div></section>{% endif %}
+    </div>
 </div>
 {% endblock %}

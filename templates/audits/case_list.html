@@ -5,7 +5,7 @@
     {% if selected_organization %}
     <div><h1>Expedientes</h1><p class="page-context"><strong>{{ selected_organization.name }}</strong> · Código {{ selected_organization.code }}{% if selected_organization.municipality %} · {{ selected_organization.municipality }}{% endif %}{% if selected_organization.department %} · {{ selected_organization.department }}{% endif %}</p></div>
     {% else %}
-    <div><h1>Expedientes</h1></div>
+    <div><span class="eyebrow">{% if user.role == 'institution' %}Seguimiento institucional{% else %}Mi cartera{% endif %}</span><h1>{% if user.role == 'institution' %}Mis expedientes{% else %}Expedientes{% endif %}</h1><p>{% if user.role == 'institution' %}Consulte informes, recomendaciones y respuestas de su centro educativo.{% else %}Localice un caso y continúe su seguimiento desde un solo lugar.{% endif %}</p></div>
     {% endif %}
     <div class="heading-actions">
         {% if selected_organization and user.role == 'audit_manager' %}<a class="button button-secondary" href="{% url 'director_educational_centers' %}">Volver a centros</a>{% endif %}
@@ -16,9 +16,10 @@
 <form method="get" class="filter-bar report-filter-bar" role="search" aria-label="Buscar expedientes" data-location-filters data-auto-submit-filters>
     <div class="field grow search-field"><label for="q">Buscar</label><div class="input-with-icon"><span aria-hidden="true">⌕</span><input id="q" name="q" value="{{ request.GET.q }}" placeholder="Referencia, institución o código"></div></div>
     <div class="field"><label for="department">Departamento</label><select id="department" name="department"><option value="">Todos</option>{% for department in department_options %}<option value="{{ department }}" {% if selected_department == department %}selected{% endif %}>{{ department }}</option>{% endfor %}</select></div>
-    <div class="field"><label for="district">Distrito</label><select id="district" name="district"><option value="">Todos</option>{% for district in district_options %}<option value="{{ district }}" {% if selected_district == district %}selected{% endif %}>{{ district }}</option>{% endfor %}</select></div>
+    <div class="field"><label for="district">Distrito</label><select id="district" name="district" {% if not selected_department %}disabled{% endif %}><option value="">{% if selected_department %}Todos{% else %}Seleccione departamento{% endif %}</option>{% for district in district_options %}<option value="{{ district }}" {% if selected_district == district %}selected{% endif %}>{{ district }}</option>{% endfor %}</select></div>
     <div class="field"><label for="organization">Institución</label><select id="organization" name="organization"><option value="">Todas</option>{% for organization in organizations %}<option value="{{ organization.pk }}" {% if selected_organization_id == organization.pk|stringformat:'s' %}selected{% endif %}>{{ organization.name }}</option>{% endfor %}</select></div>
     <button class="button button-secondary" type="submit">Aplicar filtros</button>
+    {% if request.GET.q or selected_department or selected_district or selected_organization_id %}<div class="active-filter-row"><span>Filtros activos:</span>{% if request.GET.q %}<span class="active-filter-chip">Búsqueda: {{ request.GET.q }}</span>{% endif %}{% if selected_department %}<span class="active-filter-chip">{{ selected_department }}</span>{% endif %}{% if selected_district %}<span class="active-filter-chip">Distrito {{ selected_district }}</span>{% endif %}{% if selected_organization %}<span class="active-filter-chip">{{ selected_organization.name }}</span>{% endif %}<a class="active-filter-chip" href="{% url 'case_list' %}">Limpiar todo ×</a></div>{% endif %}
 </form>
 {% endif %}
 <div class="results-heading" aria-live="polite">

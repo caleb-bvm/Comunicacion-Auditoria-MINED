@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Historial | {{ organization.name }}{% endblock %}
 {% block content %}
-<div class="page-heading">
-    <h1>Historial</h1>
-    <p>{{ organization.code }} · {{ organization.name }}</p>
+<div class="page-heading heading-row">
+    <div><span class="eyebrow">Archivo institucional</span><h1>Historial</h1><p>{{ organization.code }} · {{ organization.name }}</p></div>
+    <a class="button button-secondary" href="{% url 'case_list' %}">Ver expedientes activos</a>
 </div>
 
 <section class="stats-grid" aria-label="Resumen del historial">
@@ -11,6 +11,8 @@
     <article class="stat-card stat-secondary"><div><span>Informes</span><strong>{{ documents.count }}</strong></div></article>
     <article class="stat-card stat-tertiary"><div><span>Recomendaciones</span><strong>{{ recommendation_count }}</strong></div></article>
 </section>
+
+<nav class="history-section-nav" aria-label="Secciones del historial"><a href="#history-reports-title">Informes <strong>{{ documents.count }}</strong></a><a href="#history-recommendations-title">Recomendaciones <strong>{{ recommendation_count }}</strong></a><a href="#history-responses-title">Respuestas <strong>{{ responses.count }}</strong></a></nav>
 
 <section class="section-block" aria-labelledby="history-reports-title">
     <div class="section-heading"><div><h2 id="history-reports-title">Informes</h2></div></div>
