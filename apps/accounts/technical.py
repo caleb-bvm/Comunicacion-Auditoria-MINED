@@ -95,6 +95,12 @@ def technical_dashboard(request):
     except Exception:
         database_ok = False
 
+    support_requests = TechnicalSupportRequest.objects.select_related(
+        "organization", "requested_by"
+    )
+    open_requests = support_requests.filter(
+        status__in=[TechnicalSupportRequest.Status.OPEN, TechnicalSupportRequest.Status.IN_PROGRESS]
+    )
     context = {
         "active_users": User.objects.filter(is_active=True).count(),
         "inactive_users": User.objects.filter(is_active=False).count(),
@@ -102,9 +108,14 @@ def technical_dashboard(request):
         "pending_scans": Evidence.objects.filter(scan_status=Evidence.ScanStatus.PENDING).count(),
         "database_ok": database_ok,
         "recent_activity": ActivityLog.objects.select_related("actor")[:10],
-        "open_support_requests": TechnicalSupportRequest.objects.filter(
-            status__in=[TechnicalSupportRequest.Status.OPEN, TechnicalSupportRequest.Status.IN_PROGRESS]
+        "open_support_requests": open_requests.count(),
+        "new_support_requests": open_requests.filter(
+            status=TechnicalSupportRequest.Status.OPEN
         ).count(),
+        "support_in_progress": open_requests.filter(
+            status=TechnicalSupportRequest.Status.IN_PROGRESS
+        ).count(),
+        "support_queue": open_requests.order_by("created_at")[:6],
     }
     return render(request, "technical/dashboard.html", context)
 
@@ -257,6 +268,7 @@ def technical_support_requests(request, pk=None):
             return redirect("technical_support_request_detail", pk=selected.pk)
     status = request.GET.get("status", "")
     category = request.GET.get("category", "")
+    all_requests = TechnicalSupportRequest.objects.all()
     requests = TechnicalSupportRequest.objects.select_related(
         "organization", "requested_by", "handled_by"
     )
@@ -268,4 +280,11 @@ def technical_support_requests(request, pk=None):
         "support_requests": requests, "selected": selected, "form": form,
         "status_filter": status, "statuses": TechnicalSupportRequest.Status.choices,
         "category_filter": category, "categories": TechnicalSupportRequest.Category.choices,
+        "support_counts": {
+            "all": all_requests.count(),
+            "open": all_requests.filter(status=TechnicalSupportRequest.Status.OPEN).count(),
+            "in_progress": all_requests.filter(status=TechnicalSupportRequest.Status.IN_PROGRESS).count(),
+            "resolved": all_requests.filter(status=TechnicalSupportRequest.Status.RESOLVED).count(),
+            "closed": all_requests.filter(status=TechnicalSupportRequest.Status.CLOSED).count(),
+        },
     })

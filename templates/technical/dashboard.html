@@ -1,26 +1,28 @@
 {% extends "base.html" %}
 {% block title %}Administración técnica | SIGA{% endblock %}
 {% block content %}
-<div class="page-heading heading-row">
-  <div><span class="eyebrow">Operación de la plataforma</span><h1>Administración técnica</h1><p>Supervise accesos y eventos técnicos sin intervenir en las decisiones de Auditoría.</p></div>
-  <a class="button button-primary" href="{% url 'technical_user_create' %}">Nueva cuenta interna</a>
-</div>
-<section class="stats-grid" aria-label="Resumen técnico">
-  <article class="stat-card"><div><span>Usuarios activos</span><strong>{{ active_users }}</strong></div></article>
-  <article class="stat-card stat-warning"><div><span>Cambio de contraseña pendiente</span><strong>{{ forced_password_changes }}</strong></div></article>
-  <article class="stat-card"><div><span>Cuentas suspendidas</span><strong>{{ inactive_users }}</strong></div></article>
-  <article class="stat-card {% if pending_scans %}stat-danger{% endif %}"><div><span>Archivos pendientes de análisis</span><strong>{{ pending_scans }}</strong></div></article>
-  <article class="stat-card {% if open_support_requests %}stat-warning{% endif %}"><div><span>Solicitudes técnicas abiertas</span><strong>{{ open_support_requests }}</strong></div></article>
-</section>
-<section class="section-block">
-  <div class="section-heading"><div><h2>Estado de servicios</h2><p>Comprobaciones que no exponen información de los expedientes.</p></div></div>
-  <div class="technical-service-grid">
-    <article class="card service-status"><span class="status-dot {% if database_ok %}status-dot-success{% else %}status-dot-error{% endif %}"></span><div><strong>Base de datos</strong><small>{% if database_ok %}Disponible{% else %}No responde{% endif %}</small></div></article>
-    <article class="card service-status"><span class="status-dot {% if pending_scans %}status-dot-warning{% else %}status-dot-success{% endif %}"></span><div><strong>Análisis de archivos</strong><small>{% if pending_scans %}{{ pending_scans }} elemento{{ pending_scans|pluralize }} pendiente{{ pending_scans|pluralize }}{% else %}Sin pendientes{% endif %}</small></div></article>
+<div class="role-workspace technical-workspace">
+  <header class="role-welcome"><div><span class="eyebrow">Operación de la plataforma</span><h1>Administración técnica</h1><p>Atienda incidencias y accesos sin intervenir en las decisiones de Auditoría.</p></div><div class="heading-actions"><a class="button button-secondary" href="{% url 'technical_users' %}">Buscar usuario</a><a class="button button-primary" href="{% url 'technical_user_create' %}">Nueva cuenta interna</a></div></header>
+
+  <section class="role-summary" aria-label="Resumen técnico">
+    <a href="{% url 'technical_support_requests' %}?status=open" class="{% if new_support_requests %}summary-warning{% endif %}"><span>Solicitudes nuevas</span><strong>{{ new_support_requests }}</strong><small>Esperan clasificación</small></a>
+    <a href="{% url 'technical_support_requests' %}?status=in_progress"><span>En atención</span><strong>{{ support_in_progress }}</strong><small>Seguimiento iniciado</small></a>
+    <a href="{% url 'technical_users' %}?status=inactive"><span>Cuentas suspendidas</span><strong>{{ inactive_users }}</strong><small>Acceso bloqueado</small></a>
+    <a href="{% url 'technical_activity_log' %}" class="{% if pending_scans %}summary-danger{% endif %}"><span>Archivos por analizar</span><strong>{{ pending_scans }}</strong><small>{% if pending_scans %}Revisar procesamiento{% else %}Sin pendientes{% endif %}</small></a>
+  </section>
+
+  <div class="role-work-grid">
+    <section class="card role-inbox" aria-labelledby="technical-inbox-title">
+      <div class="section-heading"><div><span class="eyebrow">Bandeja</span><h2 id="technical-inbox-title">Solicitudes que requieren atención</h2></div><a class="text-link" href="{% url 'technical_support_requests' %}">Ver todas</a></div>
+      {% if support_queue %}<div class="role-task-list">{% for item in support_queue %}<article class="role-task {% if item.status == 'open' %}role-task-warning{% endif %}"><span class="role-task-signal" aria-hidden="true"></span><div><div class="role-task-meta"><span class="work-item-type">{{ item.get_category_display }}</span><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span><small>Hace {{ item.created_at|timesince }}</small></div><h3>{{ item.subject }}</h3><p>{% if item.requested_by %}{{ item.requested_by.get_full_name|default:item.requested_by.username }}{% else %}{{ item.requester_name|default:"Solicitud pública" }}{% endif %}{% if item.organization %} · {{ item.organization.name }}{% endif %}</p></div><a class="button {% if item.status == 'open' %}button-primary{% else %}button-secondary{% endif %} button-compact" href="{% url 'technical_support_request_detail' item.pk %}">{% if item.status == 'open' %}Atender ahora{% else %}Continuar{% endif %}</a></article>{% endfor %}</div>{% else %}<div class="work-complete-state"><span aria-hidden="true">✓</span><div><strong>Bandeja al día</strong><p>No hay solicitudes técnicas abiertas.</p></div></div>{% endif %}
+    </section>
+
+    <aside class="role-side-column">
+      <section class="card system-health"><div class="section-heading"><h2>Estado del sistema</h2><a class="text-link" href="{% url 'technical_activity_log' %}">Ver logs</a></div><div class="health-check"><span class="status-dot {% if database_ok %}status-dot-success{% else %}status-dot-error{% endif %}"></span><div><strong>Base de datos</strong><small>{% if database_ok %}Operativa{% else %}No responde{% endif %}</small></div></div><div class="health-check"><span class="status-dot {% if pending_scans %}status-dot-warning{% else %}status-dot-success{% endif %}"></span><div><strong>Análisis de archivos</strong><small>{% if pending_scans %}{{ pending_scans }} pendiente{{ pending_scans|pluralize }}{% else %}Operativo y sin cola{% endif %}</small></div></div></section>
+      <section class="card role-context"><h2>Accesos</h2><dl><div><dt>Usuarios activos</dt><dd>{{ active_users }}</dd></div><div><dt>Cambio de contraseña</dt><dd>{{ forced_password_changes }}</dd></div><div><dt>Cuentas suspendidas</dt><dd>{{ inactive_users }}</dd></div></dl><a class="button button-secondary button-block" href="{% url 'technical_users' %}">Administrar usuarios</a></section>
+    </aside>
   </div>
-</section>
-<section class="section-block">
-  <div class="section-heading"><div><h2>Actividad reciente</h2></div><a class="text-link" href="{% url 'technical_activity_log' %}">Ver todos los logs</a></div>
-  <div class="card table-card"><div class="table-responsive"><table><thead><tr><th>Fecha</th><th>Actor</th><th>Acción</th><th>Objeto</th></tr></thead><tbody>{% for event in recent_activity %}<tr><td>{{ event.created_at|date:"d/m/Y H:i" }}</td><td>{{ event.actor.username|default:"Sistema" }}</td><td><code>{{ event.action }}</code></td><td>{{ event.target_type|default:"—" }} {{ event.target_id }}</td></tr>{% empty %}<tr><td colspan="4">Todavía no existen eventos registrados.</td></tr>{% endfor %}</tbody></table></div></div>
-</section>
+
+  <section class="section-block"><div class="section-heading"><div><h2>Actividad reciente</h2><p>Últimos eventos técnicos y administrativos registrados.</p></div><a class="text-link" href="{% url 'technical_activity_log' %}">Ver todos los logs</a></div><div class="recent-activity-list">{% for event in recent_activity %}<article><time>{{ event.created_at|date:"d/m/Y H:i" }}</time><div><strong>{{ event.action }}</strong><small>{{ event.actor.username|default:"Sistema" }}{% if event.target_type %} · {{ event.target_type }} {{ event.target_id }}{% endif %}</small></div></article>{% empty %}<div class="compact-empty"><strong>Todavía no existen eventos registrados</strong></div>{% endfor %}</div></section>
+</div>
 {% endblock %}
