@@ -30,6 +30,9 @@ Realice el recorrido con cuentas y documentos de prueba:
 
 Verifique también el acceso desde un teléfono si la entrega incluye cambios de interfaz.
 
+La [revisión de la experiencia en celular](mobile-verification.md) registra los ajustes
+y las comprobaciones de tamaños de pantalla e interacción realizadas el 14 de octubre de 2026.
+
 ## Registro de resultado
 
 | Dato | Valor a completar |
