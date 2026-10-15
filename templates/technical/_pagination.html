@@ -1,1 +1,7 @@
-{% if page_obj.paginator.num_pages > 1 %}<nav class="pagination" aria-label="Páginas">{% if page_obj.has_previous %}<a class="button button-secondary button-compact" href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}">Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="button button-secondary button-compact" href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}">Siguiente</a>{% endif %}</nav>{% endif %}
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="pagination" aria-label="Páginas">
+    {% if page_obj.has_previous %}<a class="button button-secondary button-compact" href="?page={{ page_obj.previous_page_number }}&amp;q={{ query|urlencode }}&amp;role={{ role_filter|urlencode }}&amp;status={{ status_filter|urlencode }}&amp;action={{ action_filter|urlencode }}">Anterior</a>{% endif %}
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="button button-secondary button-compact" href="?page={{ page_obj.next_page_number }}&amp;q={{ query|urlencode }}&amp;role={{ role_filter|urlencode }}&amp;status={{ status_filter|urlencode }}&amp;action={{ action_filter|urlencode }}">Siguiente</a>{% endif %}
+</nav>
+{% endif %}

@@ -34,15 +34,20 @@
     const moreMenu = document.querySelector(".mobile-more-menu");
     const moreScrim = document.querySelector(".mobile-more-scrim");
     const moreClose = document.querySelector(".mobile-more-close");
+    const mobileLayout = window.matchMedia("(max-width: 900px)");
+    const menuBackground = document.querySelectorAll(".sidebar, .mobile-top-bar, main, .mobile-navigation, .skip-link");
 
-    const setMoreMenu = (open) => {
+    const setMoreMenu = (open, restoreFocus = true) => {
         if (!moreTrigger || !moreMenu || !moreScrim) return;
         moreTrigger.setAttribute("aria-expanded", String(open));
         moreMenu.hidden = !open;
         moreScrim.hidden = !open;
         document.body.classList.toggle("has-open-mobile-menu", open);
-        if (open) moreClose?.focus();
-        else moreTrigger.focus();
+        menuBackground.forEach((element) => { element.inert = open; });
+        if (open) {
+            moreMenu.scrollTop = 0;
+            moreClose?.focus({ preventScroll: true });
+        } else if (restoreFocus) moreTrigger.focus({ preventScroll: true });
     };
 
     moreTrigger?.addEventListener("click", () => {
@@ -51,9 +56,50 @@
     moreClose?.addEventListener("click", () => setMoreMenu(false));
     moreScrim?.addEventListener("click", () => setMoreMenu(false));
     document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && moreTrigger?.getAttribute("aria-expanded") === "true") {
+        if (moreTrigger?.getAttribute("aria-expanded") !== "true") return;
+        if (event.key === "Escape") {
+            event.preventDefault();
             setMoreMenu(false);
         }
+        if (event.key === "Tab") {
+            const controls = Array.from(moreMenu.querySelectorAll("a[href], button:not([disabled])"));
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first?.focus();
+            }
+        }
+    });
+    mobileLayout.addEventListener("change", () => {
+        if (!mobileLayout.matches && moreTrigger?.getAttribute("aria-expanded") === "true") {
+            setMoreMenu(false, false);
+        }
+    });
+    window.addEventListener("pageshow", () => {
+        if (moreTrigger?.getAttribute("aria-expanded") === "true") setMoreMenu(false, false);
+    });
+
+    document.querySelectorAll("table[data-mobile-cards]").forEach((table) => {
+        const headings = Array.from(table.querySelectorAll("thead th"), (heading) => heading.textContent.trim());
+        table.querySelectorAll("tbody tr").forEach((row) => {
+            Array.from(row.cells).forEach((cell, index) => {
+                if (cell.colSpan > 1) {
+                    cell.classList.add("mobile-card-message");
+                    return;
+                }
+                cell.dataset.label = headings[index] || "";
+                if (!headings[index]) cell.classList.add("mobile-card-action");
+                const value = document.createElement("div");
+                value.className = "mobile-card-value";
+                value.append(...cell.childNodes);
+                cell.append(value);
+            });
+        });
+        table.parentElement.classList.add("mobile-card-table");
     });
 
     const statusField = document.querySelector("#id_declared_status");
@@ -98,9 +144,13 @@
             .forEach((control) => {
                 control.addEventListener("change", () => submitFilters(80));
             });
-        form.querySelectorAll("input[type='search'], input[type='text']")
+        form.querySelectorAll("input[type='search'], input[type='text'], input:not([type])")
             .forEach((control) => {
-                control.addEventListener("input", () => submitFilters(500));
+                control.setAttribute("enterkeyhint", "search");
+                control.addEventListener("input", () => {
+                    // Keep the keyboard and partially typed search on phones.
+                    if (!mobileLayout.matches) submitFilters(500);
+                });
             });
         form.addEventListener("submit", () => {
             isSubmitting = true;

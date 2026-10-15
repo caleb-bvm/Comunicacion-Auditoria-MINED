@@ -1631,14 +1631,15 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
 @media (max-width: 900px) {
     html, body { max-width: 100%; overflow-x: clip; }
     body { font-size: .9375rem; }
-    .app-shell { display: block; padding: 64px 0 88px; }
+    .app-shell { display: block; padding: calc(64px + env(safe-area-inset-top)) 0 calc(88px + env(safe-area-inset-bottom)); }
+    html { scroll-padding-top: calc(80px + env(safe-area-inset-top)); scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
     .sidebar { display: none; }
     .mobile-top-bar {
         position: fixed;
         inset: 0 0 auto;
         z-index: 90;
-        min-height: 64px;
-        padding: .65rem 1rem;
+        min-height: calc(64px + env(safe-area-inset-top));
+        padding: calc(.65rem + env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) .65rem max(1rem, env(safe-area-inset-left));
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -1654,7 +1655,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
         position: fixed;
         inset: auto 0 0;
         z-index: 100;
-        min-height: 76px;
+        min-height: calc(76px + env(safe-area-inset-bottom));
         padding: .35rem max(.35rem, env(safe-area-inset-right)) calc(.35rem + env(safe-area-inset-bottom)) max(.35rem, env(safe-area-inset-left));
         display: flex;
         align-items: stretch;
@@ -1696,7 +1697,13 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
     .mobile-more-menu {
         position: fixed;
         inset: auto .5rem calc(76px + env(safe-area-inset-bottom));
+        left: max(.5rem, env(safe-area-inset-left));
+        right: max(.5rem, env(safe-area-inset-right));
         z-index: 120;
+        max-height: calc(100vh - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        max-height: calc(100dvh - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        overflow-y: auto;
+        overscroll-behavior: contain;
         padding: .75rem;
         display: grid;
         gap: .2rem;
@@ -1704,7 +1711,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
         border-radius: var(--radius-xl);
         box-shadow: var(--shadow-raised);
     }
-    .mobile-more-heading { padding: .25rem .25rem .5rem .8rem; display: flex; align-items: center; justify-content: space-between; }
+    .mobile-more-heading { position: sticky; top: -.75rem; z-index: 1; padding: .25rem .25rem .5rem .8rem; background: var(--md-surface-container-lowest); display: flex; align-items: center; justify-content: space-between; }
     .mobile-more-menu > a, .mobile-more-menu form button {
         width: 100%;
         min-height: 52px;
@@ -2846,4 +2853,57 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
     .history-section-nav a { flex: 0 0 auto; }
     .support-request-meta { grid-template-columns: 1fr; }
     .support-detail-heading { flex-direction: column; }
+}
+
+/* Phone forms, labelled lists and document batches. */
+@media (max-width: 900px) {
+    .content { padding-left: max(.9rem, env(safe-area-inset-left)); padding-right: max(.9rem, env(safe-area-inset-right)); }
+    .public-content { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    .field, .form-grid > *, .two-column > *, .technical-detail-grid > *, .filter-bar > * { min-width: 0; }
+    input, select, textarea { min-width: 0; max-width: 100%; font-size: 1rem; }
+    input[type="file"] { overflow: hidden; }
+    .button-compact { min-height: 44px; }
+    .button, .page-heading h1, .card p, .detail-list dd, .meta-list dd, .support-request-meta dd, .document-bar strong { overflow-wrap: anywhere; }
+    .pagination { flex-wrap: wrap; gap: .5rem; }
+    .pagination > span { text-align: center; }
+    .support-queue > .section-heading { min-height: 0; }
+    #support-resolution { scroll-margin-top: calc(80px + env(safe-area-inset-top)); }
+}
+
+@media (max-width: 720px) {
+    .mobile-card-table { padding: .7rem; }
+    .mobile-card-table table, .mobile-card-table tbody { display: block; width: 100%; min-width: 0; }
+    .mobile-card-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .mobile-card-table tr { display: block; margin-bottom: .75rem; padding: .35rem .85rem; border: 1px solid var(--md-outline-variant); border-radius: var(--radius-md); }
+    .mobile-card-table tr:last-child { margin-bottom: 0; }
+    .mobile-card-table td { display: grid; grid-template-columns: minmax(0, 35%) minmax(0, 1fr); gap: .75rem; width: 100%; padding: .7rem 0; white-space: normal; overflow-wrap: anywhere; }
+    .mobile-card-table td::before { content: attr(data-label); color: var(--md-on-surface-variant); font-size: .76rem; font-weight: 650; }
+    .mobile-card-value { min-width: 0; }
+    .mobile-card-table td:last-child { border-bottom: 0; }
+    .mobile-card-table .mobile-card-action, .mobile-card-table .mobile-card-message { display: block; }
+    .mobile-card-table .mobile-card-action::before, .mobile-card-table .mobile-card-message::before { content: none; }
+    .mobile-card-action .button, .mobile-card-action form { width: 100%; }
+    .mobile-card-action .table-actions { flex-wrap: wrap; }
+    .bulk-common { display: grid; grid-template-columns: minmax(0, 1fr); }
+    .bulk-common .field { width: 100%; }
+    .bulk-table, .bulk-table thead, .bulk-table tbody, .bulk-table tr { display: block; width: 100%; min-width: 0; }
+    .bulk-table tbody tr { margin-bottom: 1rem; padding: .5rem .85rem; border: 1px solid var(--md-outline-variant); border-radius: var(--radius-md); }
+    .bulk-table th, .bulk-table td { display: block; width: 100%; min-width: 0; padding: .65rem 0; overflow-wrap: anywhere; }
+    .bulk-table thead th:not(:first-child) { display: none; }
+    .bulk-table td::before { content: attr(data-label); display: block; margin-bottom: .4rem; color: var(--md-on-surface-variant); font-size: .8rem; font-weight: 650; }
+    .bulk-table td:first-child::before { content: none; }
+    .bulk-table td:last-child { border-bottom: 0; }
+    .bulk-table td:last-child .button { width: 100%; }
+    .bulk-selection { display: flex; align-items: center; gap: .65rem; min-height: 44px; cursor: pointer; }
+    .bulk-selection-text { display: inline; }
+}
+
+@media (min-width: 721px) {
+    .bulk-selection-text { display: none; }
+}
+
+@media (max-width: 360px) {
+    .mobile-card-table td { grid-template-columns: minmax(0, 1fr); gap: .25rem; }
+    .mobile-top-bar > span { display: none; }
+    .heading-actions .button, .submit-panel .button-group, .submit-panel .button { width: 100%; }
 }

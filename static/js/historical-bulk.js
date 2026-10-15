@@ -61,30 +61,35 @@
         for (const file of files) {
             const row = {id: ++nextId, file, status: 'pending'};
             row.tr = document.createElement('tr');
-            const cell = (...children) => {
-                const td = document.createElement('td'); td.append(...children); row.tr.append(td);
+            const cell = (label, ...children) => {
+                const td = document.createElement('td');
+                td.dataset.label = label;
+                td.append(...children); row.tr.append(td);
             };
             row.selected = makeInput('input', {type: 'checkbox', checked: true}, `Seleccionar ${file.name}`);
-            cell(row.selected);
+            const selection = document.createElement('label'); selection.className = 'bulk-selection';
+            const selectionText = document.createElement('span'); selectionText.className = 'bulk-selection-text';
+            selectionText.textContent = 'Incluir archivo'; selection.append(row.selected, selectionText);
+            cell('Selección', selection);
             const filename = document.createElement('strong'); filename.textContent = file.name;
             const size = document.createElement('small'); size.textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
             row.title = makeInput('input', {type: 'text', maxLength: 300, value: file.name.replace(/\.[^.]+$/, '')}, `Descripción de ${file.name}`);
             row.reference = makeInput('input', {type: 'text', maxLength: 80, placeholder: 'Referencia (opcional)'}, `Referencia de ${file.name}`);
-            cell(filename, size, row.title, row.reference);
+            cell('Archivo y descripción', filename, size, row.title, row.reference);
             row.type = makeInput('select', {}, `Tipo de ${file.name}`);
             config.types.forEach(([key, label]) => row.type.add(new Option(label, key)));
-            row.type.value = 'other'; cell(row.type);
-            row.parent = makeInput('select', {}, `Informe de ${file.name}`); cell(row.parent);
+            row.type.value = 'other'; cell('Tipo', row.type);
+            row.parent = makeInput('select', {}, `Informe de ${file.name}`); cell('Informe al que pertenece', row.parent);
             row.date = makeInput('input', {type: 'date'}, `Fecha original de ${file.name}`);
             row.visibility = makeInput('select', {}, `Visibilidad de ${file.name}`);
             config.visibilities.forEach(([key, label]) => row.visibility.add(new Option(label, key)));
-            row.visibility.value = 'audit_only'; cell(row.date, row.visibility);
-            row.result = document.createElement('span'); row.result.textContent = 'Pendiente'; cell(row.result);
+            row.visibility.value = 'audit_only'; cell('Fecha y visibilidad', row.date, row.visibility);
+            row.result = document.createElement('span'); row.result.textContent = 'Pendiente'; cell('Resultado', row.result);
             const remove = makeInput('button', {type: 'button', textContent: 'Quitar', className: 'button button-secondary'}, `Quitar ${file.name}`);
             remove.addEventListener('click', () => {
                 rows.splice(rows.indexOf(row), 1); row.tr.remove(); refreshReports(); refresh();
             });
-            cell(remove);
+            cell('Acciones', remove);
             row.type.addEventListener('change', refreshReports);
             row.title.addEventListener('change', refreshReports);
             rows.push(row); $('bulk-rows').append(row.tr);

@@ -18,7 +18,7 @@
         <input type="hidden" name="status" value="{{ selected_status }}">
         <div class="field"><label for="kind">Tipo de decisión</label><select id="kind" name="kind"><option value="">Todas</option>{% for value, label in kinds %}<option value="{{ value }}" {% if selected_kind == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
         {% if selected_kind %}<a class="active-filter-chip" href="{% querystring kind=None %}" aria-label="Quitar filtro de tipo">{{ selected_kind|title }} <span aria-hidden="true">×</span></a>{% endif %}
-        <noscript><button class="button button-primary" type="submit">Aplicar</button></noscript>
+        <button class="button button-primary" type="submit">Aplicar</button>
     </form>
 
     <section class="card decision-queue" aria-label="Lista de decisiones">

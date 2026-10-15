@@ -18,15 +18,15 @@
   <input type="hidden" name="status" value="{{ status_filter }}">
   <div class="field"><label for="category">Categoría</label><select id="category" name="category"><option value="">Todas las categorías</option>{% for value,label in categories %}<option value="{{ value }}" {% if category_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
   {% if category_filter or status_filter %}<a class="active-filter-chip" href="{% url 'technical_support_requests' %}">Limpiar filtros ×</a>{% endif %}
-  <noscript><button class="button button-secondary">Aplicar</button></noscript>
+  <button class="button button-secondary">Aplicar</button>
 </form>
 
 <div class="technical-detail-grid support-workbench">
   <section class="card support-queue" aria-labelledby="support-queue-title">
     <div class="section-heading"><div><h2 id="support-queue-title">Bandeja</h2><p>{{ support_requests|length }} {% if support_requests|length == 1 %}solicitud{% else %}solicitudes{% endif %} en esta vista</p></div></div>
-    <div class="request-list">{% for item in support_requests %}<a class="request-item request-link {% if selected.pk == item.pk %}is-selected{% endif %}" href="{% url 'technical_support_request_detail' item.pk %}?status={{ status_filter|urlencode }}&amp;category={{ category_filter|urlencode }}"><span class="request-priority {% if item.status == 'open' %}is-new{% endif %}" aria-hidden="true"></span><div><header><strong>{{ item.subject }}</strong><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></header><small>{{ item.get_category_display }} · {% if item.requested_by %}{{ item.requested_by.get_full_name|default:item.requested_by.username }}{% else %}{{ item.requester_name|default:"Cuenta no identificada" }}{% endif %}</small><time>{{ item.created_at|date:"d/m/Y H:i" }} · hace {{ item.created_at|timesince }}</time></div><b aria-hidden="true">→</b></a>{% empty %}<div class="compact-empty"><strong>No hay solicitudes en esta vista</strong><p>Pruebe con otro estado o categoría.</p></div>{% endfor %}</div>
+    <div class="request-list">{% for item in support_requests %}<a class="request-item request-link {% if selected.pk == item.pk %}is-selected{% endif %}" href="{% url 'technical_support_request_detail' item.pk %}?status={{ status_filter|urlencode }}&amp;category={{ category_filter|urlencode }}#support-resolution"><span class="request-priority {% if item.status == 'open' %}is-new{% endif %}" aria-hidden="true"></span><div><header><strong>{{ item.subject }}</strong><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></header><small>{{ item.get_category_display }} · {% if item.requested_by %}{{ item.requested_by.get_full_name|default:item.requested_by.username }}{% else %}{{ item.requester_name|default:"Cuenta no identificada" }}{% endif %}</small><time>{{ item.created_at|date:"d/m/Y H:i" }} · hace {{ item.created_at|timesince }}</time></div><b aria-hidden="true">→</b></a>{% empty %}<div class="compact-empty"><strong>No hay solicitudes en esta vista</strong><p>Pruebe con otro estado o categoría.</p></div>{% endfor %}</div>
   </section>
-  <section class="card support-resolution-panel">
+  <section id="support-resolution" class="card support-resolution-panel">
     {% if selected %}
     <div class="support-detail-heading"><div><span class="eyebrow">Solicitud #{{ selected.pk }}</span><h2>{{ selected.subject }}</h2></div><span class="status status-{{ selected.status }}">{{ selected.get_status_display }}</span></div>
     <p class="support-description">{{ selected.description|linebreaksbr }}</p>

@@ -40,7 +40,7 @@
             <p id="bulk-notice" role="status" aria-live="polite"></p>
             <div class="table-responsive"><table class="bulk-table">
                 <caption class="sr-only">Archivos pendientes y resultado de la carga</caption>
-                <thead><tr><th><input type="checkbox" id="bulk-select-all" aria-label="Seleccionar todos los pendientes"></th><th>Archivo y descripción</th><th>Tipo</th><th>Informe al que pertenece</th><th>Fecha y visibilidad</th><th>Resultado</th><th><span class="sr-only">Quitar</span></th></tr></thead>
+                <thead><tr><th><label class="bulk-selection"><input type="checkbox" id="bulk-select-all" aria-label="Seleccionar todos los pendientes"><span class="bulk-selection-text">Seleccionar todos</span></label></th><th>Archivo y descripción</th><th>Tipo</th><th>Informe al que pertenece</th><th>Fecha y visibilidad</th><th>Resultado</th><th><span class="sr-only">Quitar</span></th></tr></thead>
                 <tbody id="bulk-rows"></tbody>
             </table></div>
             <p id="bulk-empty" class="muted">Todavía no ha seleccionado archivos.</p>
@@ -56,6 +56,6 @@
     </section>
 </form>
 {{ bulk_config|json_script:"historical-bulk-config" }}
-<script src="{% static 'js/historical-bulk.js' %}?v=20260909-1" defer></script>
+<script src="{% static 'js/historical-bulk.js' %}?v=20261014-1" defer></script>
 {% endif %}
 {% endblock %}
