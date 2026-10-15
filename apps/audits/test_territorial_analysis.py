@@ -190,7 +190,7 @@ class TerritorialAnalysisTests(TestCase):
             created_at=timezone.now() - timedelta(days=3)
         )
         self.client.force_login(self.director)
-        selected_date = date.today().isoformat()
+        selected_date = timezone.localdate().isoformat()
 
         response = self.client.get(
             reverse("director_statistics"),
@@ -217,7 +217,8 @@ class TerritorialAnalysisTests(TestCase):
             response,
             '<div class="period-custom-dates" data-custom-period-dates >',
         )
-        self.assertContains(response, f'value="{included_case.created_at:%Y-%m-%d}"')
+        included_date = timezone.localdate(included_case.created_at).isoformat()
+        self.assertContains(response, f'value="{included_date}"')
         self.assertNotContains(response, 'id="current-title"')
 
     def test_quick_filters_prioritize_actionable_audit_signals(self):
