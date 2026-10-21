@@ -52,6 +52,38 @@ Si informa archivos faltantes o alterados, restáurelos desde el respaldo. Los
 archivos sin registro no se eliminan automáticamente: revise su origen antes de
 decidir.
 
+## Importación de informes anteriores
+
+Los PDF de informes anteriores al despliegue pueden estar en carpetas sin orden:
+el comando recorre la carpeta y sus subcarpetas y asigna cada archivo por el
+código institucional escrito en su nombre (`Informe 10234 2019.pdf`,
+`CE10234.pdf`, `IA_DDE-SANTA-ANA.pdf`). Copie los archivos al servidor en una
+carpeta fuera de `media/` y ejecútelo con el usuario y entorno del servicio
+(ver la sección siguiente), primero en simulación:
+
+```bash
+python manage.py import_historical_reports /ruta/informes --user auditor.responsable --dry-run --report simulacion.csv
+python manage.py import_historical_reports /ruta/informes --user auditor.responsable --report importacion.csv
+```
+
+Cada informe queda como documento anterior de su institución, sin expediente,
+con visibilidad «Solo Auditoría» (use `--visibility institution` para publicarlo
+al centro), el nombre del archivo como descripción y registro en la bitácora. El
+reporte CSV indica el estado de cada archivo:
+
+| Estado | Acción |
+| --- | --- |
+| `importado` / `listo` | Ninguna (`listo` es el resultado de la simulación). |
+| `ya_registrado` | Ninguna: el mismo archivo ya existe para la institución o se repite en otra carpeta. |
+| `sin_codigo` | Agregar el código al nombre del archivo. |
+| `varios_codigos` | Dejar solo el código correcto en el nombre. |
+| `error` | Revisar el detalle: archivo dañado, antivirus o tamaño mayor a `FILE_MAX_UPLOAD_MB`. |
+
+Corrija los nombres y repita el comando: los archivos ya importados se omiten.
+Revise una muestra de asignaciones en el reporte, porque un número del nombre
+que coincida con otro código registrado asignaría el informe a esa institución.
+Al terminar, ejecute un respaldo y `verify_private_storage --checksums`.
+
 ## Registro operativo
 
 Anote la hora de ejecución, el entorno, el resultado, la cantidad procesada y el
