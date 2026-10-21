@@ -38,10 +38,15 @@ los pendientes. No incluya contraseñas ni contenido de evidencias en ese regist
 
 ## Después de una actualización
 
-En producción, con las variables de entorno configuradas, ejecute:
+El instalador ejecuta esta comprobación y el servicio la repite en cada inicio. Para
+ejecutarla manualmente en el servidor, con el mismo usuario y entorno del servicio:
 
-```powershell
-python manage.py deployment_preflight --settings=config.settings.production
+```bash
+sudo systemd-run --wait --pipe --collect --uid=siga-mineducyt --gid=siga-mineducyt \
+    --property=WorkingDirectory=/srv/siga-mineducyt \
+    --property=EnvironmentFile=/etc/siga-mineducyt/production.env \
+    --setenv=DJANGO_SETTINGS_MODULE=config.settings.production \
+    /srv/siga-mineducyt/.venv/bin/python manage.py deployment_preflight
 ```
 
 Deben aparecer cinco resultados `[OK]`: base de datos, migraciones,

@@ -17,3 +17,6 @@ tmp/
 
 # Standalone website project with its own Git repository.
 /site/
+
+# Resultados locales de revisiones y demostraciones.
+/output/
