@@ -100,10 +100,11 @@ Antes de iniciar o reiniciar el servicio, el servidor ejecuta `python manage.py 
 Cuando el código, el entorno virtual, `production.env`, PostgreSQL, ClamAV y el certificado TLS ya estén preparados en el servidor, el resto de la instalación se puede ejecutar de forma controlada con:
 
 ```bash
-sudo bash ./deploy/install-production.sh --domain auditoria.mined.gob.sv
+sudo bash ./deploy/install-production.sh --domain auditoria.mined.gob.sv \
+    --cert /ruta/fullchain.pem --key /ruta/privkey.pem
 ```
 
-El instalador aplica migraciones, recopila archivos estáticos, ejecuta las comprobaciones, instala las plantillas de Nginx y systemd, habilita el servicio y el temporizador diario, ejecuta una vez el procesamiento de vencimientos y muestra el estado final. Puede ejecutarse nuevamente para publicar una actualización. Se detiene inmediatamente si falta un requisito o falla una comprobación.
+`--cert` y `--key` indican el certificado institucional; sin ellos se usan las rutas de Let's Encrypt. El instalador guarda una copia de PostgreSQL antes de migrar, aplica migraciones, recopila archivos estáticos, ejecuta las comprobaciones, instala las plantillas de Nginx y systemd, habilita el servicio y el temporizador diario, ejecuta una vez el procesamiento de vencimientos y muestra el estado final. Puede ejecutarse nuevamente para publicar una actualización. Se detiene inmediatamente si falta un requisito o falla una comprobación.
 
 Nunca use el servidor de desarrollo ni la clave incluida en `config/settings/development.py` en un servidor institucional.
 

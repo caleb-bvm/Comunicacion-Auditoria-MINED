@@ -57,7 +57,9 @@ El comando `python manage.py import_organizations archivo.csv --dry-run` valida 
 
 Para el listado de correos en XLSX use `python manage.py import_center_emails archivo.xlsx --dry-run` y, después de revisar el resultado, ejecútelo sin `--dry-run`. Este comando agrega centros faltantes, conserva los datos existentes y actualiza correos. No crea cuentas, no activa accesos ni envía mensajes. No agrega ubicaciones que no figuren en la fuente.
 
-Columnas admitidas:
+Para completar departamento, distrito, dirección y coordenadas desde el XLSX georreferenciado use `python manage.py import_center_locations archivo.xlsx --dry-run` y luego sin `--dry-run`. El archivo debe contener `CODIGO CE`, `NOMBRE CE`, `DEPARTAMENTO`, `DISTRITO`, `DIRECCION`, `LATITUD` y `LONGITUD`. Solo actualiza centros ya registrados.
+
+Columnas admitidas por `import_organizations`:
 
 | Columna | Obligatoria | Ejemplo |
 | --- | --- | --- |
@@ -67,6 +69,7 @@ Columnas admitidas:
 | `kind` | No | `educational_center` |
 | `department` | No | `Sonsonate` |
 | `municipality` | No | `Nahuizalco` |
+| `district` | No | `Sonsonate Centro` |
 | `address` | No | `Dirección institucional` |
 | `is_active` | No | `true` |
 

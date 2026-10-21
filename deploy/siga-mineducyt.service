@@ -1,6 +1,8 @@
 [Unit]
 Description=SIGA-MINEDUCYT
-After=network.target
+# Los nombres corresponden a Debian/Ubuntu; ajustar en otras distribuciones.
+After=network-online.target postgresql.service clamav-daemon.service
+Wants=network-online.target
 
 [Service]
 User=siga-mineducyt

@@ -16,7 +16,7 @@ cumplidas pueden incorporarse, conservando su procedencia, a un seguimiento post
 - **Nginx:** terminación HTTPS, límites de solicitudes y entrega de contenido estático.
 - **Antivirus institucional:** aprobación de archivos antes de permitir su descarga en producción.
 
-El entorno local utiliza SQLite para simplificar el desarrollo. La configuración de producción exige PostgreSQL y no admite valores predeterminados para secretos o dominios.
+Desarrollo, pruebas y producción utilizan PostgreSQL. La configuración de producción no admite valores predeterminados para secretos o dominios.
 
 ## Límites de acceso
 
