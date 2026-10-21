@@ -1,0 +1,10 @@
+[Unit]
+Description=Respaldar cada día
+
+[Timer]
+OnCalendar=*-*-* 08:30:00 UTC
+Persistent=true
+Unit=siga-mineducyt-backup.service
+
+[Install]
+WantedBy=timers.target

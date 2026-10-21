@@ -3,6 +3,8 @@ set -Eeuo pipefail
 
 APP_DIR="/srv/siga-mineducyt"
 ENV_FILE="/etc/siga-mineducyt/production.env"
+BACKUP_ENV_FILE="/etc/siga-mineducyt/backup.env"
+BACKUP_PASSWORD_FILE="/etc/siga-mineducyt/restic-password"
 SERVICE_USER="siga-mineducyt"
 SERVICE_GROUP="siga-mineducyt"
 PRIVATE_DIR="/var/lib/siga-mineducyt/private"
@@ -26,6 +28,10 @@ Requisitos:
   - Código instalado en /srv/siga-mineducyt y entorno virtual ya creado.
   - /etc/siga-mineducyt/production.env completo.
   - PostgreSQL (con pg_dump), ClamAV, Nginx y el certificado TLS ya configurados.
+
+Respaldo automático (recomendado): restic instalado, repositorio inicializado,
+/etc/siga-mineducyt/backup.env y /etc/siga-mineducyt/restic-password. Sin ellos
+el instalador continúa, pero deja el respaldo diario desactivado.
 EOF
 }
 
@@ -89,9 +95,20 @@ for path in "$CERT_FILE" "$KEY_FILE"; do
     [[ -f "$path" ]] || fail "No se encontró el archivo de certificado $path."
 done
 
+BACKUP_CONFIGURED=false
+if [[ -f "$BACKUP_ENV_FILE" || -f "$BACKUP_PASSWORD_FILE" ]]; then
+    [[ -f "$BACKUP_ENV_FILE" && -f "$BACKUP_PASSWORD_FILE" ]] ||         fail "Para el respaldo se requieren $BACKUP_ENV_FILE y $BACKUP_PASSWORD_FILE."
+    command -v restic >/dev/null || fail "No se encontró restic, requerido por el respaldo automático."
+    BACKUP_CONFIGURED=true
+fi
+
 echo "[1/9] Protegiendo configuración y preparando directorios..."
 chown root:root "$ENV_FILE"
 chmod 600 "$ENV_FILE"
+if [[ "$BACKUP_CONFIGURED" == true ]]; then
+    chown root:root "$BACKUP_ENV_FILE" "$BACKUP_PASSWORD_FILE"
+    chmod 600 "$BACKUP_ENV_FILE" "$BACKUP_PASSWORD_FILE"
+fi
 install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 0700 "$PRIVATE_DIR"
 install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 0700 "$BACKUP_DIR"
 install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 0755 "$APP_DIR/staticfiles"
@@ -135,6 +152,9 @@ echo "[7/9] Instalando unidades systemd..."
 install -o root -g root -m 0644 "$APP_DIR/deploy/siga-mineducyt.service" /etc/systemd/system/siga-mineducyt.service
 install -o root -g root -m 0644 "$APP_DIR/deploy/siga-mineducyt-overdue.service" /etc/systemd/system/siga-mineducyt-overdue.service
 install -o root -g root -m 0644 "$APP_DIR/deploy/siga-mineducyt-overdue.timer" /etc/systemd/system/siga-mineducyt-overdue.timer
+for unit in siga-mineducyt-backup.service siga-mineducyt-backup.timer     siga-mineducyt-verify-storage.service siga-mineducyt-verify-storage.timer; do
+    install -o root -g root -m 0644 "$APP_DIR/deploy/$unit" "/etc/systemd/system/$unit"
+done
 systemctl daemon-reload
 
 echo "[8/9] Instalando y validando Nginx..."
@@ -147,19 +167,30 @@ sed -e "s/auditoria\.example\.org/$DOMAIN/g" \
 install -o root -g root -m 0644 "$nginx_tmp" "$NGINX_CONFIG"
 nginx -t
 
-echo "[9/9] Habilitando servicios y comprobando la tarea diaria..."
+echo "[9/9] Habilitando servicios y tareas programadas..."
 systemctl enable siga-mineducyt.service
 # restart (no enable --now) para que una actualización cargue el código nuevo.
 systemctl restart siga-mineducyt.service
 systemctl enable --now siga-mineducyt-overdue.timer
 systemctl start siga-mineducyt-overdue.service
+systemctl enable --now siga-mineducyt-verify-storage.timer
+if [[ "$BACKUP_CONFIGURED" == true ]]; then
+    systemctl enable --now siga-mineducyt-backup.timer
+else
+    systemctl disable --now siga-mineducyt-backup.timer 2>/dev/null || true
+fi
 systemctl reload nginx
 
 systemctl --no-pager --full status siga-mineducyt.service
 systemctl --no-pager --full status siga-mineducyt-overdue.timer
 systemctl --no-pager --full status siga-mineducyt-overdue.service
+systemctl --no-pager list-timers 'siga-mineducyt-*'
 
 echo
 echo "Despliegue completado: https://$DOMAIN"
 echo "Copia previa de la base de datos: $backup_file"
+if [[ "$BACKUP_CONFIGURED" != true ]]; then
+    echo "ADVERTENCIA: el respaldo automático no está configurado. No cargue datos reales sin él." >&2
+    echo "Consulte docs/production-security.md, sección «Respaldo y verificación de archivos»." >&2
+fi
 echo "Revise los registros con: journalctl -u siga-mineducyt.service -u siga-mineducyt-overdue.service --since today"

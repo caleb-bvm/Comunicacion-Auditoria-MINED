@@ -1,0 +1,25 @@
+[Unit]
+Description=Respaldar base de datos y archivos privados
+# Los nombres corresponden a Debian/Ubuntu; ajustar en otras distribuciones.
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=siga-mineducyt
+Group=siga-mineducyt
+EnvironmentFile=/etc/siga-mineducyt/production.env
+EnvironmentFile=/etc/siga-mineducyt/backup.env
+# La clave queda fuera del entorno y solo la lee esta unidad.
+LoadCredential=restic-password:/etc/siga-mineducyt/restic-password
+CacheDirectory=siga-mineducyt-backup
+Environment=RESTIC_CACHE_DIR=/var/cache/siga-mineducyt-backup
+ExecStart=/bin/bash /srv/siga-mineducyt/deploy/backup.sh
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/siga-mineducyt/backups
+UMask=0077

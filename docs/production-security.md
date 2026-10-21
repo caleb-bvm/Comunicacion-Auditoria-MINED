@@ -29,17 +29,57 @@ Después de completar los requisitos anteriores, el instalador automatiza los pa
 sudo bash deploy/install-production.sh --domain DOMINIO --cert /ruta/fullchain.pem --key /ruta/privkey.pem
 ```
 
-Sin `--cert` ni `--key` usa las rutas de Let's Encrypt del dominio. Debe ejecutarse con el proyecto instalado en `/srv/siga-mineducyt`. Antes de modificar servicios, se detiene si faltan el archivo de entorno, el usuario de servicio, el entorno virtual, `pg_dump` o el certificado. Antes de migrar guarda una copia de PostgreSQL en `/var/lib/siga-mineducyt/backups/pre-deploy-<fecha>.dump` y se detiene si la copia falla; al final reinicia el servicio para cargar el código nuevo. Esa copia sirve para revertir una actualización y no sustituye los respaldos externos descritos más abajo. Elimine periódicamente las copias antiguas de esa carpeta.
+Sin `--cert` ni `--key` usa las rutas de Let's Encrypt del dominio. Debe ejecutarse con el proyecto instalado en `/srv/siga-mineducyt`. Antes de modificar servicios, se detiene si faltan el archivo de entorno, el usuario de servicio, el entorno virtual, `pg_dump` o el certificado. Antes de migrar guarda una copia de PostgreSQL en `/var/lib/siga-mineducyt/backups/pre-deploy-<fecha>.dump` y se detiene si la copia falla; al final reinicia el servicio para cargar el código nuevo. Esa copia sirve para revertir una actualización y no sustituye los respaldos externos descritos más abajo. El respaldo diario elimina las copias previas con más de 30 días (`BACKUP_PREDEPLOY_DAYS`). Si existen `/etc/siga-mineducyt/backup.env` y `/etc/siga-mineducyt/restic-password`, el instalador activa el respaldo diario; si no, lo deja desactivado y muestra una advertencia. Siempre activa la verificación semanal de archivos.
 
 Para revertir una actualización fallida: detener el servicio, restaurar con `pg_restore --clean --if-exists --no-owner -d BASE ARCHIVO.dump`, volver a la revisión anterior del código y ejecutar de nuevo el instalador.
 
 No servir `media` directamente desde Nginx. El proxy reemplaza las cabeceras de dirección y protocolo del visitante; Gunicorn escucha solo en `127.0.0.1`. Si se añade otro proxy o proveedor delante, revisar los límites por IP y la cadena de confianza antes de usar sus cabeceras.
 
-## Respaldo, registros y soporte
+## Respaldo y verificación de archivos
 
-Antes de utilizar datos reales, habilitar respaldos cifrados fuera del servidor que incluyan PostgreSQL y `/var/lib/siga-mineducyt/private`. Para una copia consistente, detener temporalmente las escrituras durante la copia de ambos o utilizar un mecanismo coordinado de instantáneas. Respaldar los secretos por un canal separado con acceso restringido. Acordar retención, pérdida máxima tolerable y tiempo de recuperación con la institución. Restaurar una copia en un entorno aislado y verificar expedientes, archivos y permisos; una copia sin restauración comprobada no cierra este requisito.
+El sistema funciona como repositorio de los informes de la Dirección para miles de organizaciones. Un respaldo que solo copie la base de datos no basta: sin `/var/lib/siga-mineducyt/private` no se recuperan los documentos. Antes de utilizar datos reales, configurar el respaldo diario.
 
-systemd recoge errores de la aplicación y ejecuciones del temporizador; configurar persistencia, rotación, envío a un destino externo y alertas por caída del servicio, antivirus, firmas obsoletas, disco lleno, errores de respaldo y fallos repetidos de acceso. Restringir el acceso a los registros. Nginx no registra las rutas de activación, ya que contienen secretos; evitar también capturarlas en servicios externos de monitoreo.
+**Funcionamiento.** El temporizador `siga-mineducyt-backup.timer` se ejecuta a las 08:30 UTC (02:30 en El Salvador) y llama a `deploy/backup.sh` mediante `siga-mineducyt-backup.service`. El script:
+
+1. Genera una copia de PostgreSQL con `backup-database.sh`.
+2. Envía esa copia y la carpeta de archivos privados a un repositorio [restic](https://restic.readthedocs.io/). Cada instantánea contiene ambas partes; restic cifra y deduplica, así que cada noche solo transfiere los archivos nuevos.
+3. Aplica la retención configurada: 14 copias diarias, 8 semanales y 24 mensuales.
+4. Relee una muestra (2 %) de los datos guardados para detectar daños en el repositorio.
+
+Primero se copia la base de datos y después los archivos. Como los documentos no se borran, cada instantánea contiene todos los archivos a los que apunta su base de datos, sin detener el servicio. Puede contener además archivos subidos durante la copia que su base de datos no conoce; `verify_private_storage` los informa como archivos sin registro.
+
+**Configuración inicial**, como root:
+
+1. Instalar restic desde los repositorios del sistema (`apt install restic`).
+2. Preparar un repositorio **fuera del servidor**. Se recomienda un [rest-server](https://github.com/restic/rest-server) con TLS y `--append-only`: así quien comprometa el servidor de la aplicación no puede borrar los respaldos. En ese modo, usar `BACKUP_PRUNE=false` y aplicar la retención desde el servidor del repositorio. También sirve un almacenamiento compatible con S3. Si el repositorio es un disco local montado, agregar su ruta a `ReadWritePaths=` mediante `systemctl edit siga-mineducyt-backup.service`; un disco del mismo servidor no protege ante la pérdida del equipo.
+3. Copiar `deploy/backup.env.example` a `/etc/siga-mineducyt/backup.env`, completarlo y crear la clave en `/etc/siga-mineducyt/restic-password` (`openssl rand -base64 48`). Ambos archivos deben pertenecer a root con permisos `0600`. **Guardar la clave también fuera del servidor**, por un canal con acceso restringido: sin ella no se puede restaurar.
+4. Inicializar el repositorio: `set -a; . /etc/siga-mineducyt/backup.env; set +a; RESTIC_PASSWORD_FILE=/etc/siga-mineducyt/restic-password restic init`.
+5. Ejecutar de nuevo el instalador, que activa el temporizador. Lanzar una primera copia con `systemctl start siga-mineducyt-backup.service` y revisar `journalctl -u siga-mineducyt-backup.service`. La primera copia transfiere todos los archivos y puede tardar horas.
+
+**Verificación de integridad.** Cada domingo a las 10:00 UTC, `siga-mineducyt-verify-storage.timer` ejecuta `manage.py verify_private_storage --checksums`. El comando recorre todos los campos de archivo de la base de datos y comprueba:
+
+- que cada archivo registrado exista;
+- que conserve el tamaño registrado;
+- con `--checksums`, que conserve la huella SHA-256 registrada en documentos, evidencias y adjuntos de consultas. Los informes cargados directamente en el expediente y los documentos del CDE no tienen huella; en ellos solo se verifica que existan.
+
+Si algo falla, el comando termina con error: restaurar los archivos indicados desde el respaldo. También lista los archivos que no tienen registro en la base de datos (por ejemplo, de una carga interrumpida), sin eliminarlos. Sin `--checksums` el comando es rápido y sirve después de cualquier intervención en el disco.
+
+**Restauración.** Para recuperar un archivo o el sistema completo:
+
+```bash
+set -a; . /etc/siga-mineducyt/backup.env; set +a
+export RESTIC_PASSWORD_FILE=/etc/siga-mineducyt/restic-password
+restic snapshots --tag siga-mineducyt
+restic restore ID_INSTANTANEA --target /var/tmp/restauracion
+```
+
+Para una recuperación completa: detener `siga-mineducyt.service`; restaurar la base de datos con `pg_restore --clean --if-exists --no-owner -d BASE /var/tmp/restauracion/var/lib/siga-mineducyt/backups/daily/siga-mineducyt.dump`; reemplazar el contenido de `/var/lib/siga-mineducyt/private` con el de la restauración, conservando el propietario `siga-mineducyt` y los permisos `0700`; y ejecutar `verify_private_storage --checksums` antes de iniciar el servicio. Para un solo archivo, copiar únicamente la ruta que indica el comando de verificación.
+
+Acordar con la institución la retención, la pérdida máxima tolerable (con una copia diaria es de hasta 24 horas) y el tiempo de recuperación. Restaurar una copia en un entorno aislado al menos cada trimestre y verificar expedientes, archivos y permisos: una copia sin restauración comprobada no cierra este requisito.
+
+## Registros y soporte
+
+systemd recoge errores de la aplicación y ejecuciones del temporizador; configurar persistencia, rotación, envío a un destino externo y alertas por caída del servicio, antivirus, firmas obsoletas, disco lleno, fallos de `siga-mineducyt-backup.service` o `siga-mineducyt-verify-storage.service` (por ejemplo, revisando `systemctl --failed`) y fallos repetidos de acceso. Restringir el acceso a los registros. Nginx no registra las rutas de activación, ya que contienen secretos; evitar también capturarlas en servicios externos de monitoreo.
 
 Para desbloquear una cuenta tras verificar la identidad del solicitante, administración técnica puede ejecutar `manage.py axes_reset_username CODIGO`. No realizar desbloqueos masivos rutinarios. Conservar los registros según la política acordada y revisar crecimiento de tablas de Axes y sesiones. Ejecutar periódicamente `manage.py clearsessions`.
 
@@ -51,9 +91,9 @@ El segundo factor de autenticación no está implementado en esta entrega. Para 
 - Probar certificado, redirección HTTPS, límites de acceso y recuperación tras el bloqueo. Revisar que los puertos internos no sean accesibles desde fuera.
 - Probar una carga y descarga limpia de cada categoría documental. En un entorno aislado, usar el archivo de prueba oficial EICAR para comprobar detección real; detener temporalmente ClamAV y confirmar el bloqueo. No usar malware real.
 - Repetir el flujo completo con dos centros distintos e intentar consultar documentos ajenos. Comprobar uso desde teléfono y red compartida.
-- Verificar respaldo/restauración, alertas y ejecución diaria de vencimientos.
+- Ejecutar un respaldo completo, restaurarlo en un entorno aislado y pasar `verify_private_storage --checksums` sobre la copia restaurada. Verificar alertas y ejecución diaria de vencimientos.
 
-Las pruebas locales automatizadas simulan las respuestas del antivirus. No sustituyen la prueba con ClamAV, Nginx, SMTP y PostgreSQL reales en el servidor. Las plantillas no aprovisionan automáticamente dominio, certificado, firewall, respaldo ni alertas.
+Las pruebas locales automatizadas simulan las respuestas del antivirus. No sustituyen la prueba con ClamAV, Nginx, SMTP y PostgreSQL reales en el servidor. Las plantillas no aprovisionan automáticamente dominio, certificado, firewall, el repositorio de respaldo ni alertas.
 
 ## Referencias de implementación
 

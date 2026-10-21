@@ -1,0 +1,10 @@
+[Unit]
+Description=Verificar archivos privados cada semana
+
+[Timer]
+OnCalendar=Sun *-*-* 10:00:00 UTC
+Persistent=true
+Unit=siga-mineducyt-verify-storage.service
+
+[Install]
+WantedBy=timers.target

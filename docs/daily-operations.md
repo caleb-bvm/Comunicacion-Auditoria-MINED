@@ -30,6 +30,28 @@ Informa archivos verificados y archivos pendientes o rechazados por análisis.
 Si quedan pendientes, finaliza con error: revise ClamAV y los archivos involucrados.
 El resultado no distingue por sí solo un archivo infectado de una falla del servicio.
 
+## Respaldo e integridad de archivos
+
+En producción el respaldo se ejecuta cada día y la verificación de archivos cada
+semana (ver [la guía de producción](production-security.md#respaldo-y-verificación-de-archivos)).
+Compruebe que ambas tareas terminen correctamente:
+
+```bash
+systemctl list-timers 'siga-mineducyt-*'
+journalctl -u siga-mineducyt-backup.service -u siga-mineducyt-verify-storage.service --since "-7 days"
+```
+
+Para una verificación manual rápida (existencia y tamaño) o completa (con huellas):
+
+```powershell
+.\.venv\Scripts\python.exe manage.py verify_private_storage
+.\.venv\Scripts\python.exe manage.py verify_private_storage --checksums
+```
+
+Si informa archivos faltantes o alterados, restáurelos desde el respaldo. Los
+archivos sin registro no se eliminan automáticamente: revise su origen antes de
+decidir.
+
 ## Registro operativo
 
 Anote la hora de ejecución, el entorno, el resultado, la cantidad procesada y el

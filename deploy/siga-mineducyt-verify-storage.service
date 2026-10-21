@@ -1,0 +1,21 @@
+[Unit]
+Description=Verificar la integridad de los archivos privados
+# Los nombres corresponden a Debian/Ubuntu; ajustar en otras distribuciones.
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=siga-mineducyt
+Group=siga-mineducyt
+WorkingDirectory=/srv/siga-mineducyt
+EnvironmentFile=/etc/siga-mineducyt/production.env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.production
+ExecStart=/srv/siga-mineducyt/.venv/bin/python manage.py verify_private_storage --checksums
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
