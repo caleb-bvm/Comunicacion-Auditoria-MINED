@@ -45,3 +45,4 @@ y las comprobaciones de tamaños de pantalla e interacción realizadas el 14 de 
 | Pendientes | Incidencias que impiden o limitan la entrega |
 
 Para publicar en el servidor, continúe con [la guía de producción](production-security.md).
+La primera instalación sigue los pasos de [despliegue inicial](initial-deployment.md).
