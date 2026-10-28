@@ -1,9 +1,9 @@
 name: Verificación de seguridad
 on:
   push:
-    branches: [desarrollo, master]
+    branches: [master]
   pull_request:
-    branches: [desarrollo, master]
+    branches: [master]
 permissions:
   contents: read
 jobs:

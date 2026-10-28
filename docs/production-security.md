@@ -8,7 +8,7 @@
 - Todos los campos de documentos usan el validador antivirus común. ClamAV recibe el contenido por INSTREAM, con límite de tamaño y tiempo. El archivo se acepta únicamente con una respuesta concluyente de aprobación. Si hay detección o el servicio falla, la carga se rechaza sin guardarse por el formulario.
 - Informes, documentos anteriores, CDE y evidencias se vuelven a analizar al descargar, después de comprobar los permisos. Las evidencias pendientes/rechazadas conservan su bloqueo previo. Un antivirus caído o una respuesta inconclusa impiden descargar, incluso si el documento había sido aprobado antes. Los informes estadísticos y constancias generados por el sistema no son archivos subidos y conservan su flujo habitual.
 - La configuración rechaza dominios comodín, URL pública sin HTTPS, correo sin cifrado, claves débiles y desactivación del antivirus. PostgreSQL remoto exige `verify-full`; solo se admite `disable` al usar loopback. `seed_demo` queda prohibido en producción.
-- GitHub Actions ejecuta pruebas con PostgreSQL y revisa vulnerabilidades de dependencias en cambios a `desarrollo` y `master`.
+- GitHub Actions ejecuta pruebas con PostgreSQL y revisa vulnerabilidades de dependencias en cambios a `master`.
 
 ## Preparación del servidor
 

@@ -23,7 +23,7 @@ SIGA-MINEDUCYT: sistema Django 5.2 que comunica a la Dirección de Auditoría In
 
 - `manage.py` usa `config.settings.development` por defecto; `wsgi.py` usa `config.settings.production`.
 - El desarrollo usa **PostgreSQL** (credenciales en `.env.development`, cargado por `development.py` sin sobrescribir variables existentes). SQLite ya no se usa.
-- CI (`.github/workflows/security.yml`, ramas `master` y `desarrollo`): `check`, `makemigrations --check`, `test` con `config.settings.ci` sobre Postgres 16 y `pip-audit`. Todo cambio debe pasar estos cuatro pasos.
+- CI (`.github/workflows/security.yml`, rama `master`): `check`, `makemigrations --check`, `test` con `config.settings.ci` sobre Postgres 16 y `pip-audit`. Todo cambio debe pasar estos cuatro pasos.
 - No hay linter ni formateador configurado.
 
 ## Configuración
