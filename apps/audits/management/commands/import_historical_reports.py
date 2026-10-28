@@ -18,6 +18,8 @@ from apps.institutions.models import Organization
 
 TOKEN = re.compile(r"[A-Z0-9]+")
 DIGITS = re.compile(r"\d+")
+# Center codes have five digits; such a number that is not registered is never sent to the default institution.
+CENTER_CODE = re.compile(r"(?<!\d)\d{5}(?!\d)")
 # Hyphenated codes (DDE-SANTA-ANA) may appear with spaces or underscores in file names.
 MAX_CODE_PARTS = 4
 REPORT_COLUMNS = ["ruta", "estado", "codigo", "institucion", "detalle", "documento_id"]
@@ -49,6 +51,9 @@ class Command(BaseCommand):
         parser.add_argument("--user", required=True, help="Usuario de Auditoría responsable de la carga.")
         parser.add_argument("--visibility", choices=AuditDocument.Visibility.values,
                             default=AuditDocument.Visibility.AUDIT_ONLY)
+        parser.add_argument("--default-code", help=(
+            "Código de la institución que recibe los informes sin código en el nombre, "
+            "por ejemplo las auditorías de unidades del Ministerio."))
         parser.add_argument("--report", help="Ruta del reporte CSV. Por defecto se crea en la carpeta actual.")
         parser.add_argument("--dry-run", action="store_true")
 
@@ -59,6 +64,11 @@ class Command(BaseCommand):
         user = User.objects.filter(username=options["user"], is_active=True).first()
         if user is None or not user.is_audit_staff:
             raise CommandError("El usuario debe existir, estar activo y pertenecer a Auditoría.")
+        default = None
+        if options["default_code"]:
+            default = Organization.objects.filter(code=options["default_code"]).first()
+            if default is None:
+                raise CommandError("La institución indicada en --default-code no está registrada.")
         report_path = Path(options["report"] or f"importacion_informes_{timezone.localtime():%Y%m%d_%H%M%S}.csv")
         dry_run = options["dry_run"]
 
@@ -75,7 +85,7 @@ class Command(BaseCommand):
         ).values_list("organization_id", "sha256"))
         rows, counts = [], Counter()
         for path in files:
-            row = self.process(path, organizations, registered, user, options["visibility"], dry_run)
+            row = self.process(path, organizations, default, registered, user, options["visibility"], dry_run)
             row["ruta"] = str(path.relative_to(root))
             counts[row["estado"]] += 1
             rows.append(row)
@@ -93,9 +103,18 @@ class Command(BaseCommand):
         self.stdout.write(f"{mode}: {len(files)} PDF. " + "; ".join(f"{k}={v}" for k, v in sorted(counts.items())))
         self.stdout.write(f"Reporte: {report_path.resolve()}")
 
-    def process(self, path, organizations, registered, user, visibility, dry_run):
+    def process(self, path, organizations, default, registered, user, visibility, dry_run):
         codes = detect_codes(path.stem, organizations)
         candidates = [item for code in codes for item in organizations[code]]
+        unregistered = [number for number in CENTER_CODE.findall(path.stem) if number not in organizations]
+        if candidates and unregistered:
+            return {"estado": "varios_codigos", "codigo": ", ".join(sorted({*codes, *unregistered})),
+                    "detalle": "El nombre contiene un código registrado y otro número de centro no registrado."}
+        if not candidates and unregistered:
+            return {"estado": "codigo_no_registrado", "codigo": ", ".join(unregistered),
+                    "detalle": "El código del nombre no está en el catálogo; registre la institución y repita la importación."}
+        if not candidates and default:
+            candidates = [default]
         if not candidates:
             return {"estado": "sin_codigo", "detalle": "El nombre no contiene un código institucional registrado."}
         if len(candidates) > 1:

@@ -76,8 +76,15 @@ reporte CSV indica el estado de cada archivo:
 | `importado` / `listo` | Ninguna (`listo` es el resultado de la simulación). |
 | `ya_registrado` | Ninguna: el mismo archivo ya existe para la institución o se repite en otra carpeta. |
 | `sin_codigo` | Agregar el código al nombre del archivo. |
+| `codigo_no_registrado` | Registrar la institución en el catálogo; el nombre ya trae su código. |
 | `varios_codigos` | Dejar solo el código correcto en el nombre. |
 | `error` | Revisar el detalle: archivo dañado, antivirus o tamaño mayor a `FILE_MAX_UPLOAD_MB`. |
+
+Las auditorías de unidades, programas o Direcciones Departamentales no llevan
+código de centro. Con `--default-code DAI-MINED` (o el código con que se registre
+la Dirección de Auditoría Interna) se archivan en esa institución. Un archivo
+que trae un número de centro de cinco dígitos nunca se envía a la institución
+por defecto: queda como `codigo_no_registrado` hasta que el centro exista.
 
 Corrija los nombres y repita el comando: los archivos ya importados se omiten.
 Revise una muestra de asignaciones en el reporte, porque un número del nombre

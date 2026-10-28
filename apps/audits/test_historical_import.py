@@ -92,6 +92,21 @@ class HistoricalImportTests(TestCase):
         self.assertEqual(rows["informe general 10235.pdf"]["estado"], "importado")
         self.assertEqual(AuditDocument.objects.count(), 2)
 
+    def test_default_institution_receives_only_files_without_any_center_number(self):
+        self.pdf("Gestión DNES 2020.pdf", "unidad")
+        self.pdf("CE Cton Veracruz CI 11978.pdf", "no registrado")
+        self.pdf("CE CI 11978 (10234).pdf", "dudoso")
+        self.pdf("Informe 10235.pdf", "centro")
+        rows, _ = self.run_import("--default-code", "DDE-SANTA-ANA")
+        self.assertEqual(rows["Gestión DNES 2020.pdf"]["codigo"], "DDE-SANTA-ANA")
+        self.assertEqual(rows["Gestión DNES 2020.pdf"]["estado"], "importado")
+        self.assertEqual(rows["CE Cton Veracruz CI 11978.pdf"]["estado"], "codigo_no_registrado")
+        self.assertEqual(rows["CE CI 11978 (10234).pdf"]["estado"], "varios_codigos")
+        self.assertEqual(rows["Informe 10235.pdf"]["codigo"], "10235")
+        self.assertEqual(AuditDocument.objects.count(), 2)
+        with self.assertRaises(CommandError):
+            self.run_import("--default-code", "NO-EXISTE")
+
     def test_dry_run_validates_without_saving(self):
         self.pdf("Informe 10234.pdf")
         rows, output = self.run_import("--dry-run")
