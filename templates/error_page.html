@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% comment %}
+Diseño común de las páginas de error. Algunas se renderizan sin solicitud ni contexto
+(400, 500 y CSRF), por lo que no deben usar {% url %} ni datos del usuario.
+{% endcomment %}
+{% block content %}
+<section class="login-page error-page" aria-labelledby="error-title">
+    <div class="login-card">
+        <span class="eyebrow">{% block error_code %}{% endblock %}</span>
+        <h1 id="error-title">{% block error_title %}{% endblock %}</h1>
+        {% block error_message %}{% endblock %}
+        <a class="button button-primary button-block" href="/">Ir al inicio</a>
+    </div>
+</section>
+{% endblock %}

@@ -1,5 +1,7 @@
 from django import forms
 
+from apps.core.validators import EVIDENCE_ACCEPT
+
 from .models import SchoolBoardMember, SchoolBoardPeriod
 
 
@@ -17,6 +19,7 @@ class SchoolBoardPeriodForm(forms.ModelForm):
         widgets = {
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
+            "supporting_document": forms.ClearableFileInput(attrs={"accept": EVIDENCE_ACCEPT}),
             "notes": forms.Textarea(attrs={"rows": 4}),
         }
         help_texts = {
@@ -90,6 +93,7 @@ class SchoolBoardMemberDepartureForm(forms.ModelForm):
         widgets = {
             "left_on": forms.DateInput(attrs={"type": "date"}),
             "exit_reason": forms.Textarea(attrs={"rows": 4}),
+            "change_document": forms.ClearableFileInput(attrs={"accept": EVIDENCE_ACCEPT}),
         }
         help_texts = {
             "change_document": (

@@ -55,7 +55,23 @@ Se utilizó el navegador integrado con la base PostgreSQL de desarrollo y las cu
 
 ### Pendiente
 
-- Las páginas de error 403, 404 y 500 usan las plantillas predeterminadas de Django, sin `viewport`, y en celular se muestran a 980 px de ancho.
-- El campo de documentos de respaldo del formulario de respuesta no declara los formatos admitidos (`accept`), por lo que el selector del teléfono no los filtra.
+- ~~Las páginas de error 403, 404 y 500 usan las plantillas predeterminadas de Django, sin `viewport`, y en celular se muestran a 980 px de ancho.~~ Resuelto: ver «Páginas de error y selector de archivos».
+- ~~El campo de documentos de respaldo del formulario de respuesta no declara los formatos admitidos (`accept`), por lo que el selector del teléfono no los filtra.~~ Resuelto: ver «Páginas de error y selector de archivos».
 - La tabla territorial de Análisis se desplaza horizontalmente en celular. Falta decidir si se presenta como tarjetas por territorio.
 - Sigue pendiente la prueba en un teléfono físico descrita en la revisión anterior.
+
+## Páginas de error y selector de archivos
+
+Fecha: 28 de octubre de 2026.
+
+### Cambios
+
+- Las páginas 400, 403, 404 y 500 y el rechazo por formulario vencido (CSRF) usan el diseño del sistema, con `viewport`, mensaje en español y un acceso al inicio. Con sesión iniciada conservan la navegación. La página 403 muestra el motivo indicado por el sistema, por ejemplo «Esta acción corresponde al personal auditor autorizado.». Ninguna usa `{% url %}`, para que sigan funcionando aunque falle la configuración de direcciones.
+- El procesador de contexto de la barra lateral admite solicitudes sin usuario. Sin ese ajuste, una página 400 producida antes de la autenticación (por ejemplo, un dominio no autorizado) fallaba al renderizarse.
+- Los campos de archivo que usan el validador de evidencias declaran los formatos admitidos con `accept`: documentos de respaldo de la respuesta, adjuntos de consultas, documentos de informes anteriores, acta del CDE y documento de salida de integrantes. El valor se obtiene de `ALLOWED_EXTENSIONS`, por lo que el selector y la validación del servidor no pueden diferir. El servidor sigue validando cada archivo.
+
+### Verificación
+
+- Nueve pruebas automatizadas cubren las cinco páginas de error y los formatos de cada campo de archivo. La comprobación de Django terminó sin incidencias, no hay migraciones pendientes de generar y las 221 pruebas pasaron.
+- En el navegador integrado, a 360 y 1440 px, la página 403 de un centro educativo se mostró sin desbordes y con la barra inferior. Los selectores de la respuesta y de la nueva consulta declaran los formatos y la respuesta conserva la selección múltiple.
+- Las páginas 404 y 500 solo se verificaron con las pruebas, porque el modo de desarrollo muestra en su lugar la página de diagnóstico de Django.

@@ -7,6 +7,8 @@ from .scanning import scan_file
 
 
 ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".docx", ".xlsx"}
+# Valor del atributo accept para que el selector de archivos muestre solo los formatos admitidos.
+EVIDENCE_ACCEPT = ",".join(sorted(ALLOWED_EXTENSIONS))
 
 
 def validate_evidence_file(uploaded_file):

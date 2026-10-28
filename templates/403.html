@@ -1,0 +1,8 @@
+{% extends "error_page.html" %}
+{% block title %}Acceso no autorizado | Auditoría Interna{% endblock %}
+{% block error_code %}Error 403{% endblock %}
+{% block error_title %}Acceso no autorizado{% endblock %}
+{% block error_message %}
+<p>{% if exception %}{{ exception }}{% else %}No tiene permiso para abrir esta página.{% endif %}</p>
+<p>Si considera que debería tener acceso, comuníquese con soporte técnico.</p>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "error_page.html" %}
+{% block title %}Formulario vencido | Auditoría Interna{% endblock %}
+{% block error_code %}Error 403{% endblock %}
+{% block error_title %}El formulario ya no es válido{% endblock %}
+{% block error_message %}
+<p>Por seguridad, el sistema rechazó el envío. Suele ocurrir cuando la página estuvo abierta mucho tiempo, cuando se vuelve atrás después de cerrar sesión o cuando el navegador bloquea las cookies.</p>
+<p>Vuelva a abrir la página e intente de nuevo.</p>
+{% endblock %}

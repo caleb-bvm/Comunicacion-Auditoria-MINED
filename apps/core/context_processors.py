@@ -9,8 +9,9 @@ def _count_text(count, singular, plural):
 
 
 def sidebar_context(request):
-    user = request.user
-    if not user.is_authenticated:
+    # Las páginas de error 400 pueden renderizarse antes de AuthenticationMiddleware.
+    user = getattr(request, "user", None)
+    if user is None or not user.is_authenticated:
         return {}
 
     if user.is_superuser or user.role == User.Role.TECHNICAL_ADMIN:

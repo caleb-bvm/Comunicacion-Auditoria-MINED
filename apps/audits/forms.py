@@ -7,7 +7,7 @@ from django.db import models
 from apps.accounts.models import User
 from apps.institutions.models import Organization
 
-from apps.core.validators import validate_evidence_file
+from apps.core.validators import EVIDENCE_ACCEPT, validate_evidence_file
 
 from .models import (
     AuditCase,
@@ -32,6 +32,7 @@ class AuditInquiryCreateForm(forms.ModelForm):
     attachment = forms.FileField(
         label="Archivo de respaldo", required=False,
         validators=[validate_evidence_file],
+        widget=forms.ClearableFileInput(attrs={"accept": EVIDENCE_ACCEPT}),
         help_text="Opcional. PDF, imagen, Word o Excel.",
     )
 
@@ -54,6 +55,7 @@ class AuditInquiryReplyForm(forms.Form):
     body = forms.CharField(label="Mensaje", widget=forms.Textarea(attrs={"rows": 5}))
     attachment = forms.FileField(
         label="Archivo adjunto", required=False, validators=[validate_evidence_file],
+        widget=forms.ClearableFileInput(attrs={"accept": EVIDENCE_ACCEPT}),
     )
     status_after = forms.ChoiceField(
         label="Estado después de enviar", required=False,
@@ -255,7 +257,7 @@ class HistoricalAttachmentForm(forms.Form):
     visibility = forms.ChoiceField(label="Visibilidad", choices=AuditDocument.Visibility.choices,
                                   initial=AuditDocument.Visibility.AUDIT_ONLY)
     file = forms.FileField(label="Archivo", validators=[validate_evidence_file],
-        widget=forms.ClearableFileInput(attrs={"accept": ".pdf,.docx,.xlsx,.jpg,.jpeg,.png"}),
+        widget=forms.ClearableFileInput(attrs={"accept": EVIDENCE_ACCEPT}),
         help_text="PDF, Word, Excel o imagen. Un archivo por documento.")
 
 
@@ -444,6 +446,7 @@ class ResponseForm(forms.ModelForm):
     files = MultipleFileField(
         label="Documentos de respaldo",
         validators=[validate_evidence_file],
+        widget=MultipleFileInput(attrs={"accept": EVIDENCE_ACCEPT}),
         help_text="Formatos admitidos: PDF, JPG, PNG, DOCX o XLSX. Se aplica el límite configurado por archivo.",
     )
 

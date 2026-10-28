@@ -1585,6 +1585,8 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
 .coverage-gaps-section { border: 0; border-radius: var(--radius-md); }
 
 .login-page { background: radial-gradient(circle at 50% 0, #ffffff 0, transparent 42%), var(--md-surface-container-low); }
+.content .error-page { min-height: min(60vh, 520px); padding: 1rem 0; background: none; }
+.error-page .login-card p { color: var(--md-on-surface-variant); line-height: 1.55; }
 .login-card {
     width: min(430px, 100%);
     border: 0;

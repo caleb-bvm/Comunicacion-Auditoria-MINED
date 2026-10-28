@@ -56,6 +56,9 @@ class SidebarContextTests(TestCase):
         self.assertEqual(context["label"], "Instituciones asignadas")
         self.assertEqual(context["value"], "2 instituciones")
 
+    def test_request_without_user_returns_empty_context(self):
+        self.assertEqual(sidebar_context(self.factory.get("/")), {})
+
     def test_institution_context_is_omitted_as_redundant(self):
         institution_user = User.objects.create_user(
             username="centro",
