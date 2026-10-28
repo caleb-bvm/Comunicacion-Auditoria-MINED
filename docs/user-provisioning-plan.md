@@ -55,7 +55,7 @@ Para el piloto se recomienda:
 
 El comando `python manage.py import_organizations archivo.csv --dry-run` valida el archivo sin modificar datos. Una vez revisado, se ejecuta sin `--dry-run` para crear o actualizar el catálogo.
 
-Para el listado de correos en XLSX use `python manage.py import_center_emails archivo.xlsx --dry-run` y, después de revisar el resultado, ejecútelo sin `--dry-run`. Este comando agrega centros faltantes, conserva los datos existentes y actualiza correos. No crea cuentas, no activa accesos ni envía mensajes. No agrega ubicaciones que no figuren en la fuente.
+Para el listado de correos en XLSX use `python manage.py import_center_emails archivo.xlsx --dry-run` y, después de revisar el resultado, ejecútelo sin `--dry-run`. Este comando agrega centros faltantes, conserva los datos existentes y actualiza correos. No crea cuentas, no activa accesos ni envía mensajes. No agrega ubicaciones que no figuren en la fuente. Los códigos de cuentas creadas como `cod11674` o `ce12702` se registran con el código oficial de cinco dígitos; si el centro también figura con su código sin prefijo, se conserva esa fila.
 
 Para completar departamento, distrito, dirección y coordenadas desde el XLSX georreferenciado use `python manage.py import_center_locations archivo.xlsx --dry-run` y luego sin `--dry-run`. El archivo debe contener `CODIGO CE`, `NOMBRE CE`, `DEPARTAMENTO`, `DISTRITO`, `DIRECCION`, `LATITUD` y `LONGITUD`. Solo actualiza centros ya registrados.
 

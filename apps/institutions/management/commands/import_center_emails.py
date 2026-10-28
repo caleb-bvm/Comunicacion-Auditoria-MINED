@@ -1,5 +1,6 @@
 """Merge the official email directory without activating or notifying centers."""
 import hashlib
+import re
 from pathlib import Path
 
 from django.core.exceptions import ValidationError
@@ -11,6 +12,9 @@ from openpyxl import load_workbook
 from apps.accounts.models import User
 from apps.audits.models import ActivityLog
 from apps.institutions.models import Organization
+
+# Some accounts were created as "cod11674@..." or "ce12702@...": the official center code is the five digits.
+PREFIXED_CODE = re.compile(r"(?i)(?:cod|ce)(\d{5})")
 
 
 class Command(BaseCommand):
@@ -33,7 +37,7 @@ class Command(BaseCommand):
             if any(name not in header for name in required):
                 raise CommandError("El XLSX debe incluir: " + ", ".join(required))
             indices = [header.index(name) for name in required]
-            rows, codes, emails = [], set(), set()
+            rows, emails, prefixed = {}, set(), set()
             for line, cells in enumerate(iterator, start=2):
                 if not any(cell.value is not None for cell in cells):
                     continue
@@ -52,14 +56,25 @@ class Command(BaseCommand):
                     raise CommandError(f"Fila {line}: código o correo inválido.") from exc
                 if not name or len(name) > 255 or len(email) > 254:
                     raise CommandError(f"Fila {line}: nombre o correo vacío o demasiado largo.")
-                if code in codes or email in emails:
+                alias = PREFIXED_CODE.fullmatch(code)
+                if alias:
+                    code = alias.group(1)
+                if email in emails:
                     raise CommandError(f"Fila {line}: código o correo duplicado.")
-                codes.add(code)
                 emails.add(email)
-                rows.append({"code": code, "name": name, "email": email})
+                if code in rows:
+                    # A center listed with both accounts keeps the one under its plain code.
+                    if bool(alias) == (code in prefixed):
+                        raise CommandError(f"Fila {line}: código o correo duplicado.")
+                    if alias:
+                        continue
+                    prefixed.discard(code)
+                elif alias:
+                    prefixed.add(code)
+                rows[code] = {"code": code, "name": name, "email": email}
             if not rows:
                 raise CommandError("El archivo no contiene centros.")
-            return rows
+            return list(rows.values())
         finally:
             workbook.close()
 

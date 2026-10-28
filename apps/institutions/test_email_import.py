@@ -12,6 +12,10 @@ from apps.audits.models import ActivityLog
 from .models import Organization
 
 
+# The institutions data migration registers DAI-MINED and the DDE, which are not centers.
+centers = Organization.objects.filter(kind="educational_center")
+
+
 class EmailDirectoryImportTests(TestCase):
     def source(self, rows):
         directory = tempfile.TemporaryDirectory()
@@ -47,7 +51,7 @@ class EmailDirectoryImportTests(TestCase):
         self.assertEqual(account.password, password)
         self.assertFalse(account.is_active)
         self.assertEqual(User.objects.count(), 1)
-        self.assertEqual(Organization.objects.count(), 2)
+        self.assertEqual(centers.count(), 2)
         output = StringIO()
         call_command("import_center_emails", str(source), stdout=output)
         self.assertIn("sin_cambios=2", output.getvalue())
@@ -56,7 +60,7 @@ class EmailDirectoryImportTests(TestCase):
     def test_dry_run_has_no_writes(self):
         path = self.source([("00123", "Centro", "00123@example.edu.sv")])
         call_command("import_center_emails", str(path), dry_run=True, stdout=StringIO())
-        self.assertFalse(Organization.objects.exists())
+        self.assertFalse(centers.exists())
         self.assertFalse(User.objects.exists())
         self.assertFalse(ActivityLog.objects.exists())
 
@@ -72,14 +76,14 @@ class EmailDirectoryImportTests(TestCase):
         for rows in cases:
             with self.subTest(rows=rows), self.assertRaises(CommandError):
                 call_command("import_center_emails", str(self.source(rows)), stdout=StringIO())
-            self.assertFalse(Organization.objects.exists())
+            self.assertFalse(centers.exists())
 
     def test_existing_email_conflict_rejects_entire_import(self):
         Organization.objects.create(code="other", name="Otro", kind="educational_center", email="uno@example.edu.sv")
         path = self.source([("00123", "Centro", "uno@example.edu.sv")])
         with self.assertRaises(CommandError):
             call_command("import_center_emails", str(path), stdout=StringIO())
-        self.assertEqual(Organization.objects.count(), 1)
+        self.assertEqual(centers.count(), 1)
 
     def test_custom_test_accounts_keep_their_username_and_receive_email(self):
         center = Organization.objects.create(code="00123", name="Centro", kind="educational_center")
@@ -89,3 +93,20 @@ class EmailDirectoryImportTests(TestCase):
         account.refresh_from_db()
         self.assertEqual(account.username, "cuenta.de.prueba")
         self.assertEqual(account.email, "uno@example.edu.sv")
+
+    def test_prefixed_account_codes_use_the_official_center_code(self):
+        path = self.source([
+            ("cod11674", "Complejo Educativo", "cod11674@example.edu.sv"),
+            ("cod68107", "Duplicado prefijado", "cod68107@example.edu.sv"),
+            ("68107", "Centro", "68107@example.edu.sv"),
+            ("CE12702", "Centro con prefijo", "ce12702@example.edu.sv"),
+        ])
+        call_command("import_center_emails", str(path), stdout=StringIO())
+        self.assertEqual(dict(centers.values_list("code", "email")), {
+            "11674": "cod11674@example.edu.sv", "68107": "68107@example.edu.sv",
+            "12702": "ce12702@example.edu.sv",
+        })
+        for rows in ([("cod11674", "Uno", "a@example.edu.sv"), ("ce11674", "Dos", "b@example.edu.sv")],
+                     [("11674", "Uno", "a@example.edu.sv"), ("11674", "Dos", "b@example.edu.sv")]):
+            with self.subTest(rows=rows), self.assertRaises(CommandError):
+                call_command("import_center_emails", str(self.source(rows)), stdout=StringIO())

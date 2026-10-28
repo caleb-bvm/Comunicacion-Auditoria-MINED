@@ -83,7 +83,7 @@ class CenterLocationImportTests(TestCase):
         ])
         output = StringIO()
         call_command("import_center_locations", str(source), stdout=output)
-        self.assertFalse(Organization.objects.exists())
+        self.assertFalse(Organization.objects.filter(kind="educational_center").exists())
         self.assertIn("no_encontradas=1", output.getvalue())
 
     def test_rejects_duplicate_formula_partial_or_out_of_country_coordinates(self):
@@ -97,4 +97,4 @@ class CenterLocationImportTests(TestCase):
         for rows in cases:
             with self.subTest(rows=rows), self.assertRaises(CommandError):
                 call_command("import_center_locations", str(self.source(rows)), stdout=StringIO())
-            self.assertFalse(Organization.objects.exists())
+            self.assertFalse(Organization.objects.filter(kind="educational_center").exists())

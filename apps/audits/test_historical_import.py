@@ -26,7 +26,11 @@ class HistoricalImportTests(TestCase):
         self.report = self.root / "reporte.csv"
         self.center = Organization.objects.create(code="10234", name="Centro Escolar Uno", kind="educational_center")
         self.other = Organization.objects.create(code="10235", name="Centro Escolar Dos", kind="educational_center")
-        self.office = Organization.objects.create(code="DDE-SANTA-ANA", name="Departamental", kind="departmental_office")
+        # Created by the institutions data migration; TransactionTestCase flushes may have removed them.
+        self.office, _ = Organization.objects.get_or_create(code="DDE-CUSCATLAN", defaults={
+            "name": "Departamental", "kind": "departmental_office"})
+        self.audit_unit, _ = Organization.objects.get_or_create(code="DAI-MINED", defaults={
+            "name": "Auditoría Interna", "kind": "ministry_unit"})
         self.auditor = User.objects.create_user(username="auditor.import", role="auditor", must_change_password=False)
         self.institution = User.objects.create_user(username="10234", role="institution", organization=self.center)
 
@@ -44,16 +48,17 @@ class HistoricalImportTests(TestCase):
             return {row["ruta"].replace("\\", "/"): row for row in csv.DictReader(handle)}, out.getvalue()
 
     def test_detects_codes_by_whole_token_hyphenated_and_glued_digits(self):
-        codes = {"10234": [], "10235": [], "DDE-SANTA-ANA": [], "SANTA": []}
+        codes = {"10234": [], "10235": [], "DDE-SANTA-ANA": [], "SANTA": [], "DDE-CUSCATLAN": []}
         self.assertEqual(detect_codes("Informe 2019_10234 final", codes), {"10234"})
         self.assertEqual(detect_codes("CE10234-auditoria", codes), {"10234"})
         self.assertEqual(detect_codes("dde santa ana 2018", codes), {"DDE-SANTA-ANA"})
         self.assertEqual(detect_codes("10234 y 10235", codes), {"10234", "10235"})
+        self.assertEqual(detect_codes("Gestión DDE Cuscatlán", codes), {"DDE-CUSCATLAN"})
         self.assertEqual(detect_codes("102345 informe", codes), set())
 
     def test_imports_unordered_folders_and_reports_files_to_review(self):
         self.pdf("2019/varios/Informe 10234.pdf", "uno")
-        self.pdf("otra carpeta/IA_dde-santa-ana_2018.PDF", "dos")
+        self.pdf("otra carpeta/IA_dde-cuscatlán_2018.PDF", "dos")
         self.pdf("sin orden/informe general.pdf", "tres")
         self.pdf("sin orden/10234 y 10235.pdf", "cuatro")
         self.pdf("copia/Informe 10234 (copia).pdf", "uno")
@@ -62,13 +67,15 @@ class HistoricalImportTests(TestCase):
         rows, output = self.run_import()
 
         self.assertEqual(rows["2019/varios/Informe 10234.pdf"]["estado"], "importado")
-        self.assertEqual(rows["otra carpeta/IA_dde-santa-ana_2018.PDF"]["codigo"], "DDE-SANTA-ANA")
-        self.assertEqual(rows["sin orden/informe general.pdf"]["estado"], "sin_codigo")
+        self.assertEqual(rows["otra carpeta/IA_dde-cuscatlán_2018.PDF"]["codigo"], "DDE-CUSCATLAN")
+        self.assertEqual(rows["sin orden/informe general.pdf"]["codigo"], "DAI-MINED")
+        self.assertEqual(rows["sin orden/informe general.pdf"]["por_defecto"], "sí")
         self.assertEqual(rows["sin orden/10234 y 10235.pdf"]["estado"], "varios_codigos")
         self.assertEqual(rows["copia/Informe 10234 (copia).pdf"]["estado"], "ya_registrado")
         self.assertEqual(rows["falso 10235.pdf"]["estado"], "error")
         self.assertEqual(len(rows), 6)
-        self.assertIn("importado=2", output)
+        self.assertIn("importado=3", output)
+        self.assertIn("por_defecto=1", output)
 
         report = AuditDocument.objects.get(organization=self.center)
         self.assertEqual(report.document_type, AuditDocument.DocumentType.HISTORICAL_REPORT)
@@ -79,31 +86,34 @@ class HistoricalImportTests(TestCase):
         self.assertEqual((report.title, report.original_filename), ("Informe 10234", "Informe 10234.pdf"))
         self.assertTrue(Path(report.file.path).is_file())
         self.assertEqual(AuditDocument.objects.filter(organization=self.office).count(), 1)
-        self.assertEqual(ActivityLog.objects.filter(action="historical_document_uploaded").count(), 2)
-        self.assertEqual(ActivityLog.objects.get(action="historical_reports_imported").details["importado"], 2)
+        self.assertEqual(ActivityLog.objects.filter(action="historical_document_uploaded").count(), 3)
+        self.assertEqual(ActivityLog.objects.get(action="historical_reports_imported").details["importado"], 3)
 
-    def test_rerun_is_idempotent_and_picks_up_renamed_files(self):
+    def test_rerun_is_idempotent(self):
         self.pdf("Informe 10234.pdf", "uno")
-        renamed = self.pdf("informe general.pdf", "dos")
+        self.pdf("informe general.pdf", "dos")
         self.run_import()
-        renamed.rename(self.root / "informe general 10235.pdf")
         rows, _ = self.run_import()
         self.assertEqual(rows["Informe 10234.pdf"]["estado"], "ya_registrado")
-        self.assertEqual(rows["informe general 10235.pdf"]["estado"], "importado")
+        self.assertEqual(rows["informe general.pdf"]["estado"], "ya_registrado")
         self.assertEqual(AuditDocument.objects.count(), 2)
 
-    def test_default_institution_receives_only_files_without_any_center_number(self):
+    def test_files_without_a_registered_institution_go_to_the_default_institution(self):
         self.pdf("Gestión DNES 2020.pdf", "unidad")
         self.pdf("CE Cton Veracruz CI 11978.pdf", "no registrado")
         self.pdf("CE CI 11978 (10234).pdf", "dudoso")
         self.pdf("Informe 10235.pdf", "centro")
-        rows, _ = self.run_import("--default-code", "DDE-SANTA-ANA")
-        self.assertEqual(rows["Gestión DNES 2020.pdf"]["codigo"], "DDE-SANTA-ANA")
-        self.assertEqual(rows["Gestión DNES 2020.pdf"]["estado"], "importado")
-        self.assertEqual(rows["CE Cton Veracruz CI 11978.pdf"]["estado"], "codigo_no_registrado")
+        rows, _ = self.run_import()
+        for name, detail in (("Gestión DNES 2020.pdf", "no contiene"), ("CE Cton Veracruz CI 11978.pdf", "11978")):
+            self.assertEqual(rows[name]["estado"], "importado")
+            self.assertEqual(rows[name]["codigo"], "DAI-MINED")
+            self.assertIn(detail, rows[name]["detalle"])
         self.assertEqual(rows["CE CI 11978 (10234).pdf"]["estado"], "varios_codigos")
-        self.assertEqual(rows["Informe 10235.pdf"]["codigo"], "10235")
-        self.assertEqual(AuditDocument.objects.count(), 2)
+        self.assertEqual(rows["Informe 10235.pdf"]["por_defecto"], "")
+        self.assertEqual(AuditDocument.objects.filter(organization=self.audit_unit).count(), 2)
+        self.pdf("Otra unidad.pdf", "otra")
+        rows, _ = self.run_import("--default-code", "DDE-CUSCATLAN")
+        self.assertEqual(rows["Otra unidad.pdf"]["codigo"], "DDE-CUSCATLAN")
         with self.assertRaises(CommandError):
             self.run_import("--default-code", "NO-EXISTE")
 
