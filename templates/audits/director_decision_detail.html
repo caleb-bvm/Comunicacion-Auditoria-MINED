@@ -11,7 +11,7 @@
 </section>
 
 <section class="section-block">
-    <div class="section-heading"><div><h2>Hallazgos y recomendaciones</h2></div><a class="button button-secondary" href="{% url 'case_detail' case.pk %}">Ver expediente</a></div>
+    <div class="section-heading"><div><h2>Hallazgos y recomendaciones</h2></div><a class="button button-tonal" href="{% url 'case_detail' case.pk %}">Ver expediente <span aria-hidden="true">→</span></a></div>
     <div class="decision-findings">{% for finding in findings %}<article class="decision-finding card"><header><div><span class="finding-number">Hallazgo {{ finding.number }}</span><h3>{{ finding.title }}</h3></div><span class="risk risk-{{ finding.risk_level }}">Riesgo {{ finding.get_risk_level_display }}</span></header>{% for recommendation in finding.recommendations.all %}<div class="decision-recommendation"><strong>Recomendación {{ finding.number }}.{{ recommendation.number }}</strong><p>{{ recommendation.text }}</p><small>{{ recommendation.responsible_organization.name }} · {{ recommendation.get_status_display }} · Límite {{ recommendation.deadline|date:"d/m/Y"|default:"sin definir" }}</small></div>{% empty %}<p class="muted">Sin recomendaciones.</p>{% endfor %}</article>{% empty %}<div class="empty-state card"><h2>Sin hallazgos</h2></div>{% endfor %}</div>
 </section>
 

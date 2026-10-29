@@ -1327,6 +1327,7 @@ body {
 .button-primary { box-shadow: 0 1px 2px rgba(0, 26, 65, .12); }
 .button-secondary { border-color: var(--md-outline); }
 .button-tonal { color: var(--md-on-primary-container); background: var(--md-primary-container); }
+.section-heading > .button { flex: 0 0 auto; white-space: nowrap; }
 .button-ghost:hover { background: var(--md-surface-container); }
 .button-danger { border-color: transparent; }
 .button-large { min-height: 48px; }
@@ -2912,6 +2913,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
     .heading-row > :is(.button-group, .heading-actions) details > summary { padding-inline: .75rem; white-space: nowrap; }
     /* Encabezado de sección con enlace lateral: el enlace pasa debajo del título. */
     .section-heading:has(> .text-link) { flex-direction: column; align-items: flex-start; gap: .35rem; }
+    .section-heading:has(> .button) { flex-direction: column; align-items: stretch; gap: .75rem; }
     .mobile-card-value { min-width: 0; }
     .mobile-card-table td:last-child, .mobile-card-table tbody th:last-child { border-bottom: 0; }
     .mobile-card-table .mobile-card-action, .mobile-card-table .mobile-card-message { display: block; }
