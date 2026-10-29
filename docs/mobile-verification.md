@@ -153,3 +153,32 @@ Los puntos de corte no se modificaron.
 - Se revisaron 49 pantallas de Dirección, Auditoría, el centro educativo, administración técnica y acceso público en 320, 390, 600, 768, 900, 1080 y 1440 px: 343 cargas sin ninguna diferencia. Una prueba de control con 1 px de diferencia en `.status` fue detectada en 128 elementos.
 - La comparación cubre el estado inicial de cada pantalla. Los estados de interacción (`:hover`, `:focus`, menús abiertos) no se midieron. Para ellos, las declaraciones eliminadas son, por construcción, las que otra regla con el mismo selector reemplaza.
 - La comprobación de Django terminó sin incidencias, no hay migraciones pendientes de generar y las 225 pruebas pasaron.
+
+## Unificación de puntos de corte
+
+Fecha: 29 de octubre de 2026.
+
+### Cambios
+
+La hoja de estilos pasó de 14 anchos máximos distintos a seis: 360, 420, 520, 720, 900 y 1080 px. Se mantiene `min-width: 721px`, complementario de 720.
+
+| Antes | Ahora | Rango que cambia |
+|---|---|---|
+| 1050 px | 1080 px | 1051–1080 px |
+| 800 px | 900 px | 801–900 px |
+| 760, 700 y 600 px | 720 px | 601–720 y 721–760 px |
+| 390 y 380 px | 420 px | 381–420 px |
+| 340 px | 360 px | 341–360 px |
+
+### Verificación
+
+- Se comparó cada pantalla con la versión anterior en 320 y 1440 px, sin diferencias. En los anchos intermedios (350, 400, 650, 710, 740, 850 y 1060 px) las diferencias corresponden a las reglas unificadas, que ahora se aplican en todo su rango. Por ejemplo, la mesa de trabajo de Dirección usa su disposición compacta desde 1080 px, los filtros de Análisis se apilan desde 720 px y los filtros rápidos pasan a una columna desde 420 px.
+- En esos anchos intermedios no aparecieron desbordes nuevos en las pantallas de los cuatro roles. La comprobación de Django terminó sin incidencias y las 225 pruebas pasaron.
+
+### Pendiente
+
+Hay tres desbordes anteriores a la unificación, que también se reproducen con la hoja previa:
+
+- En el detalle del auditor, a 740 px, los selectores de filtro exceden su columna.
+- En el detalle del auditor, a 1060 px, el botón «Limpiar» excede su columna.
+- En el inicio de Auditoría, entre 725 y 760 px, las filas de distribución exceden su panel.
