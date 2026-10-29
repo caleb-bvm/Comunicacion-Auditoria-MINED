@@ -57,7 +57,7 @@ Se utilizó el navegador integrado con la base PostgreSQL de desarrollo y las cu
 
 - ~~Las páginas de error 403, 404 y 500 usan las plantillas predeterminadas de Django, sin `viewport`, y en celular se muestran a 980 px de ancho.~~ Resuelto: ver «Páginas de error y selector de archivos».
 - ~~El campo de documentos de respaldo del formulario de respuesta no declara los formatos admitidos (`accept`), por lo que el selector del teléfono no los filtra.~~ Resuelto: ver «Páginas de error y selector de archivos».
-- La tabla territorial de Análisis se desplaza horizontalmente en celular. Falta decidir si se presenta como tarjetas por territorio.
+- ~~La tabla territorial de Análisis se desplaza horizontalmente en celular. Falta decidir si se presenta como tarjetas por territorio.~~ Resuelto: ver «Análisis territorial en tarjetas».
 - Sigue pendiente la prueba en un teléfono físico descrita en la revisión anterior.
 
 ## Páginas de error y selector de archivos
@@ -93,3 +93,18 @@ Fecha: 29 de octubre de 2026.
 - Se comprobó la selección de la cartera desde el control móvil y desde la cabecera: todas, una menos (estado intermedio en ambos controles) y ninguna. La vista previa de la operación masiva se abrió sin confirmar el cambio.
 - Se repitió en 320 px la revisión de las listas que ya usaban tarjetas y de otras pantallas con botones en tablas, sin desbordes.
 - Dos pruebas automatizadas comprueban que las siete tablas se renderizan como tarjetas y que existe el control de selección móvil. La comprobación de Django terminó sin incidencias, no hay migraciones pendientes de generar y las 223 pruebas pasaron.
+
+## Análisis territorial en tarjetas
+
+Fecha: 29 de octubre de 2026.
+
+### Cambios
+
+- Hasta 720 px, la tabla «Estado por departamento» o «Estado por distrito» de Análisis se presenta como una tarjeta por territorio. El nombre del territorio, con sus expedientes y obligaciones, es el título de la tarjeta. Debajo aparecen centros, cobertura, atención inmediata, vencimientos y cumplimiento, y al final «Ver distritos» o «Ver centros». Un territorio sin enlace, como «Sin departamento registrado», no muestra la fila de acción. En escritorio se mantiene la tabla.
+- La presentación es solo visual: los valores siguen saliendo del mismo servicio que el XLSX (`territorial_analysis.py`).
+- Los textos de la tabla usan singular cuando corresponde: «1 expediente · 1 obligación» y «1 auditado» en lugar de «1 expedientes · 1 obligaciones» y «1 auditados».
+
+### Verificación
+
+- En el navegador integrado se revisó la agrupación por departamento en 320, 390, 768 y 1440 px y la agrupación por distrito de San Salvador en 320 px, sin desbordes. En 768 y 1440 px la tabla conserva su desplazamiento horizontal dentro del contenedor, como antes.
+- Una prueba automatizada comprueba la marca de tarjetas y los textos en singular y plural. La comprobación de Django terminó sin incidencias, no hay migraciones pendientes de generar y las 224 pruebas pasaron.

@@ -2903,6 +2903,14 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
     .mobile-card-table td:first-child, .mobile-card-table tbody th:first-child { width: 100%; text-align: left; }
     .mobile-card-table td input[type="checkbox"] { width: 1.5rem; height: 1.5rem; }
     .mobile-card-table caption { display: block; width: 100%; margin-bottom: .75rem; border-radius: var(--radius-sm); }
+    /* Análisis territorial: el territorio es el título de la tarjeta y el enlace cierra la tarjeta. */
+    .mobile-card-table .territory-table tbody tr:hover { background: none; }
+    .mobile-card-table .territory-table tbody th { display: block; padding: .8rem 0 .7rem; background: none; font-size: 1rem; }
+    .mobile-card-table .territory-table tbody th::before,
+    .mobile-card-table .territory-table td:last-child::before { content: none; }
+    .mobile-card-table .territory-table td:last-child { display: block; }
+    .mobile-card-table .territory-table td:last-child:has(> .mobile-card-value:empty) { display: none; }
+    .mobile-card-table .territory-table th small, .mobile-card-table .territory-table td small { white-space: normal; }
     .mobile-card-value { min-width: 0; }
     .mobile-card-table td:last-child, .mobile-card-table tbody th:last-child { border-bottom: 0; }
     .mobile-card-table .mobile-card-action, .mobile-card-table .mobile-card-message { display: block; }

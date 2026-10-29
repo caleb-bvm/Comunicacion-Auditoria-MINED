@@ -302,6 +302,24 @@ class TerritorialAnalysisTests(TestCase):
         self.assertEqual(department_a["audited_count"], 1)
         self.assertEqual(department_a["coverage_rate"], 50)
 
+    def test_territory_table_renders_as_mobile_cards_with_singular_counts(self):
+        self._recommendation(
+            audited=self.center_a,
+            responsible=self.center_a,
+            reference="IA-TERR-CARD",
+        )
+        self.client.force_login(self.director)
+
+        response = self.client.get(
+            reverse("director_statistics"), {"group_by": "department"}
+        )
+
+        self.assertContains(response, '<table class="territory-table" data-mobile-cards>')
+        self.assertContains(response, "<small>1 expediente · 1 obligación</small>")
+        self.assertContains(response, "<small>1 auditado</small>")
+        self.assertContains(response, "<small>0 expedientes · 0 obligaciones</small>")
+        self.assertContains(response, "<small>0 auditados</small>")
+
     def test_district_options_and_results_are_limited_to_selected_department(self):
         self.client.force_login(self.director)
         url = reverse("director_statistics")
