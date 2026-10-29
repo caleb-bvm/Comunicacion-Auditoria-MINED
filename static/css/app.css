@@ -640,7 +640,8 @@ input[type="file"]::file-selector-button { margin-right: .8rem; padding: .55rem 
 }
 
 /* Consultas de auditoría */
-.inquiry-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr)); gap: 1rem; }
+.inquiry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 350px), 1fr)); gap: 1rem; }
+.inquiry-grid > .empty-state { grid-column: 1 / -1; }
 .inquiry-card { display: grid; gap: .8rem; }
 .inquiry-card header, .inquiry-card footer { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
 .inquiry-card h2 { margin: 0; font-size: 1.15rem; }
