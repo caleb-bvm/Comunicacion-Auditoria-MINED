@@ -114,6 +114,30 @@ class DirectorAuditorAdministrationTests(TestCase):
         self.assertEqual(changes.values("batch_id").distinct().count(), 1)
         self.assertTrue(changes.filter(is_bulk=True, reason="Redistribución territorial").exists())
 
+    def test_portfolio_and_center_tables_render_as_mobile_cards(self):
+        detail = self.client.get(reverse("director_auditor_detail", args=[self.auditor.pk]))
+        self.assertContains(detail, "<table data-mobile-cards>", count=2)
+        self.assertContains(detail, 'class="bulk-selection portfolio-select-page"')
+
+        preview = self.client.post(
+            reverse("director_auditor_bulk_assignment", args=[self.auditor.pk]),
+            {"action": "assign", "scope": "selected", "organization_ids": [self.organization.pk]},
+        )
+        self.assertContains(preview, "<table data-mobile-cards>", count=1)
+
+        center = self.client.get(reverse("director_educational_center_detail", args=[self.organization.pk]))
+        self.assertContains(center, '<table class="profile-table" data-mobile-cards>', count=3)
+
+    def test_technical_user_history_renders_as_mobile_cards(self):
+        technical_admin = User.objects.create_user(
+            username="soporte", role=User.Role.TECHNICAL_ADMIN, must_change_password=False,
+        )
+        self.client.force_login(technical_admin)
+
+        response = self.client.get(reverse("technical_user_detail", args=[self.auditor.pk]))
+
+        self.assertContains(response, "<table data-mobile-cards>", count=1)
+
     def test_bulk_unassignment_reports_open_case_as_blocked(self):
         self.auditor.assigned_organizations.add(self.organization)
         AuditCase.objects.create(

@@ -75,3 +75,21 @@ Fecha: 28 de octubre de 2026.
 - Nueve pruebas automatizadas cubren las cinco páginas de error y los formatos de cada campo de archivo. La comprobación de Django terminó sin incidencias, no hay migraciones pendientes de generar y las 221 pruebas pasaron.
 - En el navegador integrado, a 360 y 1440 px, la página 403 de un centro educativo se mostró sin desbordes y con la barra inferior. Los selectores de la respuesta y de la nueva consulta declaran los formatos y la respuesta conserva la selección múltiple.
 - Las páginas 404 y 500 solo se verificaron con las pruebas, porque el modo de desarrollo muestra en su lugar la página de diagnóstico de Django.
+
+## Tablas como tarjetas en celular
+
+Fecha: 29 de octubre de 2026.
+
+### Cambios
+
+- Siete tablas que se desplazaban horizontalmente en celular se presentan como tarjetas con etiquetas hasta 720 px, con el mismo mecanismo de las listas de usuarios, bitácora, cuentas, auditores e informes: cartera e historial de cartera del auditor, expedientes, respuestas e historial de auditores del centro educativo, vista previa de la operación masiva de cartera e historial administrativo de una cuenta. En escritorio conservan su tabla.
+- Las tarjetas también admiten celdas de encabezado de fila (`<th scope="row">`), subtítulos de tabla y las tablas del perfil del centro, que antes imponían un ancho mínimo de 760 px y su propio relleno.
+- En la cartera del auditor, el control «Seleccionar toda la página» de la cabecera queda oculto en las tarjetas. En celular se muestra un control equivalente junto a las acciones masivas, sincronizado con el de la cabecera, y cada tarjeta etiqueta su casilla como «Seleccionar». Las casillas de las tarjetas miden 24 px.
+- Entre 721 y 900 px, los botones dentro de las tablas se partían letra por letra, por ejemplo «Asignar» en la cartera del auditor. Ahora conservan su texto en una línea.
+
+### Verificación
+
+- En el navegador integrado se revisaron las siete tablas en 320, 390, 768 y 1440 px, sin desbordes. En 768 px las tablas del perfil del centro se desplazan dentro de su contenedor, como antes; las tarjetas empiezan en 720 px.
+- Se comprobó la selección de la cartera desde el control móvil y desde la cabecera: todas, una menos (estado intermedio en ambos controles) y ninguna. La vista previa de la operación masiva se abrió sin confirmar el cambio.
+- Se repitió en 320 px la revisión de las listas que ya usaban tarjetas y de otras pantallas con botones en tablas, sin desbordes.
+- Dos pruebas automatizadas comprueban que las siete tablas se renderizan como tarjetas y que existe el control de selección móvil. La comprobación de Django terminó sin incidencias, no hay migraciones pendientes de generar y las 223 pruebas pasaron.

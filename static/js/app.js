@@ -386,7 +386,13 @@ document.querySelectorAll("[data-select-page]").forEach((toggle) => {
         toggle.indeterminate = checked > 0 && checked < items.length;
     };
     toggle.addEventListener("change", () => {
-        items.forEach((item) => { item.checked = toggle.checked; });
+        // El evento actualiza también los otros controles del mismo grupo (cabecera y barra móvil),
+        // incluido este, por lo que el valor se guarda antes de recorrer los elementos.
+        const checked = toggle.checked;
+        items.forEach((item) => {
+            item.checked = checked;
+            item.dispatchEvent(new Event("change"));
+        });
         refresh();
     });
     items.forEach((item) => item.addEventListener("change", refresh));
