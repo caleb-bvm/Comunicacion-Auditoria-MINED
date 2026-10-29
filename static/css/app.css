@@ -1813,7 +1813,9 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
     width: fit-content;
     margin: 1rem 0;
     padding: .3rem;
-    display: flex;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
     gap: .2rem;
     background: color-mix(in srgb, var(--md-surface-container-lowest) 92%, transparent);
     border: 1px solid var(--md-outline-variant);
@@ -1828,6 +1830,8 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
     text-decoration: none;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    text-align: center;
     font-size: .8rem;
     font-weight: 650;
 }
@@ -2105,21 +2109,12 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
     .role-institution .cde-period-summary-main small { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
     .role-institution .cde-current-summary { width: 100%; min-width: 0; justify-content: center; text-align: center; }
     .role-institution .cde-current-summary > span { min-width: 0; }
-
-    .role-institution .case-section-nav {
-        width: max-content;
-        max-width: 100%;
-        margin-inline: auto;
-        justify-content: center;
-    }
-    .role-institution .case-section-nav a { flex: 0 0 auto; justify-content: center; text-align: center; }
 }
 
 @media (max-width: 520px) {
     .dashboard-priority-stats, .secondary-metrics { grid-template-columns: 1fr; }
     .center-profile-kpis { grid-template-columns: 1fr; }
-    .case-section-nav { width: 100%; overflow-x: auto; }
-    .role-institution .case-section-nav { width: fit-content; overflow-x: visible; }
+    .case-section-nav { width: 100%; }
     .role-institution .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; }
     .role-institution .stats-grid .stat-card { min-height: 86px; padding: .75rem .55rem; text-align: center; }
     .role-institution .stats-grid .stat-card span { font-size: .7rem; line-height: 1.25; }
@@ -2139,8 +2134,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
 
 @media (max-width: 360px) {
     .role-institution .table-responsive td { grid-template-columns: 1fr; gap: .25rem; text-align: left; }
-    .role-institution .case-section-nav { width: 100%; }
-    .role-institution .case-section-nav a { flex: 1 1 0; min-width: 0; padding-inline: .5rem; }
+    .case-section-nav a { padding-inline: .5rem; }
     .role-institution .cde-current-summary { align-items: stretch; flex-direction: column; }
 }
 
