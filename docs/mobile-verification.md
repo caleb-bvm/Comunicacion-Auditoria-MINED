@@ -132,3 +132,24 @@ Ajustes a partir de la primera prueba en un teléfono físico, que señaló boto
 - Una revisión automática en 320 px de 27 pantallas de los cuatro roles no encontró elementos fuera de la pantalla ni de su contenedor.
 - En 1440 px se comprobó por medición que el detalle del expediente y el del centro muestran las insignias en la fila de etiquetas, que las acciones con icono conservan su forma compacta y que las tarjetas de expedientes de Dirección mantienen sus dos datos.
 - Las pruebas automatizadas cubren la ubicación de las insignias, la ocultación del código y de «Responsable» propios y los textos del análisis territorial. La comprobación de Django terminó sin incidencias, no hay migraciones pendientes de generar y las 225 pruebas pasaron.
+
+## Limpieza de la hoja de estilos
+
+Fecha: 29 de octubre de 2026.
+
+### Cambios
+
+`static/css/app.css` pasó de 3032 a 2712 líneas y de 203 KB a 171 KB, sin cambios visibles. Se eliminaron:
+
+- 188 reglas cuyos selectores usan clases que no aparecen en ninguna plantilla, archivo JavaScript o módulo Python, en su mayoría restos del diseño anterior (`executive-*`, `workload-*`, `institution-task*`, `timeline-*`, `welcome-*`). Se conservaron las clases que genera Django (`errorlist`) y las que las plantillas componen con variables (por ejemplo `status-{{ … }}`).
+- 21 selectores sin uso dentro de listas de selectores que siguen vigentes.
+- 421 declaraciones que una declaración posterior del mismo selector anula en todos los anchos donde se aplican. No se eliminaron las que funcionan como alternativa de una declaración posterior con sintaxis moderna (`color-mix()`, `clamp()`, `min()`, `env()` y similares), porque un navegador antiguo podría descartar la posterior.
+
+Los puntos de corte no se modificaron.
+
+### Verificación
+
+- Se comparó cada pantalla con la hoja nueva y con una copia de la anterior en el mismo documento, mediante un servidor local auxiliar que permite marcos del mismo origen. Para cada elemento se compararon su posición y tamaño, unas 90 propiedades calculadas y los pseudoelementos `::before` y `::after`.
+- Se revisaron 49 pantallas de Dirección, Auditoría, el centro educativo, administración técnica y acceso público en 320, 390, 600, 768, 900, 1080 y 1440 px: 343 cargas sin ninguna diferencia. Una prueba de control con 1 px de diferencia en `.status` fue detectada en 128 elementos.
+- La comparación cubre el estado inicial de cada pantalla. Los estados de interacción (`:hover`, `:focus`, menús abiertos) no se midieron. Para ellos, las declaraciones eliminadas son, por construcción, las que otra regla con el mismo selector reemplaza.
+- La comprobación de Django terminó sin incidencias, no hay migraciones pendientes de generar y las 225 pruebas pasaron.
