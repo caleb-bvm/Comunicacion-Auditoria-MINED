@@ -84,7 +84,10 @@
     });
 
     document.querySelectorAll("table[data-mobile-cards]").forEach((table) => {
-        const headings = Array.from(table.querySelectorAll("thead th"), (heading) => heading.textContent.trim());
+        // Una columna sin título visible o marcada con data-card-action contiene las acciones de la tarjeta.
+        const headings = Array.from(table.querySelectorAll("thead th"), (heading) => (
+            heading.hasAttribute("data-card-action") ? "" : heading.textContent.trim()
+        ));
         table.querySelectorAll("tbody tr").forEach((row) => {
             Array.from(row.cells).forEach((cell, index) => {
                 if (cell.colSpan > 1) {

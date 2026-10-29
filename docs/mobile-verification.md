@@ -108,3 +108,27 @@ Fecha: 29 de octubre de 2026.
 
 - En el navegador integrado se revisó la agrupación por departamento en 320, 390, 768 y 1440 px y la agrupación por distrito de San Salvador en 320 px, sin desbordes. En 768 y 1440 px la tabla conserva su desplazamiento horizontal dentro del contenedor, como antes.
 - Una prueba automatizada comprueba la marca de tarjetas y los textos en singular y plural. La comprobación de Django terminó sin incidencias, no hay migraciones pendientes de generar y las 224 pruebas pasaron.
+
+## Pulido visual en celular
+
+Fecha: 29 de octubre de 2026.
+
+Ajustes a partir de la primera prueba en un teléfono físico, que señaló botones descentrados, textos demasiado pequeños en las tarjetas, textos confusos o innecesarios e insignias de estado mal ubicadas.
+
+### Cambios
+
+- **Insignias.** El estado del expediente aparece junto a la referencia, sobre el título, en el detalle del expediente y en las tarjetas de la lista. La alerta de atención del centro («Atención inmediata») aparece junto al código y el tipo de centro. El número o referencia de cada recomendación comparte fila con su estado. El cambio de posición también aplica en escritorio.
+- **Botones.** Hasta 700 px, la acción de cada elemento de las bandejas (por ejemplo «Revisar ahora», «Responder ahora», «Corregir respuesta» y «Revisar expediente») ocupa todo el ancho, en lugar de alinearse a la izquierda con el ancho del texto. Hasta 720 px, los botones del encabezado de página comparten el ancho en columnas iguales («Editar / Archivar», «Exportar XLSX / Volver al inicio») y un encabezado de sección con enlace lateral coloca el enlace debajo del título.
+- **Textos en tarjetas.** Las etiquetas pasan de 12 a 13 px y separan sílabas en lugar de cortar palabras. Los textos secundarios suben a 13 px, y los valores de las tablas del perfil del centro y del análisis territorial a 15 px. En el historial del centro educativo, los valores se alinean a la izquierda, como en las demás tarjetas, y la versión del informe queda debajo del título.
+- **Acciones con icono.** En las tarjetas, los enlaces que en escritorio son solo una flecha muestran su texto: «Descargar», «Abrir informe» y «Abrir expediente».
+- **Textos eliminados o aclarados:**
+  - El código del centro no se repite cuando el centro auditado es el del propio usuario: en la tarjeta de la lista y en el resumen del expediente. Dirección y Auditoría lo siguen viendo.
+  - «Responsable» no se muestra en una recomendación cuando la responsable es la propia organización del usuario. Se sigue mostrando cuando es otra dependencia.
+  - En el análisis territorial, «0%» bajo «Atención inmediata» pasa a «0% de los centros» y «1/1» bajo «Cumplimiento» pasa a «1 de 1 cumplidas».
+
+### Verificación
+
+- En el navegador integrado se revisaron con capturas en 390 px la mesa de trabajo, el detalle del expediente y la lista, Decisiones, Alertas, el detalle de centro, Análisis, el detalle del auditor e Informes (Dirección), y el inicio, Mis expedientes, el detalle con sus recomendaciones y el historial (centro educativo).
+- Una revisión automática en 320 px de 27 pantallas de los cuatro roles no encontró elementos fuera de la pantalla ni de su contenedor.
+- En 1440 px se comprobó por medición que el detalle del expediente y el del centro muestran las insignias en la fila de etiquetas, que las acciones con icono conservan su forma compacta y que las tarjetas de expedientes de Dirección mantienen sus dos datos.
+- Las pruebas automatizadas cubren la ubicación de las insignias, la ocultación del código y de «Responsable» propios y los textos del análisis territorial. La comprobación de Django terminó sin incidencias, no hay migraciones pendientes de generar y las 225 pruebas pasaron.

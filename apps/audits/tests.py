@@ -127,6 +127,10 @@ class DirectorAuditorAdministrationTests(TestCase):
 
         center = self.client.get(reverse("director_educational_center_detail", args=[self.organization.pk]))
         self.assertContains(center, '<table class="profile-table" data-mobile-cards>', count=3)
+        content = center.content.decode()
+        tags_start = content.index('class="center-profile-identity-tags"')
+        self.assertLess(tags_start, content.index("attention-badge"), "La alerta va junto a las etiquetas del centro")
+        self.assertLess(content.index("attention-badge"), content.index("<h1>"))
 
     def test_technical_user_history_renders_as_mobile_cards(self):
         technical_admin = User.objects.create_user(
@@ -657,6 +661,35 @@ class AccessAndWorkflowTests(TestCase):
 
         self.assertNotContains(response, "Auditor responsable")
         self.assertNotContains(response, "NombreReservado Auditor")
+
+    def test_institution_does_not_repeat_its_own_code_or_responsibility(self):
+        Recommendation.objects.create(
+            finding=self.finding,
+            number=2,
+            text="Coordinar el seguimiento departamental.",
+            responsible_organization=self.other_center,
+            deadline=date.today(),
+        )
+        status_tag = f'<div class="heading-tags"><span class="case-reference">IA-001</span><span class="status status-{self.case.status}">'
+
+        self.client.force_login(self.institution_user)
+        detail = self.client.get(reverse("case_detail", args=[self.case.pk]))
+        case_list = self.client.get(reverse("case_list"))
+
+        self.assertContains(detail, status_tag)
+        self.assertNotContains(detail, "Código institucional")
+        self.assertContains(detail, "<dt>Responsable</dt>", count=1)
+        self.assertContains(detail, "<dd>Centro Dos</dd>")
+        self.assertNotContains(case_list, "<dt>Código</dt>")
+
+        self.client.force_login(self.director)
+        detail = self.client.get(reverse("case_detail", args=[self.case.pk]))
+        case_list = self.client.get(reverse("case_list"))
+
+        self.assertContains(detail, status_tag)
+        self.assertContains(detail, "Código institucional")
+        self.assertContains(detail, "<dt>Responsable</dt>", count=2)
+        self.assertContains(case_list, "<dt>Código</dt>")
 
     def test_pending_recommendation_for_another_organization_explains_missing_response_button(self):
         Recommendation.objects.create(

@@ -38,7 +38,7 @@
             <p>{{ case.title }}</p>
         </div>
         <dl class="case-card-details">
-            <div class="case-card-meta"><dt>Código</dt><dd>{{ case.audited_organization.code }}</dd></div>
+            {% if case.audited_organization_id != user.organization_id %}<div class="case-card-meta"><dt>Código</dt><dd>{{ case.audited_organization.code }}</dd></div>{% endif %}
             <div class="case-card-meta"><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"d/m/Y"|default:"Por definir" }}</dd></div>
         </dl>
         <footer class="case-card-footer">

@@ -315,6 +315,9 @@ class TerritorialAnalysisTests(TestCase):
         )
 
         self.assertContains(response, '<table class="territory-table" data-mobile-cards>')
+        self.assertContains(response, '<th scope="col" data-card-action>')
+        self.assertContains(response, "% de los centros</small>")
+        self.assertContains(response, "<small>sin resultados</small>")
         self.assertContains(response, "<small>1 expediente · 1 obligación</small>")
         self.assertContains(response, "<small>1 auditado</small>")
         self.assertContains(response, "<small>0 expedientes · 0 obligaciones</small>")

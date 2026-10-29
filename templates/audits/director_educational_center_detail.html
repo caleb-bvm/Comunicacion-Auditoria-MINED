@@ -6,8 +6,8 @@
 <div class="center-profile-page">
 <section class="center-profile-hero attention-{{ center.attention_level }}">
     <div class="center-profile-heading">
-        <div class="center-profile-identity"><div class="center-profile-identity-tags"><span class="center-code">{{ center.code }}</span><span class="center-type">{{ center.display_center_type }}</span></div><h1>{{ center.name }}</h1><p class="center-profile-address"><strong>Dirección</strong><span>{{ center.display_address }}</span></p></div>
-        <div class="center-profile-actions"><span class="attention-badge attention-badge-{{ center.attention_level }}">{{ center.attention_label }}</span><a class="button button-primary" href="{% url 'case_list' %}?organization={{ center.pk }}">Ver expedientes</a><a class="button button-secondary" href="{% url 'cde_detail' center.pk %}">Ver CDE</a></div>
+        <div class="center-profile-identity"><div class="center-profile-identity-tags"><span class="center-code">{{ center.code }}</span><span class="center-type">{{ center.display_center_type }}</span><span class="attention-badge attention-badge-{{ center.attention_level }}">{{ center.attention_label }}</span></div><h1>{{ center.name }}</h1><p class="center-profile-address"><strong>Dirección</strong><span>{{ center.display_address }}</span></p></div>
+        <div class="center-profile-actions"><a class="button button-primary" href="{% url 'case_list' %}?organization={{ center.pk }}">Ver expedientes</a><a class="button button-secondary" href="{% url 'cde_detail' center.pk %}">Ver CDE</a></div>
     </div>
     <div class="center-profile-context">
         <div><span>Acceso institucional</span><strong>{{ center.access_label }}</strong><small>Usuario: {{ center.code }}</small>{% if center.last_institutional_login %}<small>Último ingreso {{ center.last_institutional_login|date:"d/m/Y H:i" }}</small>{% endif %}</div>

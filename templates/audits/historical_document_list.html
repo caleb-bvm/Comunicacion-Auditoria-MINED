@@ -59,7 +59,7 @@
                         <th scope="col">Fecha</th>
                         <th scope="col">Estado</th>
                         <th scope="col">Recomendaciones</th>
-                        <th scope="col"><span class="sr-only">Acciones</span></th>
+                        <th scope="col" data-card-action><span class="sr-only">Acciones</span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -76,11 +76,11 @@
                         <td>{% if document.document_type == 'historical_report' %}{{ document.previous_recommendation_count }}{% else %}{{ document.case_recommendation_count }}{% endif %}</td>
                         <td>
                             {% if document.document_type == 'historical_report' %}
-                            <a class="icon-link" href="{% url 'historical_document_detail' document.pk %}" aria-label="Abrir informe {{ document.reference|default:document.title }}">→</a>
+                            <a class="icon-link" href="{% url 'historical_document_detail' document.pk %}" aria-label="Abrir informe {{ document.reference|default:document.title }}"><span class="icon-link-text">Abrir informe</span><span aria-hidden="true">→</span></a>
                             {% elif document.case_id %}
-                            <a class="icon-link" href="{% url 'case_detail' document.case_id %}" aria-label="Abrir expediente del informe {{ document.reference|default:document.title }}">→</a>
+                            <a class="icon-link" href="{% url 'case_detail' document.case_id %}" aria-label="Abrir expediente del informe {{ document.reference|default:document.title }}"><span class="icon-link-text">Abrir expediente</span><span aria-hidden="true">→</span></a>
                             {% else %}
-                            <a class="icon-link" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar informe {{ document.reference|default:document.title }}">↓</a>
+                            <a class="icon-link" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar informe {{ document.reference|default:document.title }}"><span class="icon-link-text">Descargar</span><span aria-hidden="true">↓</span></a>
                             {% endif %}
                         </td>
                     </tr>
