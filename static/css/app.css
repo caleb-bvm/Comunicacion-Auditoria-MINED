@@ -2541,7 +2541,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--md-primary-container) 54%,
 .status-tabs a.is-active::after { background: var(--md-primary); }
 .status-tabs strong { min-width: 1.75rem; padding: .18rem .45rem; background: var(--md-surface-container); border-radius: 999px; font-size: .72rem; text-align: center; }
 .decision-filter-bar { margin: 0; justify-content: space-between; }
-.decision-filter-bar .field { width: min(100%, 300px); }
+.decision-filter-bar .field { min-width: 0; flex: 1 1 auto; }
 .decision-queue { padding: 0; overflow: hidden; }
 .decision-queue-item { padding: 1.05rem 1.2rem; border-bottom: 1px solid var(--md-outline-variant); display: grid; grid-template-columns: 130px minmax(260px, 1fr) minmax(160px, .45fr) auto; align-items: center; gap: 1rem; }
 .decision-queue-item:last-child { border-bottom: 0; }
