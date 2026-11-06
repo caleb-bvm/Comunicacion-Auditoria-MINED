@@ -12,6 +12,8 @@
         <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'case_create' %}">Nuevo expediente</a></div>
     </div>
 
+    <div class="ui-layout">
+    <div class="ui-layout-main">
     {% if review_items %}
     <section class="ui-list" aria-label="Respuestas por revisar">
         {% for item in review_items %}
@@ -22,16 +24,9 @@
         {% endfor %}
     </section>
     {% if pending_reviews > review_items|length %}<a class="ui-button ui-button-text" href="{% url 'case_list' %}">Ver las {{ pending_reviews }} en Mi cartera</a>{% endif %}
+    {% else %}
+    <div class="ui-card"><div class="ui-empty"><span class="ui-empty-mark">{% ui_icon "check" %}</span><h2 class="ui-card-title">No hay respuestas esperando su revisión</h2></div></div>
     {% endif %}
-
-    <section class="ui-section" aria-labelledby="auditor-figures">
-        <h2 class="ui-section-title" id="auditor-figures">Seguimiento</h2>
-        <div class="ui-figures">
-            <a class="ui-figure{% if overdue_recommendations %} ui-figure-danger{% endif %}" href="#plazos"><strong>{{ overdue_recommendations }}</strong><span>Recomendaciones con plazo vencido</span></a>
-            <a class="ui-figure{% if due_soon_recommendations %} ui-figure-warning{% endif %}" href="#plazos"><strong>{{ due_soon_recommendations }}</strong><span>Vencen en los próximos 7 días</span></a>
-            <a class="ui-figure" href="{% url 'case_list' %}"><strong>{{ open_cases }}</strong><span>Expedientes abiertos{% if draft_cases %} · {{ draft_cases }} en borrador{% endif %}</span></a>
-        </div>
-    </section>
 
     {% if deadline_items %}
     <section class="ui-section" id="plazos" aria-labelledby="auditor-deadlines">
@@ -46,22 +41,36 @@
         </div>
     </section>
     {% endif %}
+    </div>
 
+    <aside class="ui-layout-aside" aria-label="Seguimiento y accesos">
+    <section class="ui-section" aria-labelledby="auditor-figures">
+        <h2 class="ui-section-title" id="auditor-figures">Seguimiento</h2>
+        <div class="ui-figures">
+            <a class="ui-figure{% if overdue_recommendations %} ui-figure-danger{% endif %}" href="#plazos"><strong>{{ overdue_recommendations }}</strong><span>Con plazo vencido</span></a>
+            <a class="ui-figure{% if due_soon_recommendations %} ui-figure-warning{% endif %}" href="#plazos"><strong>{{ due_soon_recommendations }}</strong><span>Vencen en 7 días</span></a>
+            <a class="ui-figure" href="{% url 'case_list' %}"><strong>{{ open_cases }}</strong><span>Expedientes abiertos{% if draft_cases %} · {{ draft_cases }} en borrador{% endif %}</span></a>
+        </div>
+    </section>
     <nav class="ui-list" aria-label="Accesos">
         <a class="ui-list-row" href="{% url 'case_list' %}"><span class="ui-list-text"><span class="ui-list-title">Mi cartera</span><span class="ui-list-support">{{ total_cases }} expediente{{ total_cases|pluralize }} · {{ total_recommendations }} recomendaci{{ total_recommendations|pluralize:"ón,ones" }}</span></span>{% ui_icon "chevron" %}</a>
         <a class="ui-list-row" href="{% url 'historical_document_list' %}"><span class="ui-list-text"><span class="ui-list-title">Informes anteriores</span><span class="ui-list-support">Consultar o cargar documentos</span></span>{% ui_icon "chevron" %}</a>
         <a class="ui-list-row" href="{% url 'audit_inquiries' %}"><span class="ui-list-text"><span class="ui-list-title">Consultas</span><span class="ui-list-support">Preguntas de los centros</span></span>{% ui_icon "chevron" %}</a>
     </nav>
+    </aside>
+    </div>
 </div>
 {% elif user.role == 'institution' %}
-<div class="ui-page ui-page-narrow institution-home">
+<div class="ui-page institution-home">
     <header class="ui-page-header">
         <p class="ui-page-context">{{ user.organization.name }}</p>
         <h1 class="ui-page-title">{% if pending_recommendations %}Para hacer · {{ pending_recommendations }}{% else %}Todo al día{% endif %}</h1>
     </header>
 
+    <div class="ui-layout">
+    <div class="ui-layout-main">
     {% if organization_attention_items %}
-    <div class="ui-stack" id="pendientes">
+    <div class="ui-card-grid" id="pendientes">
         {% for recommendation in organization_attention_items %}
         <article class="ui-card" aria-labelledby="task-{{ recommendation.pk }}">
             <div class="ui-chips">{% if recommendation.status == 'correction_required' %}{% ui_status_chip recommendation.status %}{% endif %}{% ui_deadline_chip recommendation.current_deadline %}</div>
@@ -70,12 +79,20 @@
             <div class="ui-card-actions"><a class="ui-button {% if forloop.first %}ui-button-filled ui-button-large{% else %}ui-button-tonal{% endif %}" href="{% url 'respond_recommendation' recommendation.pk %}">{% if recommendation.status == 'correction_required' %}Corregir respuesta{% else %}Responder{% endif %}</a></div>
         </article>
         {% endfor %}
-        {% if pending_recommendations > organization_attention_items|length %}<a class="ui-button ui-button-text" href="{% url 'case_list' %}">Ver las {{ pending_recommendations }} recomendaciones</a>{% endif %}
     </div>
+    {% if pending_recommendations > organization_attention_items|length %}<a class="ui-button ui-button-text" href="{% url 'case_list' %}">Ver las {{ pending_recommendations }} recomendaciones</a>{% endif %}
     {% else %}
     <div class="ui-card"><div class="ui-empty"><span class="ui-empty-mark">{% ui_icon "check" %}</span><div><h2 class="ui-card-title">No tiene recomendaciones por responder</h2><p class="ui-card-support">Cuando Auditoría publique una nueva, aparecerá aquí.</p></div></div></div>
     {% endif %}
+    </div>
 
+    <aside class="ui-layout-aside" aria-label="Resumen y accesos de mi centro">
+    {% if pending_recommendations %}
+    <div class="ui-figures">
+        <a class="ui-figure{% if organization_overdue_count %} ui-figure-danger{% endif %}" href="#pendientes"><strong>{{ organization_overdue_count }}</strong><span>Con plazo vencido</span></a>
+        <a class="ui-figure{% if organization_due_soon_count %} ui-figure-warning{% endif %}" href="#pendientes"><strong>{{ organization_due_soon_count }}</strong><span>Vencen en 7 días</span></a>
+    </div>
+    {% endif %}
     <section class="ui-section" aria-labelledby="mi-centro-title">
         <h2 class="ui-section-title" id="mi-centro-title">Mi centro</h2>
         <nav class="ui-list" aria-labelledby="mi-centro-title">
@@ -85,6 +102,8 @@
             <a class="ui-list-row" href="{% url 'institution_technical_support' %}"><span class="ui-list-text"><span class="ui-list-title">Soporte técnico</span><span class="ui-list-support">{% if open_support_requests == 1 %}1 solicitud abierta{% elif open_support_requests %}{{ open_support_requests }} solicitudes abiertas{% else %}Pida ayuda con el sistema{% endif %}</span></span>{% ui_icon "chevron" %}</a>
         </nav>
     </section>
+    </aside>
+    </div>
 </div>
 {% endif %}
 {% endblock %}

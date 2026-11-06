@@ -2,9 +2,10 @@
 {% load ui %}
 {% block title %}Responder recomendación{% endblock %}
 {% block content %}
-<div class="ui-page ui-page-narrow respond-page">
-    <a class="ui-back" href="{% url 'case_detail' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
-
+<div class="ui-page respond-page">
+    <div class="ui-layout ui-layout-context">
+    <a class="ui-back ui-layout-full" href="{% url 'case_detail' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+    <aside class="ui-layout-aside" aria-label="Recomendación que responde">
     <article class="ui-card" aria-labelledby="respond-recommendation">
         <div class="ui-chips">{% if recommendation.status == 'correction_required' %}{% ui_status_chip recommendation.status %}{% endif %}{% ui_deadline_chip current_deadline %}</div>
         <h1 class="ui-card-title" id="respond-recommendation">{{ recommendation.text|linebreaksbr }}</h1>
@@ -17,7 +18,9 @@
         <p>{{ correction_comment|linebreaksbr }}</p>
     </section>
     {% endif %}
+    </aside>
 
+    <div class="ui-layout-main">
     <form method="post" enctype="multipart/form-data" class="ui-steps" data-response-form data-steps novalidate>
         {% csrf_token %}
         <div class="ui-steps-bar" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -87,5 +90,7 @@
             </div>
         </section>
     </form>
+    </div>
+    </div>
 </div>
 {% endblock %}

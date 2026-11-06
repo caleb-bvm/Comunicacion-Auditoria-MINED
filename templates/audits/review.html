@@ -10,6 +10,8 @@
         <p class="ui-page-context">{{ case.reference }} · versión {{ response.version }} del {{ response.submitted_at|date:"j b Y" }}, {% if submitted_on_time %}dentro del plazo{% else %}después del plazo{% endif %}</p>
     </header>
 
+    <div class="ui-layout">
+    <div class="ui-layout-main">
     {% with requirements=recommendation.evidence_requirements|ui_lines %}
     <div class="ui-callout ui-callout-inline ui-callout-summary" role="status">{% ui_icon "file" %}<strong>El centro dice «{{ response.get_declared_status_display }}» y envió {{ evidence|length }} documento{{ evidence|length|pluralize }}{% if requirements %}; se pidieron {{ requirements|length }}{% endif %}.</strong></div>
 
@@ -37,7 +39,9 @@
         </section>
     </div>
     {% endwith %}
+    </div>
 
+    <aside class="ui-layout-aside" aria-label="Resultado de la revisión">
     <form method="post" class="ui-card" aria-labelledby="review-result">
         {% csrf_token %}
         <h2 class="ui-section-title" id="review-result">Su resultado</h2>
@@ -53,5 +57,7 @@
             <button class="ui-button ui-button-filled ui-button-large" type="submit">Registrar resultado</button>
         </div>
     </form>
+    </aside>
+    </div>
 </div>
 {% endblock %}

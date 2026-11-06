@@ -98,14 +98,46 @@ body {
     .mobile-nav-item.is-active svg { background: var(--ui-primary-container); color: var(--ui-on-primary-container); border-radius: var(--ui-radius-full); }
 }
 
-/* ---------- Página ---------- */
+/* ---------- Página y retícula adaptable ----------
+ * Anchos del proyecto: teléfono ≤ 720 px, tableta ≤ 1080 px, escritorio > 1080 px.
+ * La página ocupa todo el ancho útil (hasta 1280 px, centrada). Las columnas se deciden
+ * por el ancho real del contenedor (container queries), no por el de la ventana, así una
+ * misma pieza funciona en la columna principal, en la lateral o a pantalla completa.
+ */
 .ui-page {
-    max-width: 1040px;
+    width: 100%;
+    max-width: var(--ui-page-max);
+    margin-inline: auto;
     display: flex;
     flex-direction: column;
     gap: var(--ui-space-6);
 }
-.ui-page-narrow { max-width: 720px; }
+
+/* Principal + lateral. La lateral va después en el HTML y baja al final en pantallas angostas. */
+.ui-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ui-space-6); align-items: start; }
+.ui-layout-main, .ui-layout-aside { min-width: 0; display: flex; flex-direction: column; gap: var(--ui-space-6); container-type: inline-size; }
+/* Contexto + formulario: el contexto va primero en el HTML y queda a la izquierda.
+ * El par se centra como un bloque para que el formulario mantenga una línea cómoda
+ * sin dejar media pantalla vacía. */
+.ui-layout-context { width: 100%; max-width: var(--ui-form-max); margin-inline: auto; }
+
+@media (min-width: 1081px) {
+    .ui-layout { grid-template-columns: minmax(0, 1fr) var(--ui-aside-width); gap: var(--ui-space-8); }
+    .ui-layout-context {
+        max-width: calc(var(--ui-aside-width) + var(--ui-space-8) + var(--ui-form-max));
+        grid-template-columns: var(--ui-aside-width) minmax(0, 1fr);
+    }
+    .ui-layout-aside { position: sticky; top: var(--ui-space-8); }
+}
+
+.ui-layout-full { grid-column: 1 / -1; }
+.ui-layout > .ui-back { justify-self: start; margin-bottom: calc(var(--ui-space-4) * -1); }
+
+/* Tarjetas que se reparten en columnas cuando hay espacio y se apilan cuando no. */
+.ui-card-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ui-space-4); }
+@container (min-width: 820px) {
+    .ui-card-grid { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+}
 .ui-page-header { display: flex; flex-direction: column; gap: var(--ui-space-2); }
 .ui-page-header-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--ui-space-4); }
 .ui-page-title {
@@ -297,11 +329,15 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
     background: var(--ui-surface-card);
     border-radius: var(--ui-radius-card);
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     overflow: hidden;
 }
 .ui-compare-side { padding: var(--ui-space-6); display: flex; flex-direction: column; gap: var(--ui-space-3); min-width: 0; }
-.ui-compare-side + .ui-compare-side { border-left: 1px solid var(--ui-divider); }
+.ui-compare-side + .ui-compare-side { border-top: 1px solid var(--ui-divider); }
+@container (min-width: 640px) {
+    .ui-compare { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ui-compare-side + .ui-compare-side { border-top: 0; border-left: 1px solid var(--ui-divider); }
+}
 .ui-compare-side p { margin: 0; }
 .ui-list-flat { padding: 0; background: transparent; border-radius: 0; border-top: 1px solid var(--ui-divider); }
 .ui-callout-summary { font-size: var(--ui-text-title); line-height: 28px; }
@@ -309,7 +345,6 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--ui-space-2); }
 
 /* ---------- Tabla ---------- */
-.ui-page-wide { max-width: 1120px; }
 .ui-table-wrap { background: var(--ui-surface-card); border-radius: var(--ui-radius-card); overflow-x: auto; }
 .ui-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: var(--ui-text-body); line-height: 28px; }
 .ui-table th {
@@ -467,7 +502,11 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-steps:not(.ui-steps-enhanced) .ui-steps-bar { display: none; }
 
 /* ---------- Indicadores ---------- */
-.ui-figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--ui-space-4); }
+.ui-figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--ui-space-3); }
+.ui-figures .ui-figure { padding: var(--ui-space-4) var(--ui-space-5); }
+.ui-figures .ui-figure span { font-size: var(--ui-text-support); line-height: 24px; }
+.ui-layout-aside .ui-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ui-layout-aside .ui-figures > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 .ui-figure {
     border-radius: var(--ui-radius-card);
     padding: var(--ui-space-5) var(--ui-space-6);
@@ -500,8 +539,7 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
     .ui-page-title { font-size: var(--ui-text-page-mobile); line-height: 36px; }
     .ui-card { padding: var(--ui-space-5); }
     .ui-list { padding-inline: var(--ui-space-5); }
-    .ui-grid-2, .ui-field-row, .ui-compare { grid-template-columns: 1fr; }
-    .ui-compare-side + .ui-compare-side { border-left: 0; border-top: 1px solid var(--ui-divider); }
+    .ui-grid-2, .ui-field-row { grid-template-columns: 1fr; }
     .ui-compare-side { padding: var(--ui-space-5); }
     .ui-form-actions { flex-direction: column-reverse; align-items: stretch; }
     .ui-card-actions > .ui-button { width: 100%; }

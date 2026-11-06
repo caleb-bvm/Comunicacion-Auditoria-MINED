@@ -2,7 +2,7 @@
 {% load ui %}
 {% block title %}{{ case.reference }} | Auditoría Interna{% endblock %}
 {% block content %}
-<div class="ui-page ui-page-narrow case-page">
+<div class="ui-page case-page">
     <a class="ui-back" href="{% url 'case_list' %}">{% ui_icon "back" %}Expedientes</a>
 
     <header class="ui-page-header">
@@ -14,9 +14,12 @@
     <div class="ui-callout ui-callout-inline" role="status">{% ui_icon "info" %}<span>{% if pending_decision.kind == 'closure' %}Auditoría pidió cerrar este expediente el {{ pending_decision.requested_at|date:"j b Y" }}. La Dirección lo está revisando.{% else %}Este expediente está en revisión de la Dirección desde el {{ pending_decision.requested_at|date:"j b Y" }}.{% endif %}</span></div>
     {% endif %}
 
+    <div class="ui-layout">
+    <div class="ui-layout-main">
     {% if institution_tasks %}
     <section class="ui-section" aria-labelledby="case-tasks-title">
         <h2 class="ui-section-title" id="case-tasks-title">Para responder · {{ institution_tasks|length }}</h2>
+        <div class="ui-card-grid">
         {% for recommendation in institution_tasks %}
         <article class="ui-card" aria-labelledby="case-task-{{ recommendation.pk }}">
             <div class="ui-chips">{% if recommendation.status == 'correction_required' %}{% ui_status_chip recommendation.status %}{% endif %}{% ui_deadline_chip recommendation.deadline %}</div>
@@ -25,22 +28,10 @@
             <div class="ui-card-actions"><a class="ui-button {% if forloop.first %}ui-button-filled ui-button-large{% else %}ui-button-tonal{% endif %}" href="{% url 'respond_recommendation' recommendation.pk %}">{% if recommendation.status == 'correction_required' %}Corregir respuesta{% else %}Presentar respuesta{% endif %}</a></div>
         </article>
         {% endfor %}
+        </div>
     </section>
     {% elif case.status != 'closed' %}
     <div class="ui-card"><div class="ui-empty"><span class="ui-empty-mark">{% ui_icon "check" %}</span><h2 class="ui-card-title">No tiene nada por responder en este expediente</h2></div></div>
-    {% endif %}
-
-    {% if documents or case.report_file %}
-    <section class="ui-section" aria-labelledby="case-report-title">
-        <h2 class="ui-section-title" id="case-report-title">Informe</h2>
-        <div class="ui-list">
-            {% for document in documents %}
-            <a class="ui-list-row" href="{% url 'download_audit_document' document.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ document.title }}</span><span class="ui-list-support">Versión {{ document.version }}{% if document.reference %} · {{ document.reference }}{% endif %}</span></span>{% ui_icon "download" %}<span class="ui-visually-hidden">Descargar</span></a>
-            {% empty %}
-            <a class="ui-list-row" href="{% url 'download_report' case.pk %}"><span class="ui-list-text"><span class="ui-list-title">Informe de auditoría</span><span class="ui-list-support">Documento migrado</span></span>{% ui_icon "download" %}<span class="ui-visually-hidden">Descargar</span></a>
-            {% endfor %}
-        </div>
-    </section>
     {% endif %}
 
     <section class="ui-section" aria-labelledby="case-findings-title">
@@ -89,10 +80,29 @@
         {% endfor %}
     </section>
 
+    </div>
+
+    <aside class="ui-layout-aside" aria-label="Informe y Consejo Directivo">
+    {% if documents or case.report_file %}
+    <section class="ui-section" aria-labelledby="case-report-title">
+        <h2 class="ui-section-title" id="case-report-title">Informe</h2>
+        <div class="ui-list">
+            {% for document in documents %}
+            <a class="ui-list-row" href="{% url 'download_audit_document' document.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ document.title }}</span><span class="ui-list-support">Versión {{ document.version }}{% if document.reference %} · {{ document.reference }}{% endif %}</span></span>{% ui_icon "download" %}<span class="ui-visually-hidden">Descargar</span></a>
+            {% empty %}
+            <a class="ui-list-row" href="{% url 'download_report' case.pk %}"><span class="ui-list-text"><span class="ui-list-title">Informe de auditoría</span><span class="ui-list-support">Documento migrado</span></span>{% ui_icon "download" %}<span class="ui-visually-hidden">Descargar</span></a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
     {% if case.audited_organization.kind == 'educational_center' %}
     <nav class="ui-list" aria-label="Más sobre este expediente">
         <a class="ui-list-row" href="{% url 'cde_detail' case.audited_organization.pk %}"><span class="ui-list-text"><span class="ui-list-title">Consejo Directivo Escolar</span><span class="ui-list-support">Integrantes registrados del centro</span></span>{% ui_icon "chevron" %}</a>
     </nav>
     {% endif %}
+    {% if not documents and not case.report_file and case.audited_organization.kind != 'educational_center' %}<p class="ui-help">Este expediente no tiene documentos para su centro.</p>{% endif %}
+    </aside>
+    </div>
 </div>
 {% endblock %}
