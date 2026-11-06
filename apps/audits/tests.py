@@ -676,10 +676,10 @@ class AccessAndWorkflowTests(TestCase):
         detail = self.client.get(reverse("case_detail", args=[self.case.pk]))
         case_list = self.client.get(reverse("case_list"))
 
-        self.assertContains(detail, status_tag)
         self.assertNotContains(detail, "Código institucional")
-        self.assertContains(detail, "<dt>Responsable</dt>", count=1)
-        self.assertContains(detail, "<dd>Centro Dos</dd>")
+        self.assertContains(detail, "Responde:", count=1)
+        self.assertContains(detail, "Responde: Centro Dos")
+        self.assertNotContains(detail, "Responde: Centro Uno")
         self.assertNotContains(case_list, "<dt>Código</dt>")
 
         self.client.force_login(self.director)
@@ -703,10 +703,7 @@ class AccessAndWorkflowTests(TestCase):
         self.client.force_login(self.institution_user)
         response = self.client.get(reverse("case_detail", args=[self.case.pk]))
 
-        self.assertContains(
-            response,
-            f"La respuesta debe ser presentada por {self.other_center.name}.",
-        )
+        self.assertContains(response, f"Responde: {self.other_center.name}")
         self.assertEqual(response.content.decode().count("Presentar respuesta"), 1)
 
     def test_responsible_organization_can_submit_response_and_evidence(self):

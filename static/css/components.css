@@ -253,6 +253,45 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-list-support { font-size: var(--ui-text-support); line-height: 24px; color: var(--ui-on-surface-variant); }
 .ui-list-row > .ui-icon { color: var(--ui-on-surface-variant); }
 
+/* ---------- Detalle plegable, recomendaciones y versiones ---------- */
+.ui-details { border-top: 1px solid var(--ui-divider); }
+.ui-details > summary {
+    min-height: var(--ui-touch);
+    padding: var(--ui-space-2) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    color: var(--ui-primary);
+    font-size: var(--ui-text-support);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+}
+.ui-details > summary::-webkit-details-marker { display: none; }
+.ui-details > summary::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    margin-left: auto;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform .15s var(--ui-ease);
+}
+.ui-details[open] > summary::after { transform: rotate(225deg); }
+.ui-details > :not(summary) { padding-bottom: var(--ui-space-4); }
+.ui-details p { margin: 0; }
+.ui-divided { display: flex; flex-direction: column; }
+.ui-divided > * + * { border-top: 1px solid var(--ui-divider); }
+.ui-recommendation { padding: var(--ui-space-5) 0 0; display: flex; flex-direction: column; gap: var(--ui-space-3); }
+.ui-recommendation > p { margin: 0; }
+.content .ui-recommendation-title { margin: 0; font-size: var(--ui-text-support); line-height: 24px; font-weight: 600; color: var(--ui-on-surface-variant); }
+.ui-plain-list { margin: var(--ui-space-1) 0 0; padding-left: 1.25em; font-size: var(--ui-text-support); line-height: 26px; }
+.ui-plain-list a { overflow-wrap: anywhere; }
+.ui-version { padding: var(--ui-space-4); border-radius: var(--ui-radius-tile); background: var(--ui-surface-low); display: flex; flex-direction: column; gap: var(--ui-space-2); }
+.ui-version-title { font-weight: 600; }
+.ui-version .ui-button-text { align-self: flex-start; margin-left: calc(var(--ui-space-4) * -1); }
+
 /* ---------- Lista de verificación ---------- */
 .ui-checklist { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--ui-space-3); }
 .ui-checklist li { display: flex; align-items: flex-start; gap: var(--ui-space-3); }

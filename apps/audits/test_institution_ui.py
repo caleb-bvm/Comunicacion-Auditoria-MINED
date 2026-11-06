@@ -78,6 +78,44 @@ class InstitutionTaskScreensTests(TestCase):
         self.assertContains(page, "Corregir respuesta")
         self.assertNotContains(page, "NombreReservado")
 
+    def test_case_page_puts_tasks_first_and_keeps_history_folded(self):
+        page = self.client.get(reverse("case_detail", args=[self.case.pk]))
+        self.assertTemplateUsed(page, "audits/case_detail_institution.html")
+        self.assertContains(page, '<h1 class="ui-page-title">Auditoría de prueba</h1>', html=False)
+        self.assertContains(page, "Para responder · 1")
+        self.assertContains(page, "Auditoría pide: Adjunte las cinco actas firmadas.")
+        self.assertContains(page, "Corregir respuesta")
+        self.assertContains(page, "Lo que ya envió · 1 versión")
+        self.assertContains(page, "Actas firmadas")
+        self.assertNotContains(page, "NombreReservado")
+        self.assertNotContains(page, "Auditor responsable")
+
+    def test_outdated_correction_request_is_not_shown(self):
+        newer = Response.objects.create(
+            recommendation=self.recommendation,
+            version=2,
+            declared_status=Response.DeclaredStatus.COMPLETED,
+            action_description="Se adjuntaron las actas.",
+            responsible_name="Dirección",
+            responsible_job_title="Director",
+            accuracy_declaration=True,
+            submitted_by=self.institution_user,
+        )
+        Review.objects.create(
+            response=newer,
+            outcome=Review.Outcome.PARTIAL,
+            comments="Avance parcial.",
+            reviewed_by=self.auditor,
+        )
+        page = self.client.get(reverse("dashboard"))
+        self.assertNotContains(page, "Auditoría pide:")
+
+    def test_auditor_keeps_the_full_case_page(self):
+        self.client.force_login(self.auditor)
+        page = self.client.get(reverse("case_detail", args=[self.case.pk]))
+        self.assertTemplateUsed(page, "audits/case_detail.html")
+        self.assertContains(page, "Auditor responsable")
+
     def test_respond_page_shows_audit_request_steps_and_requirements(self):
         page = self.client.get(reverse("respond_recommendation", args=[self.recommendation.pk]))
         self.assertContains(page, "Lo que pide Auditoría")

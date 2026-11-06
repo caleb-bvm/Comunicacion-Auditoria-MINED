@@ -108,25 +108,27 @@ def log_activity(request, action, case=None, target=None, details=None):
 
 
 def latest_correction_comments(recommendations):
-    """Devuelve, por recomendación, el último comentario de Auditoría que pidió corrección.
+    """Devuelve, por recomendación, el comentario de la revisión más reciente si pidió corrección.
 
-    Solo incluye el texto del comentario: la identidad del auditor no se expone al centro.
+    Solo cuenta la última revisión: si una versión posterior obtuvo otro resultado, el pedido
+    anterior ya no aplica. Solo incluye el texto: la identidad del auditor no se expone al centro.
     """
     ids = [recommendation.pk for recommendation in recommendations]
     if not ids:
         return {}
-    comments = {}
+    latest = {}
     reviews = (
-        Review.objects.filter(
-            response__recommendation_id__in=ids,
-            outcome=Review.Outcome.CORRECTION_REQUIRED,
-        )
+        Review.objects.filter(response__recommendation_id__in=ids)
         .order_by("response__recommendation_id", "-response__version")
-        .values_list("response__recommendation_id", "comments")
+        .values_list("response__recommendation_id", "outcome", "comments")
     )
-    for recommendation_id, text in reviews:
-        comments.setdefault(recommendation_id, text)
-    return comments
+    for recommendation_id, outcome, text in reviews:
+        latest.setdefault(recommendation_id, (outcome, text))
+    return {
+        recommendation_id: text
+        for recommendation_id, (outcome, text) in latest.items()
+        if outcome == Review.Outcome.CORRECTION_REQUIRED
+    }
 
 
 def user_can_create_cases(user):
@@ -2621,19 +2623,38 @@ def case_detail(request, pk):
         ),
     )
     documents = case.documents.select_related("uploaded_by")
+    template_name = "audits/case_detail.html"
+    institution_tasks = []
     if request.user.role == User.Role.INSTITUTION:
         documents = documents.filter(
             organization_id=request.user.organization_id,
             visibility=AuditDocument.Visibility.INSTITUTION,
             status=AuditDocument.Status.APPROVED,
         )
+        template_name = "audits/case_detail_institution.html"
+        findings = list(findings)
+        institution_tasks = [
+            recommendation
+            for finding in findings
+            for recommendation in finding.recommendations.all()
+            if recommendation.responsible_organization_id == request.user.organization_id
+            and recommendation.status
+            in {Recommendation.Status.PENDING, Recommendation.Status.CORRECTION_REQUIRED}
+        ]
+        comments = latest_correction_comments(
+            [task for task in institution_tasks if task.status == Recommendation.Status.CORRECTION_REQUIRED]
+        )
+        for task in institution_tasks:
+            task.correction_comment = comments.get(task.pk, "")
+        institution_tasks.sort(key=lambda task: (task.deadline is None, task.deadline or date.max))
     return render(
         request,
-        "audits/case_detail.html",
+        template_name,
         {
             "case": case,
             "findings": findings,
             "documents": documents,
+            "institution_tasks": institution_tasks,
             "can_edit_case": user_can_edit_case(request.user, case),
             "can_request_closure": (
                 request.user.role == User.Role.AUDITOR
