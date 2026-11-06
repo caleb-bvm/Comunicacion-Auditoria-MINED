@@ -19,6 +19,18 @@ RECOMMENDATION_STATUS = {
     "not_complied": ("danger", "close", "No cumplida"),
 }
 
+# Estado de un expediente → (tono del chip, ícono, texto corto).
+CASE_STATUS = {
+    "draft": ("neutral", "edit", "Borrador"),
+    "pending_publication": ("info", "send", "Por publicar"),
+    "published": ("info", "send", "Enviado"),
+    "in_response": ("neutral", "pending", "Sin respuesta"),
+    "under_review": ("review", "search", "En revisión"),
+    "correction_required": ("correction", "edit", "Corregir"),
+    "pending_closure": ("success", "check", "Cierre pedido"),
+    "closed": ("success", "check", "Cerrado"),
+}
+
 DUE_SOON_DAYS = 7
 
 
@@ -49,6 +61,12 @@ def ui_icon(name):
 def ui_status_chip(status, label=None):
     tone, icon, short_label = RECOMMENDATION_STATUS.get(status, ("neutral", "pending", status))
     return {"tone": tone, "icon": icon, "label": label or short_label}
+
+
+@register.inclusion_tag("includes/ui/chip.html")
+def ui_case_status_chip(status):
+    tone, icon, label = CASE_STATUS.get(status, ("neutral", "pending", status))
+    return {"tone": tone, "icon": icon, "label": label}
 
 
 @register.inclusion_tag("includes/ui/chip.html")

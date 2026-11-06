@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Exists, Max, OuterRef, Prefetch, Q
+from django.db.models import Count, Exists, Max, Min, OuterRef, Prefetch, Q
 from django.core.paginator import Paginator
 from django.http import FileResponse, Http404, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
@@ -610,6 +610,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context["attention_items"] = sorted(
                 attention_items, key=lambda item: item["sort_key"]
             )[:6]
+            context["review_items"] = [item for item in attention_items if item["kind"] == "review"]
+            context["deadline_items"] = sorted(
+                (item for item in attention_items if item["kind"] != "review"),
+                key=lambda item: item["date"],
+            )
         return context
 
 
@@ -1913,7 +1918,68 @@ class CaseListView(LoginRequiredMixin, ListView):
                 "selected_district": self.selected_district,
             }
         )
+        if self.request.user.is_audit_staff:
+            context["cases"] = annotate_case_progress(context["cases"], self.request.user)
         return context
+
+
+def annotate_case_progress(cases, user):
+    """Añade a cada expediente lo que sigue, el plazo abierto más próximo y la respuesta por revisar."""
+    cases = list(cases)
+    if not cases:
+        return cases
+    open_statuses = [Recommendation.Status.PENDING, Recommendation.Status.CORRECTION_REQUIRED]
+    waiting_statuses = [Recommendation.Status.SUBMITTED, Recommendation.Status.UNDER_REVIEW]
+    progress = {
+        row["finding__case_id"]: row
+        for row in Recommendation.objects.filter(finding__case__in=cases)
+        .values("finding__case_id")
+        .annotate(
+            open_count=Count("pk", filter=Q(status__in=open_statuses)),
+            waiting_count=Count("pk", filter=Q(status__in=waiting_statuses)),
+            next_deadline=Min("deadline", filter=Q(status__in=open_statuses)),
+        )
+    }
+    first_unreviewed = {}
+    for case_id, response_id in (
+        Response.objects.filter(
+            recommendation__finding__case__in=cases,
+            recommendation__status__in=waiting_statuses,
+            review__isnull=True,
+        )
+        .order_by("submitted_at")
+        .values_list("recommendation__finding__case_id", "pk")
+    ):
+        first_unreviewed.setdefault(case_id, response_id)
+    primary_given = False
+    for case in cases:
+        row = progress.get(case.pk, {})
+        case.open_count = row.get("open_count", 0)
+        case.waiting_count = row.get("waiting_count", 0)
+        # El plazo solo corre para expedientes que ya llegaron al centro.
+        case.next_deadline = row.get("next_deadline") if case.status in {
+            AuditCase.Status.PUBLISHED,
+            AuditCase.Status.IN_RESPONSE,
+            AuditCase.Status.UNDER_REVIEW,
+            AuditCase.Status.CORRECTION_REQUIRED,
+        } else None
+        case.review_response_id = first_unreviewed.get(case.pk)
+        if case.status == AuditCase.Status.CLOSED:
+            case.next_step = "closed"
+        elif case.status in {AuditCase.Status.PENDING_PUBLICATION, AuditCase.Status.PENDING_CLOSURE}:
+            case.next_step = "director"
+        elif case.status == AuditCase.Status.DRAFT:
+            case.next_step = "draft" if user_can_edit_case(user, case) else "draft_other"
+        elif case.review_response_id:
+            case.next_step = "review"
+        elif case.open_count:
+            case.next_step = "institution"
+        else:
+            case.next_step = "none"
+        # Un solo botón relleno por pantalla: la primera revisión pendiente.
+        case.is_primary_action = case.next_step == "review" and not primary_given
+        primary_given = primary_given or case.is_primary_action
+    return cases
 
 
 @transaction.atomic
@@ -2944,7 +3010,31 @@ def review_response(request, pk):
             return redirect("case_detail", pk=case.pk)
     else:
         form = ReviewForm()
-    return render(request, "audits/review.html", {"form": form, "response": response})
+    recommendation = response.recommendation
+    evidence = list(response.evidence.all())
+    previous_request = (
+        Review.objects.filter(
+            response__recommendation=recommendation,
+            response__version__lt=response.version,
+        )
+        .order_by("-response__version")
+        .first()
+    )
+    deadline = recommendation.deadline
+    return render(
+        request,
+        "audits/review.html",
+        {
+            "form": form,
+            "response": response,
+            "recommendation": recommendation,
+            "case": recommendation.finding.case,
+            "evidence": evidence,
+            "previous_review": previous_request,
+            "submitted_on_time": deadline is None
+            or timezone.localtime(response.submitted_at).date() <= deadline,
+        },
+    )
 
 
 def download_evidence(request, pk):

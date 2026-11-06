@@ -506,7 +506,20 @@ class ResponseForm(forms.ModelForm):
 
 
 class ReviewForm(forms.ModelForm):
+    # Orden y palabras pensados para decidir: del mejor resultado al peor.
+    OUTCOME_CHOICES = (
+        (Review.Outcome.COMPLIED, "Cumplida"),
+        (Review.Outcome.PARTIAL, "Parcialmente cumplida"),
+        (Review.Outcome.CORRECTION_REQUIRED, "Pedir corrección"),
+        (Review.Outcome.NOT_COMPLIED, "No cumplida"),
+    )
+
     class Meta:
         model = Review
         fields = ("outcome", "comments")
-        widgets = {"comments": forms.Textarea(attrs={"rows": 6})}
+        widgets = {"comments": forms.Textarea(attrs={"rows": 4})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["outcome"].choices = self.OUTCOME_CHOICES
+        self.fields["outcome"].widget = forms.RadioSelect(choices=self.OUTCOME_CHOICES)

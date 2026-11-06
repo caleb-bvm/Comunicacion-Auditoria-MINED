@@ -1,10 +1,57 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Revisar respuesta{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'case_detail' response.recommendation.finding.case_id %}">{{ response.recommendation.finding.case.reference }}</a><span>/</span><span>Revisión</span></nav>
-<div class="page-heading"><span class="case-reference">{{ response.recommendation.finding.case.reference }} · Respuesta versión {{ response.version }}</span><h1>Revisar respuesta</h1></div>
-<div class="two-column">
-    <section class="card response-review-summary" aria-labelledby="response-data-title"><div class="section-heading"><h2 id="response-data-title">Respuesta institucional</h2><span class="status status-{{ response.declared_status }}">{{ response.get_declared_status_display }}</span></div><p>{{ response.action_description|linebreaksbr }}</p><dl class="meta-list"><div><dt>Responsable</dt><dd>{{ response.responsible_name }}, {{ response.responsible_job_title }}</dd></div><div><dt>Presentada</dt><dd>{{ response.submitted_at|date:"d/m/Y H:i" }}</dd></div></dl><div class="evidence-list"><strong>Documentos adjuntos</strong>{% for item in response.evidence.all %}<a href="{% url 'download_evidence' item.pk %}"><span>{{ item.original_filename }}</span><small>{{ item.get_category_display }} · {{ item.get_scan_status_display }}</small></a>{% empty %}<p class="muted">Sin documentos adjuntos.</p>{% endfor %}</div></section>
-    <form method="post" class="card stacked-form">{% csrf_token %}{% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}<fieldset class="form-section"><legend>Resultado de la revisión</legend>{% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</fieldset><div class="submit-panel"><a class="button button-ghost" href="{% url 'case_detail' response.recommendation.finding.case_id %}">Cancelar</a><button class="button button-primary" type="submit">Registrar resultado</button></div></form>
+<div class="ui-page review-page">
+    <a class="ui-back" href="{% url 'case_detail' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Revisar: {{ recommendation.responsible_organization.name }} · Rec. {{ recommendation.finding.number }}.{{ recommendation.number }}</h1>
+        <p class="ui-page-context">{{ case.reference }} · versión {{ response.version }} del {{ response.submitted_at|date:"j b Y" }}, {% if submitted_on_time %}dentro del plazo{% else %}después del plazo{% endif %}</p>
+    </header>
+
+    {% with requirements=recommendation.evidence_requirements|ui_lines %}
+    <div class="ui-callout ui-callout-inline ui-callout-summary" role="status">{% ui_icon "file" %}<strong>El centro dice «{{ response.get_declared_status_display }}» y envió {{ evidence|length }} documento{{ evidence|length|pluralize }}{% if requirements %}; se pidieron {{ requirements|length }}{% endif %}.</strong></div>
+
+    <div class="ui-compare">
+        <section class="ui-compare-side" aria-labelledby="review-asked">
+            <h2 class="ui-section-title" id="review-asked">Se pidió</h2>
+            <p>{{ recommendation.text|linebreaksbr }}</p>
+            {% if requirements %}<ul class="ui-plain-list">{% for item in requirements %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+            {% if previous_review %}<div class="ui-version"><p class="ui-version-title">Su revisión de la versión {{ previous_review.response.version }}: {{ previous_review.get_outcome_display|lower }}</p><p class="ui-help">{{ previous_review.comments|linebreaksbr }}</p></div>{% endif %}
+        </section>
+        <section class="ui-compare-side" aria-labelledby="review-answered">
+            <h2 class="ui-section-title" id="review-answered">Respondió</h2>
+            <p>{{ response.action_description|linebreaksbr }}</p>
+            {% if response.action_date %}<p class="ui-help">Completado el {{ response.action_date|date:"j b Y" }}</p>{% endif %}
+            {% if response.non_compliance_reason %}<p class="ui-help">Por qué no se cumplió: {{ response.non_compliance_reason }}</p>{% endif %}
+            {% if response.action_plan %}<p class="ui-help">Plan: {{ response.action_plan }}{% if response.expected_completion_date %} · para el {{ response.expected_completion_date|date:"j b Y" }}{% endif %}</p>{% endif %}
+            <p class="ui-help">Responsable: {{ response.responsible_name }}, {{ response.responsible_job_title }}</p>
+            {% if evidence %}
+            <div class="ui-list ui-list-flat">
+                {% for item in evidence %}<a class="ui-list-row" href="{% url 'download_evidence' item.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ item.original_filename }}</span><span class="ui-list-support">{{ item.get_category_display }}</span></span>{% ui_icon "download" %}<span class="ui-visually-hidden">Descargar</span></a>{% endfor %}
+            </div>
+            {% else %}
+            <p class="ui-help">No adjuntó documentos.</p>
+            {% endif %}
+        </section>
+    </div>
+    {% endwith %}
+
+    <form method="post" class="ui-card" aria-labelledby="review-result">
+        {% csrf_token %}
+        <h2 class="ui-section-title" id="review-result">Su resultado</h2>
+        {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        <fieldset class="ui-choices ui-choices-row{% if form.outcome.errors %} ui-field-error{% endif %}">
+            <legend class="ui-visually-hidden">Resultado de la revisión</legend>
+            {{ form.outcome }}
+            {% if form.outcome.errors %}<div class="ui-field">{{ form.outcome.errors }}</div>{% endif %}
+        </fieldset>
+        {% include "includes/ui/field.html" with field=form.comments label="Comentario para el centro" help="El centro lo verá tal cual arriba de su tarea. Si pide corrección, escríbalo como una instrucción." %}
+        <div class="ui-form-actions">
+            <a class="ui-button ui-button-text" href="{% url 'case_detail' case.pk %}">Cancelar</a>
+            <button class="ui-button ui-button-filled ui-button-large" type="submit">Registrar resultado</button>
+        </div>
+    </form>
 </div>
 {% endblock %}

@@ -689,7 +689,7 @@ class AccessAndWorkflowTests(TestCase):
         self.assertContains(detail, status_tag)
         self.assertContains(detail, "Código institucional")
         self.assertContains(detail, "<dt>Responsable</dt>", count=2)
-        self.assertContains(case_list, "<dt>Código</dt>")
+        self.assertContains(case_list, f"{self.case.reference} · {self.center.code} ·")
 
     def test_pending_recommendation_for_another_organization_explains_missing_response_button(self):
         Recommendation.objects.create(
