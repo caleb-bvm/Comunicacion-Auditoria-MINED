@@ -6,10 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="description" content="Sistema institucional de seguimiento de recomendaciones de Auditoría Interna">
     <title>{% block title %}SIGA-MINEDUCYT{% endblock %}</title>
-    <meta name="theme-color" content="#f9f9ff">
+    <meta name="theme-color" content="#f7f8fb">
     <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261029-8">
+    <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=20261106-1">
+    <link rel="stylesheet" href="{% static 'css/components.css' %}?v=20261106-3">
 </head>
 <body>
+    {% include "includes/ui_icons.html" %}
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
     {% if user.is_authenticated %}
     <div class="app-shell role-{{ user.role }}">
@@ -154,8 +157,7 @@
             {% elif user.role == 'institution' %}
             <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-home"></use></svg><span>Inicio</span></a>
             <a href="{% url 'case_list' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'respond_recommendation' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'respond_recommendation' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-files"></use></svg><span>Expedientes</span></a>
-            <a href="{% url 'institution_history' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'institution_history' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'institution_history' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-history"></use></svg><span>Historial</span></a>
-            <a href="{% url 'cde_home' %}" class="mobile-nav-item {% if 'cde_' in request.resolver_match.url_name %}is-active{% endif %}" {% if 'cde_' in request.resolver_match.url_name %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-council"></use></svg><span>Consejo</span></a>
+            <a href="{% url 'audit_inquiries' %}" class="mobile-nav-item {% if 'audit_inquiry' in request.resolver_match.url_name %}is-active{% endif %}" {% if 'audit_inquiry' in request.resolver_match.url_name %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-inquiries"></use></svg><span>Consultas</span></a>
             {% else %}
             <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-home"></use></svg><span>Inicio</span></a>
             <a href="{% url 'case_list' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'review_response' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'review_response' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-files"></use></svg><span>Expedientes</span></a>
@@ -167,7 +169,8 @@
         <aside id="mobile-more-menu" class="mobile-more-menu" role="dialog" aria-modal="true" aria-labelledby="mobile-more-title" hidden>
             <div class="mobile-more-heading"><strong id="mobile-more-title">Más opciones</strong><button type="button" class="icon-button mobile-more-close" aria-label="Cerrar menú">×</button></div>
             <a href="{% url 'account_profile' %}"><svg aria-hidden="true"><use href="#nav-profile"></use></svg>Mi perfil</a>
-            {% if user.role != 'technical_admin' %}<a href="{% url 'audit_inquiries' %}"><svg aria-hidden="true"><use href="#nav-inquiries"></use></svg>Consultas de auditoría</a>{% endif %}
+            {% if user.role == 'institution' %}<a href="{% url 'cde_home' %}"><svg aria-hidden="true"><use href="#nav-council"></use></svg>Consejo Directivo Escolar</a><a href="{% url 'institution_history' %}"><svg aria-hidden="true"><use href="#nav-history"></use></svg>Historial</a>{% endif %}
+            {% if user.role != 'technical_admin' and user.role != 'institution' %}<a href="{% url 'audit_inquiries' %}"><svg aria-hidden="true"><use href="#nav-inquiries"></use></svg>Consultas de auditoría</a>{% endif %}
             {% if user.role == 'audit_manager' %}<a href="{% url 'director_auditors' %}"><svg aria-hidden="true"><use href="#nav-auditors"></use></svg>Auditores</a><a href="{% url 'case_list' %}"><svg aria-hidden="true"><use href="#nav-files"></use></svg>Expedientes</a><a href="{% url 'historical_document_list' %}"><svg aria-hidden="true"><use href="#nav-reports"></use></svg>Informes</a>{% endif %}
             {% if user.role == 'audit_manager' %}<a href="{% url 'director_alerts' %}"><svg aria-hidden="true"><use href="#nav-alerts"></use></svg>Alertas</a><a href="{% url 'director_activity' %}"><svg aria-hidden="true"><use href="#nav-history"></use></svg>Actividad</a><a href="{% url 'director_access_accounts' %}"><svg aria-hidden="true"><use href="#nav-accounts"></use></svg>Cuentas</a><a href="{% url 'director_technical_requests' %}"><svg aria-hidden="true"><use href="#nav-support"></use></svg>Soporte técnico</a>{% endif %}
             {% if user.role == 'institution' %}<a href="{% url 'institution_technical_support' %}"><svg aria-hidden="true"><use href="#nav-support"></use></svg>Soporte técnico</a>{% endif %}
@@ -177,7 +180,7 @@
             <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit"><svg aria-hidden="true"><use href="#nav-logout"></use></svg>Cerrar sesión</button></form>
         </aside>
     </div>
-    <script src="{% static 'js/app.js' %}?v=20261029-1" defer></script>
+    <script src="{% static 'js/app.js' %}?v=20261106-2" defer></script>
     {% endif %}
 </body>
 </html>

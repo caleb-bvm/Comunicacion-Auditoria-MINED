@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.forms import UserCreationForm
 from django.db import models
 
@@ -473,6 +474,16 @@ class ResponseForm(forms.ModelForm):
         help_texts = {
             "accuracy_declaration": "Declaro que la información y los archivos presentados son correctos.",
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Opciones visibles como tarjetas, sin la opción vacía «---------».
+        status_field = self.fields["declared_status"]
+        status_field.choices = Response.DeclaredStatus.choices
+        status_field.widget = forms.RadioSelect(choices=Response.DeclaredStatus.choices)
+        self.fields["files"].help_text = (
+            f"PDF, foto (JPG o PNG), Word o Excel. Hasta {settings.FILE_MAX_UPLOAD_MB} MB cada uno."
+        )
 
     def clean(self):
         cleaned = super().clean()

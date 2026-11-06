@@ -1,0 +1,84 @@
+/*
+ * Claro y directo: tokens del sistema de diseño de SIGA-MINEDUCYT.
+ * Roles Material 3 generados desde la semilla #1A4D9C.
+ * Regla: ninguna hoja nueva escribe colores, tamaños ni radios fuera de este archivo.
+ */
+:root {
+    /* Color: marca */
+    --ui-primary: #1a4d9c;
+    --ui-primary-hover: #0e3a7d;
+    --ui-on-primary: #ffffff;
+    --ui-primary-container: #d7e3ff;
+    --ui-on-primary-container: #001a40;
+    --ui-secondary-container: #dce2f3;
+    --ui-on-secondary-container: #151c2a;
+
+    /* Color: superficies y texto */
+    --ui-surface: #f7f8fb;
+    --ui-surface-card: #ffffff;
+    --ui-surface-low: #f1f3f8;
+    --ui-surface-container: #ebeef4;
+    --ui-surface-high: #e4e8ef;
+    --ui-surface-highlight: #f4f7ff;
+    --ui-on-surface: #191c21;
+    --ui-on-surface-variant: #42474f;
+    --ui-outline: #72777f;
+    --ui-outline-variant: #c2c7cf;
+    --ui-divider: #e4e8ef;
+    --ui-inverse-surface: #2e3036;
+    --ui-inverse-on-surface: #f0f0f7;
+    --ui-inverse-primary: #adc6ff;
+
+    /* Color: estados (contenedor / texto sobre el contenedor / tono fuerte) */
+    --ui-danger-container: #ffdad6;
+    --ui-on-danger-container: #410002;
+    --ui-danger: #b3261e;
+    --ui-correction-container: #ffdbc8;
+    --ui-on-correction-container: #331200;
+    --ui-correction: #9a4600;
+    --ui-warning-container: #ffe08f;
+    --ui-on-warning-container: #261a00;
+    --ui-warning: #7a5900;
+    --ui-review-container: #bdebe3;
+    --ui-on-review-container: #00201c;
+    --ui-review: #006a60;
+    --ui-success-container: #b7f0c5;
+    --ui-on-success-container: #00210e;
+    --ui-success: #1d6b3c;
+    --ui-neutral-container: #e4e8ef;
+    --ui-on-neutral-container: #191c21;
+
+    /* Tipografía: siete tamaños, ninguno más */
+    --ui-font: "Roboto Flex", Roboto, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --ui-text-figure: 3rem;      /* 48/56 cifras de indicadores */
+    --ui-text-page: 2.25rem;     /* 36/44 título de página en escritorio */
+    --ui-text-page-mobile: 1.75rem; /* 28/36 título de página en teléfono */
+    --ui-text-title: 1.25rem;    /* 20/28 títulos de tarjeta y sección */
+    --ui-text-body: 1.125rem;    /* 18/28 texto base */
+    --ui-text-support: 1rem;     /* 16/24 apoyo, chips y botones */
+    --ui-text-label: .875rem;    /* 14/20 mínimo absoluto */
+
+    /* Forma */
+    --ui-radius-chip: 8px;
+    --ui-radius-field: 12px;
+    --ui-radius-tile: 16px;
+    --ui-radius-card: 20px;
+    --ui-radius-full: 999px;
+
+    /* Espacio: retícula de 4 px */
+    --ui-space-1: 4px;
+    --ui-space-2: 8px;
+    --ui-space-3: 12px;
+    --ui-space-4: 16px;
+    --ui-space-5: 20px;
+    --ui-space-6: 24px;
+    --ui-space-8: 32px;
+    --ui-space-12: 48px;
+
+    /* Tamaños táctiles */
+    --ui-touch: 48px;
+    --ui-touch-large: 56px;
+
+    /* Movimiento */
+    --ui-ease: cubic-bezier(.2, 0, 0, 1);
+}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Inicio | Auditoría Interna{% endblock %}
 {% block content %}
 {% if user.role == 'auditor' %}
@@ -30,23 +31,37 @@
     <section class="section-block"><div class="section-heading"><div><h2>Panorama de la cartera</h2><p>Distribución de los expedientes que tiene asignados.</p></div></div><div class="analytics-overview"><article class="card analytics-panel"><div class="section-heading"><div><h3>Estado de recomendaciones</h3></div><span class="muted">{{ total_recommendations }} en total</span></div>{% if recommendation_status_distribution %}<div class="distribution-list">{% for item in recommendation_status_distribution %}<div class="distribution-row"><div><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div><progress class="progress-{{ item.value }}" max="{{ total_recommendations }}" value="{{ item.count }}" aria-label="{{ item.label }}: {{ item.percentage }} %">{{ item.percentage }}%</progress><small>{{ item.percentage }}%</small></div>{% endfor %}</div>{% else %}<div class="compact-empty"><strong>Sin recomendaciones</strong></div>{% endif %}</article><article class="card analytics-panel"><div class="section-heading"><div><h3>Hallazgos por riesgo</h3></div><span class="muted">{{ total_findings }} en total</span></div>{% if risk_distribution %}<div class="distribution-list">{% for item in risk_distribution %}<div class="distribution-row"><div><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div><progress class="progress-risk-{{ item.value }}" max="{{ total_findings }}" value="{{ item.count }}" aria-label="{{ item.label }}: {{ item.percentage }} %">{{ item.percentage }}%</progress><small>{{ item.percentage }}%</small></div>{% endfor %}</div>{% else %}<div class="compact-empty"><strong>Sin hallazgos</strong></div>{% endif %}</article></div></section>
 </div>
 {% elif user.role == 'institution' %}
-<div class="role-workspace institution-workspace">
-    <header class="role-welcome institution-role-welcome"><div><span class="eyebrow">Mi centro educativo</span><h1>{{ user.organization.name }}</h1><p>Consulte sus fechas límite, responda recomendaciones y mantenga actualizada la información del CDE.</p></div>{% if pending_recommendations %}<a class="button button-primary" href="#pendientes">Atender pendientes</a>{% endif %}</header>
+<div class="ui-page ui-page-narrow institution-home">
+    <header class="ui-page-header">
+        <p class="ui-page-context">{{ user.organization.name }}</p>
+        <h1 class="ui-page-title">{% if pending_recommendations %}Para hacer · {{ pending_recommendations }}{% else %}Todo al día{% endif %}</h1>
+    </header>
 
-    <section class="role-summary" aria-label="Resumen del centro educativo">
-        <a href="#pendientes" class="summary-danger"><span>Plazos vencidos</span><strong>{{ organization_overdue_count }}</strong><small>Responder cuanto antes</small></a>
-        <a href="#pendientes" class="summary-warning"><span>Vencen en 7 días</span><strong>{{ organization_due_soon_count }}</strong><small>Preparar documentación</small></a>
-        <a href="{% url 'case_list' %}"><span>Expedientes activos</span><strong>{{ open_cases }}</strong><small>{{ total_cases }} en total</small></a>
-        <a href="{% url 'cde_home' %}"><span>Consejo Directivo</span><strong>{% if current_cde %}Vigente{% else %}Pendiente{% endif %}</strong><small>{% if current_cde %}Hasta {{ current_cde.end_date|date:"d/m/Y" }}{% else %}Registrar período{% endif %}</small></a>
-    </section>
-
-    <div class="role-work-grid">
-        <section class="card role-inbox" id="pendientes" aria-labelledby="institution-inbox-title"><div class="section-heading"><div><span class="eyebrow">Prioridad</span><h2 id="institution-inbox-title">Recomendaciones por atender</h2></div><a class="text-link" href="{% url 'case_list' %}">Ver expedientes</a></div>{% if organization_attention_items %}<div class="role-task-list">{% for recommendation in organization_attention_items %}<article class="role-task {% if recommendation.current_deadline and recommendation.current_deadline < today %}role-task-overdue{% endif %}"><span class="role-task-signal" aria-hidden="true"></span><div><div class="role-task-meta"><span class="case-reference">{{ recommendation.finding.case.reference }}</span><span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span></div><h3>Recomendación {{ recommendation.finding.number }}.{{ recommendation.number }}</h3><p>{{ recommendation.text|truncatechars:135 }}</p><small>Fecha límite: <strong>{{ recommendation.current_deadline|date:"d/m/Y"|default:"Por definir" }}</strong></small></div><a class="button button-primary button-compact" href="{% url 'respond_recommendation' recommendation.pk %}">{% if recommendation.status == 'correction_required' %}Corregir respuesta{% else %}Responder ahora{% endif %}</a></article>{% endfor %}</div>{% else %}<div class="work-complete-state"><span aria-hidden="true">✓</span><div><strong>Todo al día</strong><p>No tiene recomendaciones pendientes de respuesta.</p></div></div>{% endif %}</section>
-
-        <aside class="role-side-column"><section class="card quick-actions"><h2>Accesos rápidos</h2><a href="{% url 'case_list' %}"><span>Mis expedientes</span><small>Informes y recomendaciones</small><b aria-hidden="true">→</b></a><a href="{% url 'institution_history' %}"><span>Historial</span><small>Respuestas y documentos enviados</small><b aria-hidden="true">→</b></a><a href="{% url 'cde_home' %}"><span>Consejo Directivo</span><small>{% if current_cde %}Consultar integrantes{% else %}Registrar período vigente{% endif %}</small><b aria-hidden="true">→</b></a><a href="{% url 'institution_technical_support' %}"><span>Soporte técnico</span><small>{{ open_support_requests }} {% if open_support_requests == 1 %}solicitud abierta{% else %}solicitudes abiertas{% endif %}</small><b aria-hidden="true">→</b></a></section></aside>
+    {% if organization_attention_items %}
+    <div class="ui-stack" id="pendientes">
+        {% for recommendation in organization_attention_items %}
+        <article class="ui-card" aria-labelledby="task-{{ recommendation.pk }}">
+            <div class="ui-chips">{% if recommendation.status == 'correction_required' %}{% ui_status_chip recommendation.status %}{% endif %}{% ui_deadline_chip recommendation.current_deadline %}</div>
+            <h2 class="ui-card-title" id="task-{{ recommendation.pk }}">{{ recommendation.text|truncatechars:160 }}</h2>
+            <p class="ui-card-support">{% if recommendation.correction_comment %}Auditoría pide: {{ recommendation.correction_comment|truncatechars:110 }}{% else %}Recomendación {{ recommendation.finding.number }}.{{ recommendation.number }} · {{ recommendation.finding.case.reference }}{% endif %}</p>
+            <div class="ui-card-actions"><a class="ui-button {% if forloop.first %}ui-button-filled ui-button-large{% else %}ui-button-tonal{% endif %}" href="{% url 'respond_recommendation' recommendation.pk %}">{% if recommendation.status == 'correction_required' %}Corregir respuesta{% else %}Responder{% endif %}</a></div>
+        </article>
+        {% endfor %}
+        {% if pending_recommendations > organization_attention_items|length %}<a class="ui-button ui-button-text" href="{% url 'case_list' %}">Ver las {{ pending_recommendations }} recomendaciones</a>{% endif %}
     </div>
+    {% else %}
+    <div class="ui-card"><div class="ui-empty"><span class="ui-empty-mark">{% ui_icon "check" %}</span><div><h2 class="ui-card-title">No tiene recomendaciones por responder</h2><p class="ui-card-support">Cuando Auditoría publique una nueva, aparecerá aquí.</p></div></div></div>
+    {% endif %}
 
-    <section class="section-block"><div class="section-heading"><div><h2>Expedientes recientes</h2></div><a class="text-link" href="{% url 'case_list' %}">Ver todos</a></div><div class="recent-case-list">{% for case in recent_cases %}<a href="{% url 'case_detail' case.pk %}"><div><span class="case-reference">{{ case.reference }}</span><strong>{{ case.title|truncatechars:75 }}</strong><small>{{ case.audited_organization.name }}</small></div><span class="status status-{{ case.status }}">{{ case.get_status_display }}</span><b aria-hidden="true">→</b></a>{% empty %}<div class="compact-empty"><strong>No hay expedientes disponibles</strong></div>{% endfor %}</div></section>
+    <section class="ui-section" aria-labelledby="mi-centro-title">
+        <h2 class="ui-section-title" id="mi-centro-title">Mi centro</h2>
+        <nav class="ui-list" aria-labelledby="mi-centro-title">
+            <a class="ui-list-row" href="{% url 'case_list' %}"><span class="ui-list-text"><span class="ui-list-title">Expedientes</span><span class="ui-list-support">{% if open_cases == 1 %}1 abierto{% else %}{{ open_cases }} abiertos{% endif %}</span></span>{% ui_icon "chevron" %}</a>
+            <a class="ui-list-row" href="{% url 'cde_home' %}"><span class="ui-list-text"><span class="ui-list-title">Consejo Directivo Escolar</span><span class="ui-list-support">{% if current_cde %}Vigente hasta el {{ current_cde.end_date|date:"j b Y" }}{% else %}Falta registrar el período vigente{% endif %}</span></span>{% ui_icon "chevron" %}</a>
+            <a class="ui-list-row" href="{% url 'institution_history' %}"><span class="ui-list-text"><span class="ui-list-title">Historial</span><span class="ui-list-support">Respuestas y documentos enviados</span></span>{% ui_icon "chevron" %}</a>
+            <a class="ui-list-row" href="{% url 'institution_technical_support' %}"><span class="ui-list-text"><span class="ui-list-title">Soporte técnico</span><span class="ui-list-support">{% if open_support_requests == 1 %}1 solicitud abierta{% elif open_support_requests %}{{ open_support_requests }} solicitudes abiertas{% else %}Pida ayuda con el sistema{% endif %}</span></span>{% ui_icon "chevron" %}</a>
+        </nav>
+    </section>
 </div>
 {% endif %}
 {% endblock %}

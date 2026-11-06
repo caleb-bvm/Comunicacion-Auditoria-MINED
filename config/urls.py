@@ -7,6 +7,7 @@ from apps.accounts.views import (
     SecurePasswordResetConfirmView, institution_technical_support,
     password_reset_request, password_support_request,
 )
+from apps.core.views import ui_reference
 
 
 urlpatterns = [
@@ -33,6 +34,7 @@ urlpatterns = [
     path("mi-organizacion/soporte-tecnico/", institution_technical_support,
          name="institution_technical_support"),
     path("activar-cuenta/<uidb64>/<token>/", ActivateAccountView.as_view(), name="activate_account"),
+    path("dev/ui/", ui_reference, name="ui_reference"),
     path("cde/", include("apps.institutions.urls")),
     path("", include("apps.audits.urls")),
 ]

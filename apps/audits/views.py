@@ -107,6 +107,28 @@ def log_activity(request, action, case=None, target=None, details=None):
     )
 
 
+def latest_correction_comments(recommendations):
+    """Devuelve, por recomendación, el último comentario de Auditoría que pidió corrección.
+
+    Solo incluye el texto del comentario: la identidad del auditor no se expone al centro.
+    """
+    ids = [recommendation.pk for recommendation in recommendations]
+    if not ids:
+        return {}
+    comments = {}
+    reviews = (
+        Review.objects.filter(
+            response__recommendation_id__in=ids,
+            outcome=Review.Outcome.CORRECTION_REQUIRED,
+        )
+        .order_by("response__recommendation_id", "-response__version")
+        .values_list("response__recommendation_id", "comments")
+    )
+    for recommendation_id, text in reviews:
+        comments.setdefault(recommendation_id, text)
+    return comments
+
+
 def user_can_create_cases(user):
     return user.is_authenticated and user.role == User.Role.AUDITOR
 
@@ -496,11 +518,17 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 current_deadline__gte=today,
                 current_deadline__lte=today + timedelta(days=7),
             ).count()
-            context["organization_attention_items"] = list(
+            attention_items = list(
                 organization_attention.select_related("finding__case").order_by(
                     "current_deadline", "finding__case__reference"
                 )[:5]
             )
+            correction_comments = latest_correction_comments(
+                [item for item in attention_items if item.status == Recommendation.Status.CORRECTION_REQUIRED]
+            )
+            for item in attention_items:
+                item.correction_comment = correction_comments.get(item.pk, "")
+            context["organization_attention_items"] = attention_items
             current_cde = SchoolBoardPeriod.objects.filter(
                 organization_id=self.request.user.organization_id,
                 is_current=True,
@@ -2836,10 +2864,19 @@ def respond_recommendation(request, pk):
                 "responsible_job_title": request.user.job_title,
             }
         )
+    current_deadline = recommendation.effective_deadline
     return render(
         request,
         "audits/respond.html",
-        {"form": form, "recommendation": recommendation, "case": case},
+        {
+            "form": form,
+            "recommendation": recommendation,
+            "case": case,
+            "current_deadline": current_deadline,
+            "correction_comment": latest_correction_comments([recommendation]).get(recommendation.pk, "")
+            if recommendation.status == Recommendation.Status.CORRECTION_REQUIRED
+            else "",
+        },
     )
 
 

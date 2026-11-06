@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Componentes · Claro y directo{% endblock %}
+{% block content %}
+<div class="ui-page">
+    <header class="ui-page-header">
+        <p class="ui-page-context">Solo en desarrollo · referencia del sistema de diseño</p>
+        <h1 class="ui-page-title">Componentes</h1>
+    </header>
+
+    <section class="ui-section" aria-labelledby="ui-ref-chips">
+        <h2 class="ui-section-title" id="ui-ref-chips">Estados</h2>
+        <div class="ui-chips">{% for status in statuses %}{% ui_status_chip status %}{% endfor %}</div>
+        <h2 class="ui-section-title">Plazos</h2>
+        <div class="ui-chips">{% for deadline in deadlines %}{% ui_deadline_chip deadline %}{% endfor %}{% ui_deadline_chip None %}</div>
+    </section>
+
+    <section class="ui-section" aria-labelledby="ui-ref-buttons">
+        <h2 class="ui-section-title" id="ui-ref-buttons">Botones</h2>
+        <div class="ui-card-actions">
+            <button type="button" class="ui-button ui-button-filled ui-button-large">Enviar respuesta</button>
+            <button type="button" class="ui-button ui-button-tonal">Guardar borrador</button>
+            <button type="button" class="ui-button ui-button-outlined">Pedir prórroga</button>
+            <button type="button" class="ui-button ui-button-text">Cancelar</button>
+        </div>
+    </section>
+
+    <section class="ui-section" aria-labelledby="ui-ref-cards">
+        <h2 class="ui-section-title" id="ui-ref-cards">Tarjetas de tarea</h2>
+        <div class="ui-grid-2">
+            <article class="ui-card">
+                <div class="ui-chips">{% ui_status_chip "correction_required" %}{% ui_deadline_chip deadlines.0 %}</div>
+                <h3 class="ui-card-title">Actualice y firme las actas de asignación de los cinco equipos observados.</h3>
+                <p class="ui-card-support">Auditoría pide las cinco actas firmadas. Solo llegó una.</p>
+                <div class="ui-card-actions"><a class="ui-button ui-button-filled ui-button-large" href="#">Corregir respuesta</a></div>
+            </article>
+            <article class="ui-card">
+                <div class="ui-chips">{% ui_deadline_chip deadlines.2 %}</div>
+                <h3 class="ui-card-title">Deposite los fondos de otros ingresos en la cuenta bancaria.</h3>
+                <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="#">Responder</a></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="ui-section" aria-labelledby="ui-ref-callouts">
+        <h2 class="ui-section-title" id="ui-ref-callouts">Avisos</h2>
+        <div class="ui-callout ui-callout-correction"><h3 class="ui-callout-title">Lo que pide Auditoría</h3><p>Adjunte las cinco actas firmadas con inventario, ubicación y custodio.</p></div>
+        <div class="ui-callout ui-callout-inline">{% ui_icon "info" %}<span>Después de enviar no podrá editar.</span></div>
+    </section>
+
+    <section class="ui-section" aria-labelledby="ui-ref-fields">
+        <h2 class="ui-section-title" id="ui-ref-fields">Campos</h2>
+        <div class="ui-card">
+            <div class="ui-field"><label for="ui-ref-code">Código del centro</label><input id="ui-ref-code" type="text" value="10754"><p class="ui-help">El número de cinco cifras del MINEDUCYT.</p></div>
+            <div class="ui-field ui-field-error"><label for="ui-ref-date">Fecha en que se completó</label><input id="ui-ref-date" type="date"><ul class="errorlist"><li>Indique la fecha en que se completó la acción.</li></ul></div>
+            <fieldset class="ui-choices"><legend class="ui-label">Estado de la recomendación</legend><label><input type="radio" name="ui-ref-choice" checked>Completada</label><label><input type="radio" name="ui-ref-choice">En proceso</label></fieldset>
+            <div class="ui-file"><input id="ui-ref-file" type="file" multiple aria-label="Elegir archivos"><span class="ui-file-zone" aria-hidden="true">{% ui_icon "upload" %}Elegir archivos o tomar foto</span></div>
+            <label class="ui-check"><input type="checkbox">Declaro que la información y los archivos son correctos.</label>
+        </div>
+    </section>
+
+    <section class="ui-section" aria-labelledby="ui-ref-list">
+        <h2 class="ui-section-title" id="ui-ref-list">Lista</h2>
+        <div class="ui-list">
+            <a class="ui-list-row" href="#"><span class="ui-list-text"><span class="ui-list-title">Consejo Directivo Escolar</span><span class="ui-list-support">Vigente hasta el 12 ene 2027</span></span>{% ui_icon "chevron" %}</a>
+            <a class="ui-list-row" href="#"><span class="ui-list-text"><span class="ui-list-title">Historial</span><span class="ui-list-support">Respuestas y documentos enviados</span></span>{% ui_icon "chevron" %}</a>
+        </div>
+    </section>
+
+    <section class="ui-section" aria-labelledby="ui-ref-figures">
+        <h2 class="ui-section-title" id="ui-ref-figures">Indicadores</h2>
+        <div class="ui-grid-2"><a class="ui-figure ui-figure-danger" href="#"><strong>3</strong><span>Centros con plazo vencido</span></a><a class="ui-figure" href="#"><strong>2</strong><span>Respuestas por revisar</span></a></div>
+    </section>
+</div>
+{% endblock %}

@@ -105,21 +105,90 @@
         table.parentElement.classList.add("mobile-card-table");
     });
 
-    const statusField = document.querySelector("#id_declared_status");
+    const responseForm = document.querySelector("[data-response-form]");
     const conditionalFields = document.querySelectorAll("[data-visible-for-status]");
+    const declaredStatus = () => {
+        const checked = responseForm?.querySelector('[name="declared_status"]:checked');
+        if (checked) return checked.value;
+        return responseForm?.querySelector('select[name="declared_status"]')?.value || "";
+    };
     const updateResponseFields = () => {
-        if (!statusField || !conditionalFields.length) return;
+        if (!responseForm || !conditionalFields.length) return;
+        const status = declaredStatus();
         conditionalFields.forEach((field) => {
             const visibleFor = (field.dataset.visibleForStatus || "").split(" ");
-            const visible = visibleFor.includes(statusField.value);
+            const visible = visibleFor.includes(status);
             field.hidden = !visible;
             field.querySelectorAll("input, select, textarea").forEach((control) => {
                 control.disabled = !visible;
             });
         });
     };
-    statusField?.addEventListener("change", updateResponseFields);
+    responseForm?.addEventListener("change", (event) => {
+        if (event.target.name === "declared_status") updateResponseFields();
+    });
     updateResponseFields();
+
+    // Formularios por pasos: sin JavaScript todos los pasos se ven a la vez.
+    document.querySelectorAll("[data-steps]").forEach((form) => {
+        const steps = Array.from(form.querySelectorAll("[data-step]"));
+        if (steps.length < 2) return;
+        const bars = Array.from(form.querySelectorAll(".ui-steps-bar span"));
+        const label = form.querySelector("[data-step-label]");
+        let current = steps.findIndex((step) => step.querySelector(".ui-field-error, .errorlist"));
+        if (current < 0) current = 0;
+        const show = (index, moveFocus) => {
+            current = index;
+            steps.forEach((step, position) => step.classList.toggle("is-current", position === index));
+            bars.forEach((bar, position) => {
+                bar.classList.toggle("is-done", position < index);
+                bar.classList.toggle("is-current", position === index);
+            });
+            if (label) label.textContent = `Paso ${index + 1} de ${steps.length}`;
+            if (moveFocus) {
+                form.scrollIntoView({ block: "start" });
+                steps[index].querySelector(".ui-step-title")?.focus({ preventScroll: true });
+            }
+        };
+        const stepIsValid = (step) => {
+            const controls = Array.from(step.querySelectorAll("input, select, textarea")).filter(
+                (control) => !control.disabled && !control.closest("[hidden]")
+            );
+            const invalid = controls.find((control) => !control.checkValidity());
+            if (invalid) {
+                invalid.reportValidity();
+                invalid.focus();
+                return false;
+            }
+            return true;
+        };
+        form.classList.add("ui-steps-enhanced");
+        form.querySelectorAll("[data-step-next]").forEach((button) => {
+            button.addEventListener("click", () => {
+                if (stepIsValid(steps[current])) show(Math.min(current + 1, steps.length - 1), true);
+            });
+        });
+        form.querySelectorAll("[data-step-back]").forEach((button) => {
+            button.addEventListener("click", () => show(Math.max(current - 1, 0), true));
+        });
+        show(current, false);
+    });
+
+    // Lista de archivos elegidos, en palabras y no con el texto del navegador.
+    document.querySelectorAll(".ui-file input[type='file']").forEach((input) => {
+        const list = input.closest(".ui-field")?.querySelector("[data-file-list]");
+        if (!list) return;
+        input.addEventListener("change", () => {
+            list.replaceChildren(
+                ...Array.from(input.files).map((file) => {
+                    const item = document.createElement("li");
+                    const size = file.size >= 1048576 ? `${(file.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+                    item.textContent = `${file.name} · ${size}`;
+                    return item;
+                })
+            );
+        });
+    });
 
     document.querySelectorAll("[data-location-filters]").forEach((form) => {
         const department = form.querySelector('[name="department"]');
