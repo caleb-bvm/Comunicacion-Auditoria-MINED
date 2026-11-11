@@ -1,17 +1,58 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Consulta #{{ inquiry.pk }} | SIGA{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'audit_inquiries' %}">Consultas</a><span>/</span><span>#{{ inquiry.pk }}</span></nav>
-<div class="page-heading heading-row"><div><span class="case-reference">{{ inquiry.case.reference }} · Consulta #{{ inquiry.pk }}</span><h1>{{ inquiry.subject }}</h1><p>{{ inquiry.organization.name }}</p></div><span class="status status-{{ inquiry.status }}">{{ inquiry.get_status_display }}</span></div>
-<div class="inquiry-layout">
-  <section class="inquiry-thread" aria-label="Conversación">
-    {% for entry in inquiry.messages.all %}<article class="inquiry-message {% if entry.author.role == 'institution' %}from-institution{% else %}from-audit{% endif %}"><header><div><strong>{{ entry.author.get_full_name|default:entry.author.username }}</strong><span>{% if entry.author.role == 'institution' %}Organización{% else %}Auditoría{% endif %}</span></div><time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"d/m/Y H:i" }}</time></header><div class="message-body">{{ entry.body|linebreaksbr }}</div>{% for attachment in entry.attachments.all %}<a class="attachment-link" href="{% url 'audit_inquiry_attachment' attachment.pk %}">📎 {{ attachment.original_filename }} <small>({{ attachment.size|filesizeformat }})</small></a>{% endfor %}</article>{% endfor %}
-    {% if inquiry.status != 'closed' %}<form method="post" enctype="multipart/form-data" class="card stacked-form reply-form">{% csrf_token %}<h2>Agregar mensaje</h2>{% for field in reply_form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}<button class="button button-primary" type="submit">Enviar mensaje</button></form>{% endif %}
-  </section>
-  <aside class="inquiry-sidebar">
-    <div class="card"><h2>Detalle</h2><dl class="meta-list"><div><dt>Estado</dt><dd>{{ inquiry.get_status_display }}</dd></div><div><dt>Prioridad</dt><dd>{{ inquiry.get_priority_display }}</dd></div><div><dt>Categoría</dt><dd>{{ inquiry.get_category_display }}</dd></div><div><dt>Expediente</dt><dd><a href="{% url 'case_detail' inquiry.case.pk %}">{{ inquiry.case.reference }}</a></dd></div><div><dt>Auditor</dt><dd>{{ inquiry.assigned_auditor.get_full_name|default:inquiry.assigned_auditor.username }}</dd></div><div><dt>Creada</dt><dd>{{ inquiry.created_at|date:"d/m/Y H:i" }}</dd></div></dl></div>
-    {% if user.role == 'institution' and inquiry.status == 'answered' %}<form method="post" action="{% url 'audit_inquiry_close' inquiry.pk %}" class="card">{% csrf_token %}<h2>¿La respuesta resolvió su consulta?</h2><p>Confirme para cerrar el caso. Podrá conservar el historial.</p><button class="button button-primary button-block" type="submit">Confirmar y cerrar</button></form>{% endif %}
-    {% if manage_form %}<form method="post" action="{% url 'audit_inquiry_manage' inquiry.pk %}" class="card stacked-form">{% csrf_token %}<h2>Gestión de Dirección</h2>{% for field in manage_form %}<div class="field">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</div>{% endfor %}<button class="button button-secondary" type="submit">Guardar cambios</button></form>{% endif %}
-  </aside>
+<div class="ui-page">
+    <a class="ui-back" href="{% url 'audit_inquiries' %}">{% ui_icon "back" %}Consultas</a>
+    <header class="ui-page-header">
+        <div class="ui-chips"><span class="status status-{{ inquiry.status }}">{{ inquiry.get_status_display }}</span>{% if inquiry.priority != 'normal' %}<span class="ui-chip ui-chip-warning">Prioridad {{ inquiry.get_priority_display|lower }}</span>{% endif %}</div>
+        <h1 class="ui-page-title">{{ inquiry.subject }}</h1>
+        <p class="ui-page-context">Consulta #{{ inquiry.pk }} · {{ inquiry.case.reference }}{% if user.role != 'institution' %} · {{ inquiry.organization.name }}{% endif %}</p>
+    </header>
+    <div class="ui-layout">
+        <div class="ui-layout-main">
+            <section class="ui-thread" aria-label="Conversación">
+                {% for entry in inquiry.messages.all %}
+                <article class="ui-thread-message {% if entry.author.role == 'institution' %}is-institution{% else %}is-audit{% endif %}">
+                    <header><strong>{% if entry.author.role == 'institution' %}{% if user.role == 'institution' %}Su centro{% else %}{{ entry.author.get_full_name|default:entry.author.username }}{% endif %}{% elif user.role == 'institution' %}Auditoría{% else %}{{ entry.author.get_full_name|default:entry.author.username }}{% endif %}</strong><time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"j b Y, H:i" }}</time></header>
+                    <div class="ui-thread-body">{{ entry.body|linebreaksbr }}</div>
+                    {% for attachment in entry.attachments.all %}<a class="ui-link-row" href="{% url 'audit_inquiry_attachment' attachment.pk %}">{% ui_icon "file" %}{{ attachment.original_filename }} ({{ attachment.size|filesizeformat }})</a>{% endfor %}
+                </article>
+                {% endfor %}
+            </section>
+            {% if inquiry.status != 'closed' %}
+            <form method="post" enctype="multipart/form-data" class="ui-card" aria-labelledby="reply-title">
+                {% csrf_token %}
+                <h2 class="ui-card-title" id="reply-title">Agregar mensaje</h2>
+                {% include "includes/ui/form_fields.html" with fields=reply_form %}
+                <div class="ui-form-actions"><button class="ui-button ui-button-filled ui-button-large" type="submit">{% ui_icon "send" %}Enviar mensaje</button></div>
+            </form>
+            {% endif %}
+        </div>
+        <aside class="ui-layout-aside" aria-label="Datos de la consulta">
+            {% if user.role == 'institution' and inquiry.status == 'answered' %}
+            <form method="post" action="{% url 'audit_inquiry_close' inquiry.pk %}" class="ui-card">
+                {% csrf_token %}
+                <h2 class="ui-card-title">¿La respuesta resolvió su consulta?</h2>
+                <p class="ui-card-support">Confirme para cerrarla. El historial se conserva.</p>
+                <button class="ui-button ui-button-tonal ui-button-block" type="submit">Confirmar y cerrar</button>
+            </form>
+            {% endif %}
+            <dl class="ui-list ui-facts">
+                <div class="ui-list-row"><dt>Categoría</dt><dd>{{ inquiry.get_category_display }}</dd></div>
+                <div class="ui-list-row"><dt>Expediente</dt><dd><a href="{% url 'case_detail' inquiry.case.pk %}">{{ inquiry.case.reference }}</a></dd></div>
+                {% if user.role != 'institution' %}<div class="ui-list-row"><dt>Auditor</dt><dd>{{ inquiry.assigned_auditor.get_full_name|default:inquiry.assigned_auditor.username }}</dd></div>{% endif %}
+                <div class="ui-list-row"><dt>Creada</dt><dd>{{ inquiry.created_at|date:"j b Y" }}</dd></div>
+            </dl>
+            {% if manage_form %}
+            <form method="post" action="{% url 'audit_inquiry_manage' inquiry.pk %}" class="ui-card">
+                {% csrf_token %}
+                <h2 class="ui-card-title">Gestión de Dirección</h2>
+                {% include "includes/ui/form_fields.html" with fields=manage_form %}
+                <button class="ui-button ui-button-tonal ui-button-block" type="submit">Guardar cambios</button>
+            </form>
+            {% endif %}
+        </aside>
+    </div>
 </div>
 {% endblock %}

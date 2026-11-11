@@ -1,14 +1,19 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Mi perfil | Auditoría Interna{% endblock %}
 {% block content %}
-<div class="page-narrow">
-    <div class="page-heading"><h1>Mi perfil</h1><p>Datos de su cuenta de acceso.</p></div>
-    <section class="card stacked-form">
-        <div class="field"><strong>Usuario</strong><span>{{ user.username }}</span></div>
-        <div class="field"><strong>Correo electrónico</strong><span>{{ user.email|default:"Sin correo registrado" }}</span></div>
-        {% if user.organization %}<div class="field"><strong>Institución</strong><span>{{ user.organization.name }}</span></div>{% endif %}
-        <div class="field"><strong>Rol</strong><span>{{ user.get_role_display }}</span></div>
-        <a class="button button-primary" href="{% url 'password_change' %}">Cambiar contraseña</a>
-    </section>
+<div class="ui-page ui-page-form">
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Mi perfil</h1>
+    </header>
+    <dl class="ui-list ui-facts">
+        <div class="ui-list-row"><dt>Usuario</dt><dd>{{ user.username }}</dd></div>
+        <div class="ui-list-row"><dt>Correo electrónico</dt><dd>{{ user.email|default:"Sin correo registrado" }}</dd></div>
+        {% if user.organization %}<div class="ui-list-row"><dt>Institución</dt><dd>{{ user.organization.name }}</dd></div>{% endif %}
+        <div class="ui-list-row"><dt>Rol</dt><dd>{{ user.get_role_display }}</dd></div>
+    </dl>
+    <div class="ui-card-actions">
+        <a class="ui-button ui-button-tonal" href="{% url 'password_change' %}">{% ui_icon "lock" %}Cambiar contraseña</a>
+    </div>
 </div>
 {% endblock %}

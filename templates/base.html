@@ -7,9 +7,10 @@
     <meta name="description" content="Sistema institucional de seguimiento de recomendaciones de Auditoría Interna">
     <title>{% block title %}SIGA-MINEDUCYT{% endblock %}</title>
     <meta name="theme-color" content="#f7f8fb">
-    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261029-8">
-    <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=20261106-3">
-    <link rel="stylesheet" href="{% static 'css/components.css' %}?v=20261106-9">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261110-1">
+    <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=20261110-1">
+    <link rel="stylesheet" href="{% static 'css/bridge.css' %}?v=20261110-1">
+    <link rel="stylesheet" href="{% static 'css/components.css' %}?v=20261110-1">
 </head>
 <body>
     {% include "includes/ui_icons.html" %}
@@ -66,7 +67,7 @@
             <a href="{% url 'director_decisions' %}" class="nav-item {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_decisions' or request.resolver_match.url_name == 'director_decision_detail' %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-decisions"></use></svg></span><span>Decisiones</span>
             </a>
-            <a href="{% url 'audit_inquiries' %}" class="nav-item {% if 'audit_inquiry' in request.resolver_match.url_name %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-inquiries"></use></svg></span><span>Consultas</span></a>
+            <a href="{% url 'audit_inquiries' %}" class="nav-item {% if 'audit_inquir' in request.resolver_match.url_name %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-inquiries"></use></svg></span><span>Consultas</span></a>
             <div class="nav-section-label nav-section-spaced">Supervisión</div>
             <a href="{% url 'director_educational_centers' %}" class="nav-item {% if request.resolver_match.url_name == 'director_educational_centers' or request.resolver_match.url_name == 'director_educational_center_detail' or 'cde_' in request.resolver_match.url_name %}is-active{% endif %}" {% if request.resolver_match.url_name == 'director_educational_centers' or request.resolver_match.url_name == 'director_educational_center_detail' or 'cde_' in request.resolver_match.url_name %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-centers"></use></svg></span><span>Centros</span>
@@ -94,7 +95,7 @@
             <a href="{% url 'case_list' %}" class="nav-item {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'respond_recommendation' or request.resolver_match.url_name == 'review_response' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'respond_recommendation' or request.resolver_match.url_name == 'review_response' %}aria-current="page"{% endif %}>
                 <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-files"></use></svg></span><span>Expedientes</span>
             </a>
-            <a href="{% url 'audit_inquiries' %}" class="nav-item {% if 'audit_inquiry' in request.resolver_match.url_name %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-inquiries"></use></svg></span><span>Consultas</span></a>
+            <a href="{% url 'audit_inquiries' %}" class="nav-item {% if 'audit_inquir' in request.resolver_match.url_name %}is-active{% endif %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-inquiries"></use></svg></span><span>Consultas</span></a>
             {% if user.role == 'institution' %}<div class="nav-section-label nav-section-spaced">Mi centro</div><a href="{% url 'institution_history' %}" class="nav-item {% if request.resolver_match.url_name == 'institution_history' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'institution_history' %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-history"></use></svg></span><span>Historial</span></a><a href="{% url 'cde_home' %}" class="nav-item {% if 'cde_' in request.resolver_match.url_name %}is-active{% endif %}" {% if 'cde_' in request.resolver_match.url_name %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-council"></use></svg></span><span>Consejo Directivo</span></a><a href="{% url 'institution_technical_support' %}" class="nav-item {% if request.resolver_match.url_name == 'institution_technical_support' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'institution_technical_support' %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-support"></use></svg></span><span>Soporte técnico</span></a>{% endif %}
             {% if user.role == 'auditor' %}
             <div class="nav-section-label nav-section-spaced">Información</div>
@@ -157,7 +158,7 @@
             {% elif user.role == 'institution' %}
             <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-home"></use></svg><span>Inicio</span></a>
             <a href="{% url 'case_list' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'respond_recommendation' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'respond_recommendation' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-files"></use></svg><span>Expedientes</span></a>
-            <a href="{% url 'audit_inquiries' %}" class="mobile-nav-item {% if 'audit_inquiry' in request.resolver_match.url_name %}is-active{% endif %}" {% if 'audit_inquiry' in request.resolver_match.url_name %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-inquiries"></use></svg><span>Consultas</span></a>
+            <a href="{% url 'audit_inquiries' %}" class="mobile-nav-item {% if 'audit_inquir' in request.resolver_match.url_name %}is-active{% endif %}" {% if 'audit_inquir' in request.resolver_match.url_name %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-inquiries"></use></svg><span>Consultas</span></a>
             {% else %}
             <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-home"></use></svg><span>Inicio</span></a>
             <a href="{% url 'case_list' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'review_response' %}is-active{% endif %}" {% if request.resolver_match.url_name == 'case_list' or request.resolver_match.url_name == 'case_detail' or request.resolver_match.url_name == 'review_response' %}aria-current="page"{% endif %}><svg aria-hidden="true"><use href="#nav-files"></use></svg><span>Expedientes</span></a>
@@ -180,7 +181,7 @@
             <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit"><svg aria-hidden="true"><use href="#nav-logout"></use></svg>Cerrar sesión</button></form>
         </aside>
     </div>
-    <script src="{% static 'js/app.js' %}?v=20261106-2" defer></script>
     {% endif %}
+    <script src="{% static 'js/app.js' %}?v=20261110-1" defer></script>
 </body>
 </html>

@@ -1,28 +1,28 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Activar acceso | Auditoría Interna{% endblock %}
 {% block content %}
-<section class="login-page">
-    <div class="login-card">
+<section class="ui-auth" aria-labelledby="activate-title">
+    <div class="ui-auth-panel">
+        {% include "includes/ui/brand.html" %}
         {% if validlink %}
-        <h1>Establecer contraseña</h1>
-        <p>{{ account.organization.name }}</p>
-        <p>Su usuario es el código del centro: <strong>{{ account.username }}</strong>.</p>
-        <form method="post" class="stacked-form">
+        <header class="ui-page-header">
+            <p class="ui-page-context">{{ account.organization.name }}</p>
+            <h1 class="ui-auth-title" id="activate-title">Establecer contraseña</h1>
+            <p class="ui-page-context">Su usuario es el código del centro: <strong>{{ account.username }}</strong>.</p>
+        </header>
+        <form method="post" class="ui-stack ui-stack-loose">
             {% csrf_token %}
-            {{ form.non_field_errors }}
-            {% for field in form %}
-            <div class="field">
-                {{ field.label_tag }}{{ field }}
-                {% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}
-                {{ field.errors }}
-            </div>
-            {% endfor %}
-            <button class="button button-primary button-block" type="submit">Guardar contraseña y activar acceso</button>
+            {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% include "includes/ui/form_fields.html" with fields=form %}
+            <button class="ui-button ui-button-filled ui-button-large ui-button-block" type="submit">Guardar contraseña y activar acceso</button>
         </form>
         {% else %}
-        <h1>Enlace no disponible</h1>
-        <p>El enlace venció, ya fue utilizado o fue reemplazado. Solicite un nuevo enlace a la Dirección de Auditoría.</p>
-        <a class="button button-primary" href="{% url 'login' %}">Ir al inicio de sesión</a>
+        <header class="ui-page-header">
+            <h1 class="ui-auth-title" id="activate-title">Enlace no disponible</h1>
+            <p class="ui-page-context">El enlace venció, ya fue utilizado o fue reemplazado. Solicite un nuevo enlace a la Dirección de Auditoría.</p>
+        </header>
+        <a class="ui-button ui-button-filled ui-button-large ui-button-block" href="{% url 'login' %}">Ir al inicio de sesión</a>
         {% endif %}
     </div>
 </section>

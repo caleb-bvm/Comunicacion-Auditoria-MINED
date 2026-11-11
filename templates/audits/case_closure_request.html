@@ -9,7 +9,7 @@
 <form method="post" class="editor-form card">
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
-    <fieldset class="form-section"><legend>Fundamento</legend>{% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</fieldset>
+    <fieldset class="form-section"><legend>Fundamento</legend>{% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</fieldset>
     <div class="submit-panel"><p>La Dirección de Auditoría deberá aprobar el cierre.</p><div class="button-group"><a class="button button-ghost" href="{% url 'case_detail' case.pk %}">Cancelar</a><button class="button button-primary" type="submit" {% if closure_issues %}disabled{% endif %}>Enviar solicitud de cierre</button></div></div>
 </form>
 {% endblock %}

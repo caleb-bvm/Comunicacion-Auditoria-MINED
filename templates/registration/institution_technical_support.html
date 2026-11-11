@@ -1,16 +1,38 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Soporte técnico | Mi organización{% endblock %}
 {% block content %}
-<div class="page-heading"><span class="eyebrow">Mi organización</span><h1>Soporte técnico</h1><p>Informe problemas técnicos o solicite ayuda con los datos y accesos de su organización.</p></div>
-<div class="technical-detail-grid">
-    <form class="card stacked-form" method="post" novalidate>{% csrf_token %}
-        <h2>Nueva solicitud</h2>
-        {% if form.non_field_errors %}<div class="form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-        {% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<div class="field-error-message" role="alert">{{ error }}</div>{% endfor %}</div>{% endfor %}
-        <button class="button button-primary" type="submit">Enviar solicitud</button>
-    </form>
-    <section class="card"><h2>Mis solicitudes</h2><div class="request-list">
-        {% for item in support_requests %}<article class="request-item"><header><strong>{{ item.subject }}</strong><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></header><small>{{ item.get_category_display }} · {{ item.created_at|date:"d/m/Y H:i" }}</small><p>{{ item.description }}</p>{% if item.resolution %}<div class="message message-info"><strong>Respuesta técnica:</strong> {{ item.resolution }}</div>{% endif %}</article>{% empty %}<p>No ha enviado solicitudes de soporte.</p>{% endfor %}
-    </div></section>
+<div class="ui-page">
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Soporte técnico</h1>
+        <p class="ui-page-context">Informe un problema con el sistema o pida ayuda con los datos y accesos de su organización.</p>
+    </header>
+    <div class="ui-layout">
+        <div class="ui-layout-main">
+            <form class="ui-card" method="post" novalidate aria-labelledby="support-new">
+                {% csrf_token %}
+                <h2 class="ui-card-title" id="support-new">Nueva solicitud</h2>
+                {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                {% include "includes/ui/form_fields.html" with fields=form %}
+                <div class="ui-form-actions"><button class="ui-button ui-button-filled ui-button-large" type="submit">Enviar solicitud</button></div>
+            </form>
+        </div>
+        <aside class="ui-layout-aside" aria-labelledby="support-mine">
+            <section class="ui-section">
+                <h2 class="ui-section-title" id="support-mine">Mis solicitudes</h2>
+                {% for item in support_requests %}
+                <article class="ui-card ui-card-compact">
+                    <div class="ui-chips"><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></div>
+                    <h3 class="ui-card-title">{{ item.subject }}</h3>
+                    <p class="ui-card-support">{{ item.get_category_display }} · {{ item.created_at|date:"j b Y" }}</p>
+                    <p class="ui-card-support">{{ item.description }}</p>
+                    {% if item.resolution %}<div class="ui-callout ui-callout-inline"><span><strong>Respuesta técnica:</strong> {{ item.resolution }}</span></div>{% endif %}
+                </article>
+                {% empty %}
+                <p class="ui-help">No ha enviado solicitudes de soporte.</p>
+                {% endfor %}
+            </section>
+        </aside>
+    </div>
 </div>
 {% endblock %}

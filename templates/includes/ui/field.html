@@ -1,6 +1,10 @@
-<div class="ui-field{% if field.errors %} ui-field-error{% endif %}">
+{% if field.widget_type == 'checkbox' %}<div class="ui-field{% if field.errors %} ui-field-error{% endif %}">
+    <label class="ui-check" for="{{ field.id_for_label }}">{{ field }}<span>{{ label|default:field.label }}</span></label>
+    {% if help %}<p class="ui-help">{{ help }}</p>{% elif field.help_text %}<p class="ui-help">{{ field.help_text }}</p>{% endif %}
+    {{ field.errors }}
+</div>{% else %}<div class="ui-field{% if field.errors %} ui-field-error{% endif %}">
     <label for="{{ field.id_for_label }}">{{ label|default:field.label }}</label>
     {{ field }}
     {% if help %}<p class="ui-help">{{ help }}</p>{% elif field.help_text %}<p class="ui-help">{{ field.help_text }}</p>{% endif %}
     {{ field.errors }}
-</div>
+</div>{% endif %}

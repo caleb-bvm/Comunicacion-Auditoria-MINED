@@ -1,11 +1,21 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Nueva consulta | SIGA{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'audit_inquiries' %}">Consultas</a><span>/</span><span>Nueva</span></nav>
-<div class="page-heading"><span class="eyebrow">Canal de atención</span><h1>Nueva consulta de auditoría</h1><p>Seleccione el expediente. El sistema enviará la consulta directamente al auditor responsable.</p></div>
-<form method="post" enctype="multipart/form-data" class="card stacked-form inquiry-form">{% csrf_token %}
-  {% if form.non_field_errors %}<div class="message message-error">{{ form.non_field_errors }}</div>{% endif %}
-  <fieldset class="form-section"><legend>Información de la consulta</legend>{% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</fieldset>
-  <div class="submit-panel"><a class="button button-ghost" href="{% url 'audit_inquiries' %}">Cancelar</a><button class="button button-primary" type="submit">Enviar consulta</button></div>
-</form>
+<div class="ui-page ui-page-form">
+    <a class="ui-back" href="{% url 'audit_inquiries' %}">{% ui_icon "back" %}Consultas</a>
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Nueva consulta</h1>
+        <p class="ui-page-context">Elija el expediente y escriba su pregunta. Llegará a Auditoría.</p>
+    </header>
+    <form method="post" enctype="multipart/form-data" class="ui-card">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        {% include "includes/ui/form_fields.html" with fields=form %}
+        <div class="ui-form-actions">
+            <a class="ui-button ui-button-text" href="{% url 'audit_inquiries' %}">Cancelar</a>
+            <button class="ui-button ui-button-filled ui-button-large" type="submit">{% ui_icon "send" %}Enviar consulta</button>
+        </div>
+    </form>
+</div>
 {% endblock %}

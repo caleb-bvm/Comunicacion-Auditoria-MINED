@@ -1,111 +1,73 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Historial | {{ organization.name }}{% endblock %}
 {% block content %}
-<div class="page-heading heading-row">
-    <div><span class="eyebrow">Archivo institucional</span><h1>Historial</h1><p>{{ organization.code }} · {{ organization.name }}</p></div>
-    <a class="button button-secondary" href="{% url 'case_list' %}">Ver expedientes activos</a>
-</div>
+<div class="ui-page">
+    <div class="ui-page-header-row">
+        <header class="ui-page-header">
+            <p class="ui-page-context">{{ organization.code }} · {{ organization.name }}</p>
+            <h1 class="ui-page-title">Historial</h1>
+        </header>
+        <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'case_list' %}">Ver expedientes abiertos</a></div>
+    </div>
 
-<section class="stats-grid" aria-label="Resumen del historial">
-    <article class="stat-card stat-primary"><div><span>Expedientes</span><strong>{{ cases.count }}</strong></div></article>
-    <article class="stat-card stat-secondary"><div><span>Informes</span><strong>{{ documents.count }}</strong></div></article>
-    <article class="stat-card stat-tertiary"><div><span>Recomendaciones</span><strong>{{ recommendation_count }}</strong></div></article>
-</section>
+    <nav class="ui-tabs" aria-label="Secciones del historial">
+        <a href="#history-reports-title">Informes · {{ documents.count }}</a>
+        <a href="#history-recommendations-title">Recomendaciones · {{ recommendation_count }}</a>
+        <a href="#history-responses-title">Respuestas · {{ responses.count }}</a>
+    </nav>
 
-<nav class="history-section-nav" aria-label="Secciones del historial"><a href="#history-reports-title">Informes <strong>{{ documents.count }}</strong></a><a href="#history-recommendations-title">Recomendaciones <strong>{{ recommendation_count }}</strong></a><a href="#history-responses-title">Respuestas <strong>{{ responses.count }}</strong></a></nav>
-
-<section class="section-block" aria-labelledby="history-reports-title">
-    <div class="section-heading"><div><h2 id="history-reports-title">Informes</h2></div></div>
-    <div class="card table-card">
+    <section class="ui-section" aria-labelledby="history-reports-title">
+        <h2 class="ui-section-title" id="history-reports-title">Informes</h2>
         {% if documents %}
-        <div class="table-responsive">
-            <table>
-                <caption class="sr-only">Informes de la institución</caption>
-                <thead><tr><th scope="col">Referencia</th><th scope="col">Documento</th><th scope="col">Fecha</th><th scope="col">Estado</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
-                <tbody>
-                {% for document in documents %}
-                    <tr>
-                        <td data-label="Referencia"><strong>{{ document.reference|default:"Sin referencia" }}</strong></td>
-                        <td data-label="Documento">{{ document.title }}<small>Versión {{ document.version }}</small></td>
-                        <td data-label="Fecha">{{ document.document_date|date:"d/m/Y"|default:"Sin fecha" }}</td>
-                        <td data-label="Estado"><span class="status status-{{ document.status }}">{{ document.get_status_display }}</span></td>
-                        <td class="mobile-card-action">
-                            <div class="item-actions">
-                                {% if document.document_type == 'historical_report' %}<a class="text-link" href="{% url 'historical_document_detail' document.pk %}">Ver informe y documentos</a>{% endif %}
-                                <a class="icon-link" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar {{ document.title }}"><span class="icon-link-text">Descargar</span><span aria-hidden="true">↓</span></a>
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+        <div class="ui-list">
+            {% for document in documents %}
+            <div class="ui-list-row">
+                <span class="ui-list-text"><span class="ui-list-title">{{ document.title }}</span><span class="ui-list-support">{{ document.reference|default:"Sin referencia" }} · versión {{ document.version }} · {{ document.document_date|date:"j b Y"|default:"sin fecha" }}</span></span>
+                {% if document.document_type == 'historical_report' %}<a class="ui-button ui-button-text" href="{% url 'historical_document_detail' document.pk %}">Ver informe</a>{% endif %}
+                <a class="ui-button ui-button-tonal" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar {{ document.title }}">{% ui_icon "download" %}Descargar</a>
+            </div>
+            {% endfor %}
         </div>
-        {% else %}<div class="empty-state"><h3>No hay informes disponibles</h3></div>{% endif %}
-    </div>
-</section>
+        {% else %}<p class="ui-help">No hay informes disponibles.</p>{% endif %}
+    </section>
 
-<section class="section-block" aria-labelledby="history-recommendations-title">
-    <div class="section-heading"><div><h2 id="history-recommendations-title">Recomendaciones</h2></div></div>
-    <div class="history-recommendation-groups">
-        <section class="history-recommendation-group" aria-labelledby="current-recommendations-title">
-            <h3 id="current-recommendations-title">De expedientes</h3>
+    <section class="ui-section" aria-labelledby="history-recommendations-title">
+        <h2 class="ui-section-title" id="history-recommendations-title">Recomendaciones</h2>
+        <div class="ui-card-grid ui-card-grid-fill">
             {% for recommendation in recommendations %}
-            <article class="recommendation-card">
-                <div class="recommendation-header">
-                    <span class="recommendation-number">{{ recommendation.finding.case.reference }} · {{ recommendation.finding.number }}.{{ recommendation.number }}</span>
-                    <span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span>
-                </div>
-                <p>{{ recommendation.text|truncatechars:380 }}</p>
-                <dl class="meta-list horizontal">
-                    {% if recommendation.responsible_organization_id != user.organization_id %}<div><dt>Responsable</dt><dd>{{ recommendation.responsible_organization.name }}</dd></div>{% endif %}
-                    <div><dt>Fecha límite</dt><dd>{{ recommendation.deadline|date:"d/m/Y"|default:"Sin definir" }}</dd></div>
-                </dl>
-                <a class="text-link" href="{% url 'case_detail' recommendation.finding.case_id %}">Abrir expediente</a>
+            <article class="ui-card ui-card-compact">
+                <div class="ui-chips">{% ui_status_chip recommendation.status %}</div>
+                <p>{{ recommendation.text|truncatechars:220 }}</p>
+                <p class="ui-card-support">{{ recommendation.finding.case.reference }} · Recomendación {{ recommendation.finding.number }}.{{ recommendation.number }}{% if recommendation.responsible_organization_id != user.organization_id %} · Responde: {{ recommendation.responsible_organization.name }}{% endif %}</p>
+                <a class="ui-link-row" href="{% url 'case_detail' recommendation.finding.case_id %}">Abrir expediente</a>
             </article>
-            {% empty %}
-            <div class="compact-empty"><strong>No hay recomendaciones de expedientes</strong></div>
             {% endfor %}
-        </section>
-
-        <section class="history-recommendation-group" aria-labelledby="previous-recommendations-title">
-            <h3 id="previous-recommendations-title">De informes anteriores</h3>
             {% for recommendation in historical_recommendations %}
-            <article class="recommendation-card">
-                <div class="recommendation-header">
-                    <span class="recommendation-number">{{ recommendation.source_document.reference|default:recommendation.source_document.title }} · {{ recommendation.number }}</span>
-                    <span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span>
-                </div>
-                <p>{{ recommendation.text|linebreaksbr }}</p>
-                <dl class="meta-list horizontal">
-                    {% if not recommendation.responsible_organization_id or recommendation.responsible_organization_id != user.organization_id %}<div><dt>Responsable</dt><dd>{{ recommendation.responsible_organization.name|default:recommendation.responsible_description|default:"No identificado" }}</dd></div>{% endif %}
-                    <div><dt>Fecha límite original</dt><dd>{{ recommendation.original_deadline|date:"d/m/Y"|default:"Sin fecha" }}</dd></div>
-                </dl>
-                {% if recommendation.comments %}<div class="review-result"><strong>Comentario registrado</strong><p>{{ recommendation.comments|linebreaksbr }}</p></div>{% endif %}
-                <a class="text-link" href="{% url 'historical_document_detail' recommendation.source_document_id %}">Abrir informe</a>
+            <article class="ui-card ui-card-compact">
+                <div class="ui-chips">{% ui_status_chip recommendation.status recommendation.get_status_display %}<span class="ui-chip">Informe anterior</span></div>
+                <p>{{ recommendation.text|truncatechars:220 }}</p>
+                <p class="ui-card-support">{{ recommendation.source_document.reference|default:recommendation.source_document.title }} · Recomendación {{ recommendation.number }}{% if not recommendation.responsible_organization_id or recommendation.responsible_organization_id != user.organization_id %} · Responde: {{ recommendation.responsible_organization.name|default:recommendation.responsible_description|default:"no identificado" }}{% endif %}</p>
+                {% if recommendation.comments %}<p class="ui-card-support">Comentario: {{ recommendation.comments|truncatechars:160 }}</p>{% endif %}
+                <a class="ui-link-row" href="{% url 'historical_document_detail' recommendation.source_document_id %}">Abrir informe</a>
             </article>
-            {% empty %}
-            <div class="compact-empty"><strong>No hay recomendaciones de informes anteriores</strong></div>
             {% endfor %}
-        </section>
-    </div>
-</section>
-
-<section class="section-block" aria-labelledby="history-responses-title">
-    <div class="section-heading"><div><h2 id="history-responses-title">Respuestas enviadas</h2></div></div>
-    <div class="card table-card">
-        {% if responses %}
-        <div class="table-responsive">
-            <table>
-                <caption class="sr-only">Respuestas enviadas por la institución</caption>
-                <thead><tr><th scope="col">Expediente</th><th scope="col">Versión</th><th scope="col">Fecha</th><th scope="col">Documentos</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
-                <tbody>
-                {% for response in responses %}
-                    <tr><td data-label="Expediente"><strong>{{ response.recommendation.finding.case.reference }}</strong></td><td data-label="Respuesta">Versión {{ response.version }}</td><td data-label="Enviada">{{ response.submitted_at|date:"d/m/Y H:i" }}</td><td data-label="Documentos">{{ response.evidence.count }}</td><td class="mobile-card-action"><a class="text-link" href="{% url 'response_receipt' response.pk %}">Ver constancia</a></td></tr>
-                {% endfor %}
-                </tbody>
-            </table>
         </div>
-        {% else %}<div class="empty-state"><h3>No hay respuestas enviadas</h3></div>{% endif %}
-    </div>
-</section>
+        {% if not recommendations and not historical_recommendations %}<p class="ui-help">No hay recomendaciones registradas.</p>{% endif %}
+    </section>
+
+    <section class="ui-section" aria-labelledby="history-responses-title">
+        <h2 class="ui-section-title" id="history-responses-title">Respuestas enviadas</h2>
+        {% if responses %}
+        <div class="ui-list">
+            {% for response in responses %}
+            <div class="ui-list-row">
+                <span class="ui-list-text"><span class="ui-list-title">{{ response.recommendation.finding.case.reference }} · versión {{ response.version }}</span><span class="ui-list-support">Enviada el {{ response.submitted_at|date:"j b Y" }} · {{ response.evidence.count }} documento{{ response.evidence.count|pluralize }}</span></span>
+                <a class="ui-button ui-button-tonal" href="{% url 'response_receipt' response.pk %}">{% ui_icon "download" %}Constancia</a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}<p class="ui-help">No hay respuestas enviadas.</p>{% endif %}
+    </section>
+</div>
 {% endblock %}

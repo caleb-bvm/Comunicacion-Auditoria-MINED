@@ -4,7 +4,7 @@
     <div class="form-grid form-grid-two">
         {% for field in attachment %}
         <div class="field {% if field.errors %}field-error{% endif %}{% if field.name == 'file' or field.name == 'title' %} field-wide{% endif %}">
-            {{ field.label_tag }}{{ field }}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
             {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
             {{ field.errors }}
         </div>

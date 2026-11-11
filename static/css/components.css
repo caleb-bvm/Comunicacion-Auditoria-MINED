@@ -548,3 +548,99 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 @media (prefers-reduced-motion: reduce) {
     .ui-button { transition: none; }
 }
+
+/* ---------- Páginas públicas: ingreso, activación, errores ---------- */
+.ui-auth {
+    min-height: 100vh;
+    min-height: 100dvh;
+    box-sizing: border-box;
+    padding: var(--ui-space-8) var(--ui-space-4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--ui-surface);
+}
+.content .ui-auth { min-height: min(60vh, 520px); padding: 0; background: transparent; }
+.ui-auth-panel {
+    width: 100%;
+    max-width: 440px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-6);
+}
+.ui-auth-panel-wide { max-width: 680px; }
+.ui-auth-title { margin: 0; font-size: var(--ui-text-page-mobile); line-height: 36px; font-weight: 500; letter-spacing: 0; }
+.content .ui-auth-title { font-weight: 500; letter-spacing: 0; }
+.ui-auth-message p { margin: 0; }
+.ui-auth-note { margin: 0; display: flex; align-items: flex-start; gap: var(--ui-space-3); font-size: var(--ui-text-support); line-height: 24px; color: var(--ui-on-surface-variant); }
+.ui-auth-note .ui-icon { width: 20px; height: 20px; margin-top: 2px; }
+@media (min-width: 721px) {
+    .ui-auth-panel { padding: var(--ui-space-12) 40px; border-radius: var(--ui-radius-card); background: var(--ui-surface-card); }
+}
+.ui-brand { display: flex; align-items: center; gap: var(--ui-space-3); }
+.ui-brand-mark { width: 48px; height: 48px; flex: 0 0 48px; border-radius: var(--ui-radius-tile); background: var(--ui-primary); color: var(--ui-on-primary); display: grid; place-items: center; }
+.ui-brand-mark .ui-icon { width: 28px; height: 28px; }
+.ui-brand-text { display: flex; flex-direction: column; line-height: 24px; }
+.ui-brand-text strong { font-size: var(--ui-text-body); font-weight: 700; }
+.ui-brand-text span { font-size: var(--ui-text-support); color: var(--ui-on-surface-variant); }
+.ui-password { position: relative; display: flex; align-items: center; }
+.ui-password input { padding-right: 132px !important; }
+.ui-password .ui-button { position: absolute; right: 4px; min-height: var(--ui-touch); padding: 0 var(--ui-space-3); }
+.ui-link-row { min-height: var(--ui-touch); display: inline-flex; align-items: center; align-self: flex-start; gap: var(--ui-space-2); color: var(--ui-primary); font-size: var(--ui-text-body); font-weight: 600; text-decoration: none; }
+.ui-link-row:hover { text-decoration: underline; }
+
+/* ---------- Variantes ---------- */
+.ui-page-form { max-width: var(--ui-form-max); }
+.ui-stack-loose { gap: var(--ui-space-6); }
+.ui-field-wide { grid-column: 1 / -1; }
+.ui-card-compact { padding: var(--ui-space-5); gap: var(--ui-space-2); }
+.ui-facts { margin: 0; }
+.ui-facts .ui-list-row { justify-content: space-between; flex-wrap: wrap; gap: var(--ui-space-1) var(--ui-space-4); }
+.ui-facts dt { color: var(--ui-on-surface-variant); font-size: var(--ui-text-support); }
+.ui-facts dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+
+/* ---------- Tarjetas en columnas que se llenan solas ---------- */
+.ui-card-grid-fill { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+@container (min-width: 820px) {
+    .ui-card-grid-fill { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+}
+.ui-card > p { margin: 0; }
+.ui-card-actions { margin-top: auto; }
+
+/* ---------- Pestañas de sección ---------- */
+.ui-tabs { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); }
+.ui-tabs a {
+    min-height: var(--ui-touch);
+    padding: 0 var(--ui-space-5);
+    border-radius: var(--ui-radius-chip);
+    box-shadow: inset 0 0 0 1px var(--ui-outline);
+    display: inline-flex;
+    align-items: center;
+    color: var(--ui-on-surface);
+    font-size: var(--ui-text-support);
+    font-weight: 600;
+    text-decoration: none;
+}
+.ui-tabs a:hover { background: var(--ui-surface-high); }
+.ui-tabs a.is-active, .ui-tabs a[aria-current] { box-shadow: none; background: var(--ui-secondary-container); color: var(--ui-on-secondary-container); }
+
+/* ---------- Conversación ---------- */
+.ui-thread { display: flex; flex-direction: column; gap: var(--ui-space-3); }
+.ui-thread-message { max-width: min(100%, 640px); padding: var(--ui-space-4) var(--ui-space-5); border-radius: var(--ui-radius-card); background: var(--ui-surface-card); display: flex; flex-direction: column; gap: var(--ui-space-2); align-self: flex-start; }
+.ui-thread-message.is-audit { background: var(--ui-primary-container); color: var(--ui-on-primary-container); align-self: flex-end; }
+.ui-thread-message header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--ui-space-1) var(--ui-space-4); font-size: var(--ui-text-support); line-height: 24px; }
+.ui-thread-message time { opacity: .8; }
+.ui-thread-body { overflow-wrap: anywhere; }
+
+/* ---------- Tarjeta plegable ---------- */
+.ui-disclosure > summary { min-height: var(--ui-touch); display: flex; align-items: center; gap: var(--ui-space-4); cursor: pointer; list-style: none; }
+.ui-disclosure > summary::-webkit-details-marker { display: none; }
+.ui-disclosure > summary::after { content: ""; width: 10px; height: 10px; margin: 0 var(--ui-space-2) 0 auto; flex: 0 0 10px; border-right: 2px solid var(--ui-on-surface-variant); border-bottom: 2px solid var(--ui-on-surface-variant); transform: rotate(45deg); transition: transform .15s var(--ui-ease); }
+.ui-disclosure[open] > summary::after { transform: rotate(225deg); }
+.ui-disclosure-text { min-width: 0; display: flex; flex-direction: column; gap: var(--ui-space-2); }
+.ui-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--ui-space-1); }
+.ui-row-actions .ui-button { padding-inline: var(--ui-space-3); }
+
+.ui-file-list:empty { display: none; }

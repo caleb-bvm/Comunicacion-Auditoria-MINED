@@ -23,6 +23,7 @@
                 });
             });
             rows.append(fragment);
+            enhanceFileInputs(rows.lastElementChild || rows);
             total.value = index + 1;
             updateLimit();
             rows.lastElementChild?.querySelector("input, select")?.focus();
@@ -174,21 +175,7 @@
         show(current, false);
     });
 
-    // Lista de archivos elegidos, en palabras y no con el texto del navegador.
-    document.querySelectorAll(".ui-file input[type='file']").forEach((input) => {
-        const list = input.closest(".ui-field")?.querySelector("[data-file-list]");
-        if (!list) return;
-        input.addEventListener("change", () => {
-            list.replaceChildren(
-                ...Array.from(input.files).map((file) => {
-                    const item = document.createElement("li");
-                    const size = file.size >= 1048576 ? `${(file.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`;
-                    item.textContent = `${file.name} · ${size}`;
-                    return item;
-                })
-            );
-        });
-    });
+    enhanceFileInputs(document);
 
     document.querySelectorAll("[data-location-filters]").forEach((form) => {
         const department = form.querySelector('[name="department"]');
@@ -470,3 +457,57 @@ document.querySelectorAll("[data-select-page]").forEach((toggle) => {
     items.forEach((item) => item.addEventListener("change", refresh));
     refresh();
 });
+
+// Mostrar u ocultar la contraseña: el botón solo aparece si hay JavaScript.
+document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+    const input = document.getElementById(button.dataset.passwordToggle);
+    const label = button.querySelector("[data-password-toggle-label]");
+    if (!input) return;
+    button.hidden = false;
+    button.addEventListener("click", () => {
+        const visible = input.type === "password";
+        input.type = visible ? "text" : "password";
+        button.setAttribute("aria-pressed", String(visible));
+        if (label) label.textContent = visible ? "Ocultar" : "Mostrar";
+    });
+});
+
+// Selector de archivos en palabras: reemplaza el texto del navegador («Choose File»)
+// por una zona con el nombre y tamaño de lo elegido. Sin JavaScript queda el control nativo.
+function enhanceFileInputs(root) {
+    root.querySelectorAll("input[type='file']").forEach((input) => {
+        if (input.dataset.fileEnhanced || input.closest(".bulk-dropzone, [data-native-file]")) return;
+        input.dataset.fileEnhanced = "true";
+        let zone = input.closest(".ui-file");
+        if (!zone) {
+            zone = document.createElement("div");
+            zone.className = "ui-file";
+            input.before(zone);
+            zone.append(input);
+            const label = document.createElement("span");
+            label.className = "ui-file-zone";
+            label.setAttribute("aria-hidden", "true");
+            label.innerHTML = '<svg class="ui-icon" focusable="false"><use href="#ui-upload"></use></svg>';
+            label.append(input.multiple ? "Elegir archivos" : "Elegir archivo");
+            zone.append(label);
+        }
+        let list = zone.parentElement.querySelector("[data-file-list]");
+        if (!list) {
+            list = document.createElement("ul");
+            list.className = "ui-file-list";
+            list.dataset.fileList = "";
+            list.setAttribute("aria-label", "Archivos elegidos");
+            zone.after(list);
+        }
+        input.addEventListener("change", () => {
+            list.replaceChildren(
+                ...Array.from(input.files).map((file) => {
+                    const item = document.createElement("li");
+                    const size = file.size >= 1048576 ? `${(file.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+                    item.textContent = `${file.name} · ${size}`;
+                    return item;
+                })
+            );
+        });
+    });
+}
