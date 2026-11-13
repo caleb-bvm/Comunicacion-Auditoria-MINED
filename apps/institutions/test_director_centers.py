@@ -167,7 +167,7 @@ class DirectorEducationalCenterTests(TestCase):
             {"department": "San Salvador", "district": "Distrito Centro"},
         )
 
-        self.assertContains(response, 'class="filter-bar report-filter-bar"')
+        self.assertContains(response, 'class="ui-filters"')
         self.assertContains(response, 'name="department"')
         self.assertContains(response, 'name="district"')
         self.assertContains(response, 'name="organization"')

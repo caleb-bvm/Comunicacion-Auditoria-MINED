@@ -1,7 +1,33 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Registrar prórroga | {{ case.reference }}{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'case_detail' case.pk %}">{{ case.reference }}</a><span>/</span><span>Prórroga</span></nav>
-<div class="page-heading"><span class="case-reference">{{ case.reference }} · Recomendación {{ recommendation.finding.number }}.{{ recommendation.number }}</span><h1>Registrar prórroga</h1><p>Fecha límite vigente: <strong>{{ recommendation.deadline|date:"d/m/Y" }}</strong>. La nueva fecha excluirá fines de semana y asuetos activos.</p></div>
-<div class="two-column"><aside class="card sticky-card" aria-labelledby="extension-recommendation-title"><h2 id="extension-recommendation-title">Recomendación</h2><p>{{ recommendation.text|linebreaksbr }}</p><dl class="meta-list"><div><dt>Responsable</dt><dd>{{ recommendation.responsible_organization.name }}</dd></div></dl></aside><form method="post" class="card stacked-form">{% csrf_token %}<fieldset class="form-section"><legend>Datos de la prórroga</legend>{% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</fieldset><div class="submit-panel"><a class="button button-ghost" href="{% url 'case_detail' case.pk %}">Cancelar</a><button class="button button-primary" type="submit">Registrar prórroga</button></div></form></div>
+<div class="ui-page">
+    <a class="ui-back" href="{% url 'case_detail' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Registrar prórroga</h1>
+        <p class="ui-page-context">La nueva fecha cuenta solo días hábiles: excluye fines de semana y asuetos.</p>
+    </header>
+    <div class="ui-layout ui-layout-context">
+        <aside class="ui-layout-aside" aria-labelledby="extension-recommendation-title">
+            <section class="ui-card">
+                <div class="ui-chips">{% ui_deadline_chip recommendation.deadline %}</div>
+                <h2 class="ui-card-title" id="extension-recommendation-title">Recomendación {{ recommendation.finding.number }}.{{ recommendation.number }}</h2>
+                <p>{{ recommendation.text|linebreaksbr }}</p>
+                <p class="ui-card-support">Responde: {{ recommendation.responsible_organization.name }} · fecha límite vigente {{ recommendation.deadline|date:"j b Y" }}</p>
+            </section>
+        </aside>
+        <div class="ui-layout-main">
+            <form method="post" class="ui-card">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                {% include "includes/ui/form_fields.html" with fields=form %}
+                <div class="ui-form-actions">
+                    <a class="ui-button ui-button-text" href="{% url 'case_detail' case.pk %}">Cancelar</a>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit">Registrar prórroga</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}

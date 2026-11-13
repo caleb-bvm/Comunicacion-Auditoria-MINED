@@ -1,12 +1,21 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Agregar documentos | Informe anterior{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'historical_document_detail' document.pk %}">{{ document.reference|default:document.title }}</a><span>/</span><span>Agregar documentos</span></nav>
-<div class="page-heading"><h1>Agregar documentos al informe</h1><p>{{ document.organization.code }} · {{ document.organization.name }} · {{ document.title }}</p></div>
-<form method="post" enctype="multipart/form-data" class="editor-form card">
-    {% csrf_token %}
-    {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
-    {% include 'audits/historical_attachment_fields.html' %}
-    <div class="submit-panel"><a class="button button-secondary" href="{% url 'historical_document_detail' document.pk %}">Cancelar</a><button class="button button-primary" type="submit">Guardar documentos</button></div>
-</form>
+<div class="ui-page ui-page-form">
+    <a class="ui-back" href="{% url 'historical_document_detail' document.pk %}">{% ui_icon "back" %}{{ document.reference|default:document.title }}</a>
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Agregar documentos al informe</h1>
+        <p class="ui-page-context">{{ document.organization.code }} · {{ document.organization.name }} · {{ document.title }}</p>
+    </header>
+    <form method="post" enctype="multipart/form-data" class="ui-stack ui-stack-loose">
+        {% csrf_token %}
+        {% if error %}<div class="ui-form-error" role="alert">{{ error }}</div>{% endif %}
+        {% include 'audits/historical_attachment_fields.html' %}
+        <div class="ui-form-actions">
+            <a class="ui-button ui-button-text" href="{% url 'historical_document_detail' document.pk %}">Cancelar</a>
+            <button class="ui-button ui-button-filled ui-button-large" type="submit">{% ui_icon "upload" %}Guardar documentos</button>
+        </div>
+    </form>
+</div>
 {% endblock %}

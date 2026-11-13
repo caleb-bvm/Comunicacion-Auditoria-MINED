@@ -1,10 +1,21 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}{{ page_title }} | Dirección de Auditoría{% endblock %}
 {% block content %}
-<div class="narrow-page"><div class="page-heading"><h1>{{ page_title }}</h1><p>Complete los datos de acceso y contacto del auditor.</p></div>
-<form method="post" class="stacked-form card" novalidate>{% csrf_token %}
-  {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
-  <div class="form-grid form-grid-two">{% for field in form %}<div class="field{% if field.errors %} field-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text|safe }}</small>{% endif %}{% for error in field.errors %}<span class="form-error">{{ error }}</span>{% endfor %}</div>{% endfor %}</div>
-  <div class="button-group"><button class="button button-primary" type="submit">{{ submit_label }}</button><a class="button button-secondary" href="{% if auditor %}{% url 'director_auditor_detail' auditor.pk %}{% else %}{% url 'director_auditors' %}{% endif %}">Cancelar</a></div>
-</form></div>
+<div class="ui-page ui-page-form">
+    <a class="ui-back" href="{% if auditor %}{% url 'director_auditor_detail' auditor.pk %}{% else %}{% url 'director_auditors' %}{% endif %}">{% ui_icon "back" %}{% if auditor %}{{ auditor.get_full_name|default:auditor.username }}{% else %}Auditores{% endif %}</a>
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">{{ page_title }}</h1>
+        <p class="ui-page-context">Datos de acceso y contacto del auditor.</p>
+    </header>
+    <form method="post" class="ui-card" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        {% include "includes/ui/form_fields.html" with fields=form %}
+        <div class="ui-form-actions">
+            <a class="ui-button ui-button-text" href="{% if auditor %}{% url 'director_auditor_detail' auditor.pk %}{% else %}{% url 'director_auditors' %}{% endif %}">Cancelar</a>
+            <button class="ui-button ui-button-filled ui-button-large" type="submit">{{ submit_label }}</button>
+        </div>
+    </form>
+</div>
 {% endblock %}

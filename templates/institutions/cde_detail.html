@@ -27,7 +27,7 @@
         <details class="ui-card ui-disclosure" {% if period.is_current %}open{% endif %}>
             <summary>
                 <span class="ui-disclosure-text">
-                    <span class="ui-chips"><span class="status {% if period.is_current %}status-approved{% else %}status-closed{% endif %}">{{ period.status_label }}</span></span>
+                    <span class="ui-chips"><span class="ui-chip{% if period.is_current %} ui-chip-success{% endif %}">{% if period.is_current %}{% ui_icon "check" %}{% else %}{% ui_icon "history" %}{% endif %}{{ period.status_label }}</span></span>
                     <strong class="ui-card-title">CDE {{ period.school_year_start }}–{{ period.school_year_end }}</strong>
                     <span class="ui-card-support">{{ period.start_date|date:"j b Y" }} al {{ period.end_date|date:"j b Y" }}{% if period.is_current %} · {{ period.active_member_count }} integrante{{ period.active_member_count|pluralize }} activo{{ period.active_member_count|pluralize }} · {{ period.legal_representative_count }} representante{{ period.legal_representative_count|pluralize }} legal{{ period.legal_representative_count|pluralize:"es" }}{% endif %}</span>
                 </span>
@@ -40,17 +40,17 @@
                 </div>
                 <p class="ui-card-support">{{ period.supporting_document_name|default:"Acta de conformación" }} · registrado el {{ period.created_at|date:"j b Y" }}{% if period.notes %}<br>{{ period.notes|linebreaksbr }}{% endif %}</p>
                 {% if period.members.all %}
-                <div class="table-responsive">
-                    <table data-mobile-cards>
+                <div class="ui-table-wrap">
+                    <table class="ui-table" data-mobile-cards>
                         <caption class="ui-visually-hidden">Integrantes del período {{ period.school_year_start }}–{{ period.school_year_end }}</caption>
                         <thead><tr><th scope="col">Integrante</th><th scope="col">Cargo y sector</th><th scope="col">Participación</th><th scope="col">Representante legal</th>{% if can_manage %}<th scope="col" data-card-action><span class="ui-visually-hidden">Acciones</span></th>{% endif %}</tr></thead>
                         <tbody>
                         {% for member in period.members.all %}
                         <tr>
-                            <td><strong>{{ member.full_name }}</strong>{% if member.identity_document %}<small>DUI: {{ member.identity_document }}</small>{% endif %}</td>
+                            <td><span class="ui-table-link">{{ member.full_name }}</span>{% if member.identity_document %}<small>DUI: {{ member.identity_document }}</small>{% endif %}</td>
                             <td>{{ member.position }}<small>{{ member.get_sector_display }}</small></td>
                             <td>{{ member.joined_on|date:"j b Y" }}{% if member.left_on %} al {{ member.left_on|date:"j b Y" }}{% if member.exit_reason %}<small>{{ member.exit_reason }}</small>{% endif %}{% else %}<small>Activo</small>{% endif %}</td>
-                            <td>{% if member.is_legal_representative %}<span class="status status-approved">Sí</span>{% else %}No{% endif %}</td>
+                            <td>{% if member.is_legal_representative %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Sí</span>{% else %}No{% endif %}</td>
                             {% if can_manage %}
                             <td>
                                 <div class="ui-row-actions">

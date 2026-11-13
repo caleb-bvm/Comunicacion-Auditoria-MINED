@@ -1,38 +1,66 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Solicitudes técnicas | Administración técnica{% endblock %}
 {% block content %}
-<div class="page-heading heading-row">
-  <div><span class="eyebrow">Supervisión</span><h1>Solicitudes técnicas</h1><p>Priorice lo nuevo, continúe los casos en atención y cierre cada solicitud con una resolución trazable.</p></div>
-  {% if selected %}<a class="button button-secondary" href="{% url 'technical_support_requests' %}{% if status_filter or category_filter %}?status={{ status_filter|urlencode }}&amp;category={{ category_filter|urlencode }}{% endif %}">Volver a la bandeja</a>{% endif %}
-</div>
+<div class="ui-page">
+    {% if selected %}<a class="ui-back" href="{% url 'technical_support_requests' %}{% if status_filter or category_filter %}?status={{ status_filter|urlencode }}&amp;category={{ category_filter|urlencode }}{% endif %}">{% ui_icon "back" %}Volver a la bandeja</a>{% endif %}
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Solicitudes técnicas</h1>
+        <p class="ui-page-context">Atienda primero lo nuevo y cierre cada solicitud con una resolución clara.</p>
+    </header>
 
-<nav class="status-tabs support-status-tabs" aria-label="Filtrar solicitudes por estado">
-  <a href="{% url 'technical_support_requests' %}{% if category_filter %}?category={{ category_filter|urlencode }}{% endif %}" class="{% if not status_filter %}is-active{% endif %}">Todas <strong>{{ support_counts.all }}</strong></a>
-  <a href="?status=open{% if category_filter %}&amp;category={{ category_filter|urlencode }}{% endif %}" class="{% if status_filter == 'open' %}is-active{% endif %}">Nuevas <strong>{{ support_counts.open }}</strong></a>
-  <a href="?status=in_progress{% if category_filter %}&amp;category={{ category_filter|urlencode }}{% endif %}" class="{% if status_filter == 'in_progress' %}is-active{% endif %}">En atención <strong>{{ support_counts.in_progress }}</strong></a>
-  <a href="?status=resolved{% if category_filter %}&amp;category={{ category_filter|urlencode }}{% endif %}" class="{% if status_filter == 'resolved' %}is-active{% endif %}">Resueltas <strong>{{ support_counts.resolved }}</strong></a>
-  <a href="?status=closed{% if category_filter %}&amp;category={{ category_filter|urlencode }}{% endif %}" class="{% if status_filter == 'closed' %}is-active{% endif %}">Cerradas <strong>{{ support_counts.closed }}</strong></a>
-</nav>
+    <div class="ui-page-header-row">
+        <nav class="ui-tabs" aria-label="Filtrar solicitudes por estado">
+            <a href="{% url 'technical_support_requests' %}{% if category_filter %}?category={{ category_filter|urlencode }}{% endif %}" class="{% if not status_filter %}is-active{% endif %}">Todas<span class="ui-tab-count">{{ support_counts.all }}</span></a>
+            <a href="?status=open{% if category_filter %}&amp;category={{ category_filter|urlencode }}{% endif %}" class="{% if status_filter == 'open' %}is-active{% endif %}">Nuevas<span class="ui-tab-count">{{ support_counts.open }}</span></a>
+            <a href="?status=in_progress{% if category_filter %}&amp;category={{ category_filter|urlencode }}{% endif %}" class="{% if status_filter == 'in_progress' %}is-active{% endif %}">En atención<span class="ui-tab-count">{{ support_counts.in_progress }}</span></a>
+            <a href="?status=resolved{% if category_filter %}&amp;category={{ category_filter|urlencode }}{% endif %}" class="{% if status_filter == 'resolved' %}is-active{% endif %}">Resueltas<span class="ui-tab-count">{{ support_counts.resolved }}</span></a>
+            <a href="?status=closed{% if category_filter %}&amp;category={{ category_filter|urlencode }}{% endif %}" class="{% if status_filter == 'closed' %}is-active{% endif %}">Cerradas<span class="ui-tab-count">{{ support_counts.closed }}</span></a>
+        </nav>
+        <form class="ui-filters" method="get" data-auto-submit-filters>
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            <div class="ui-field"><label for="category">Categoría</label><select id="category" name="category"><option value="">Todas las categorías</option>{% for value,label in categories %}<option value="{{ value }}" {% if category_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <noscript><button class="ui-button ui-button-tonal" type="submit">Aplicar</button></noscript>
+            {% if category_filter or status_filter %}<a class="ui-button ui-button-text" href="{% url 'technical_support_requests' %}">Limpiar filtros</a>{% endif %}
+        </form>
+    </div>
 
-<form class="filter-bar support-filter-bar" method="get" data-auto-submit-filters>
-  <input type="hidden" name="status" value="{{ status_filter }}">
-  <div class="field"><label for="category">Categoría</label><select id="category" name="category"><option value="">Todas las categorías</option>{% for value,label in categories %}<option value="{{ value }}" {% if category_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-  {% if category_filter or status_filter %}<a class="active-filter-chip" href="{% url 'technical_support_requests' %}">Limpiar filtros ×</a>{% endif %}
-  <button class="button button-secondary">Aplicar</button>
-</form>
-
-<div class="technical-detail-grid support-workbench">
-  <section class="card support-queue" aria-labelledby="support-queue-title">
-    <div class="section-heading"><div><h2 id="support-queue-title">Bandeja</h2><p>{{ support_requests|length }} {% if support_requests|length == 1 %}solicitud{% else %}solicitudes{% endif %} en esta vista</p></div></div>
-    <div class="request-list">{% for item in support_requests %}<a class="request-item request-link {% if selected.pk == item.pk %}is-selected{% endif %}" href="{% url 'technical_support_request_detail' item.pk %}?status={{ status_filter|urlencode }}&amp;category={{ category_filter|urlencode }}#support-resolution"><span class="request-priority {% if item.status == 'open' %}is-new{% endif %}" aria-hidden="true"></span><div><header><strong>{{ item.subject }}</strong><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></header><small>{{ item.get_category_display }} · {% if item.requested_by %}{{ item.requested_by.get_full_name|default:item.requested_by.username }}{% else %}{{ item.requester_name|default:"Cuenta no identificada" }}{% endif %}</small><time>{{ item.created_at|date:"d/m/Y H:i" }} · hace {{ item.created_at|timesince }}</time></div><b aria-hidden="true">→</b></a>{% empty %}<div class="compact-empty"><strong>No hay solicitudes en esta vista</strong><p>Pruebe con otro estado o categoría.</p></div>{% endfor %}</div>
-  </section>
-  <section id="support-resolution" class="card support-resolution-panel">
-    {% if selected %}
-    <div class="support-detail-heading"><div><span class="eyebrow">Solicitud #{{ selected.pk }}</span><h2>{{ selected.subject }}</h2></div><span class="status status-{{ selected.status }}">{{ selected.get_status_display }}</span></div>
-    <p class="support-description">{{ selected.description|linebreaksbr }}</p>
-    <dl class="support-request-meta"><div><dt>Solicitante</dt><dd>{% if selected.requested_by %}<a href="{% url 'technical_user_detail' selected.requested_by.pk %}">{{ selected.requested_by.get_full_name|default:selected.requested_by.username }}</a>{% else %}{{ selected.requester_name|default:"No identificado" }}{% endif %}</dd></div><div><dt>Categoría</dt><dd>{{ selected.get_category_display }}</dd></div><div><dt>Recibida</dt><dd>{{ selected.created_at|date:"d/m/Y H:i" }}</dd></div>{% if selected.organization %}<div><dt>Institución</dt><dd>{{ selected.organization }}</dd></div>{% endif %}{% if selected.is_public_request %}<div><dt>Usuario indicado</dt><dd>{{ selected.requester_identifier|default:"No indicado" }}</dd></div><div><dt>Contacto</dt><dd>{{ selected.requester_contact|default:"No indicado" }}</dd></div>{% endif %}</dl>
-    <form method="post" class="support-resolution-form">{% csrf_token %}<div class="section-heading"><div><h3>Seguimiento</h3><p>Actualice el estado y deje una resolución clara para futuras consultas.</p></div></div>{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}<button class="button button-primary">Guardar seguimiento</button></form>
-    {% else %}<div class="support-select-empty"><span aria-hidden="true">↗</span><strong>Seleccione una solicitud</strong><p>Abra un elemento de la bandeja para revisar sus datos y registrar el seguimiento.</p></div>{% endif %}
-  </section>
+    <div class="ui-layout">
+        <section class="ui-layout-main" aria-labelledby="support-queue-title">
+            <div class="ui-section-head"><h2 class="ui-section-title" id="support-queue-title">Bandeja</h2><span class="ui-help">{{ support_requests|length }} {% if support_requests|length == 1 %}solicitud{% else %}solicitudes{% endif %} en esta vista</span></div>
+            <div class="ui-list">
+                {% for item in support_requests %}
+                <a class="ui-list-row{% if selected.pk == item.pk %} is-selected{% endif %}" href="{% url 'technical_support_request_detail' item.pk %}?status={{ status_filter|urlencode }}&amp;category={{ category_filter|urlencode }}#support-resolution"{% if selected.pk == item.pk %} aria-current="true"{% endif %}><span class="ui-list-text"><span class="ui-list-title">{{ item.subject }}</span><span class="ui-list-support">{{ item.get_category_display }} · {% if item.requested_by %}{{ item.requested_by.get_full_name|default:item.requested_by.username }}{% else %}{{ item.requester_name|default:"Cuenta no identificada" }}{% endif %} · hace {{ item.created_at|timesince }}</span></span><span class="ui-chip {% if item.status == 'open' %}ui-chip-info{% elif item.status == 'in_progress' %}ui-chip-review{% elif item.status == 'resolved' or item.status == 'closed' %}ui-chip-success{% endif %}">{{ item.get_status_display }}</span></a>
+                {% empty %}
+                <div class="ui-list-row"><span class="ui-list-support">No hay solicitudes en esta vista. Pruebe con otro estado o categoría.</span></div>
+                {% endfor %}
+            </div>
+        </section>
+        <section id="support-resolution" class="ui-layout-aside" aria-label="Solicitud seleccionada">
+            {% if selected %}
+            <div class="ui-card">
+                <div class="ui-chips"><span class="ui-chip {% if selected.status == 'open' %}ui-chip-info{% elif selected.status == 'in_progress' %}ui-chip-review{% elif selected.status == 'resolved' or selected.status == 'closed' %}ui-chip-success{% endif %}">{{ selected.get_status_display }}</span><span class="ui-chip">Solicitud #{{ selected.pk }}</span></div>
+                <h2 class="ui-card-title">{{ selected.subject }}</h2>
+                <p>{{ selected.description|linebreaksbr }}</p>
+                <dl class="ui-list ui-list-flat ui-facts">
+                    <div class="ui-list-row"><dt>Solicitante</dt><dd>{% if selected.requested_by %}<a href="{% url 'technical_user_detail' selected.requested_by.pk %}">{{ selected.requested_by.get_full_name|default:selected.requested_by.username }}</a>{% else %}{{ selected.requester_name|default:"No identificado" }}{% endif %}</dd></div>
+                    <div class="ui-list-row"><dt>Categoría</dt><dd>{{ selected.get_category_display }}</dd></div>
+                    <div class="ui-list-row"><dt>Recibida</dt><dd>{{ selected.created_at|date:"d/m/Y H:i" }}</dd></div>
+                    {% if selected.organization %}<div class="ui-list-row"><dt>Institución</dt><dd>{{ selected.organization }}</dd></div>{% endif %}
+                    {% if selected.is_public_request %}<div class="ui-list-row"><dt>Usuario indicado</dt><dd>{{ selected.requester_identifier|default:"No indicado" }}</dd></div><div class="ui-list-row"><dt>Contacto</dt><dd>{{ selected.requester_contact|default:"No indicado" }}</dd></div>{% endif %}
+                </dl>
+            </div>
+            <form method="post" class="ui-card" aria-labelledby="followup-title">
+                {% csrf_token %}
+                <h3 class="ui-card-title" id="followup-title">Seguimiento</h3>
+                <p class="ui-card-support">Actualice el estado y deje una resolución clara para futuras consultas.</p>
+                {% include "includes/ui/form_fields.html" with fields=form %}
+                <button class="ui-button ui-button-filled ui-button-large ui-button-block" type="submit">Guardar seguimiento</button>
+            </form>
+            {% else %}
+            <div class="ui-card"><h2 class="ui-card-title">Seleccione una solicitud</h2><p class="ui-card-support">Abra un elemento de la bandeja para revisar sus datos y registrar el seguimiento.</p></div>
+            {% endif %}
+        </section>
+    </div>
 </div>
 {% endblock %}

@@ -1,58 +1,120 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}{{ case.reference }} | Auditoría Interna{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'case_list' %}">Expedientes</a><span>/</span><span aria-current="page">{{ case.reference }}</span></nav>
-<div class="page-heading heading-row">
-    <div><div class="heading-tags"><span class="case-reference">{{ case.reference }}</span><span class="status status-{{ case.status }}">{{ case.get_status_display }}</span></div><h1>{{ case.audited_organization.name }}</h1><p class="page-context">{{ case.title }}</p></div>
-    {% if pending_decision and user.role == 'audit_manager' or can_edit_case or can_request_closure %}<div class="heading-actions">{% if pending_decision and user.role == 'audit_manager' %}<a class="button button-primary" href="{% url 'director_decision_detail' pending_decision.pk %}">Resolver solicitud</a>{% elif can_edit_case %}<a class="button button-primary" href="{% url 'case_builder' case.pk %}">Continuar borrador</a>{% endif %}{% if can_request_closure %}<a class="button button-tonal" href="{% url 'request_case_closure' case.pk %}">Solicitar cierre</a>{% endif %}</div>{% endif %}
-</div>
-{% if pending_decision %}<div class="decision-banner" role="status"><div><strong>Solicitud de {{ pending_decision.get_kind_display|lower }} pendiente</strong><p>{% if user.role == 'institution' %}Registrada el {% else %}Enviada por {{ pending_decision.requested_by.get_full_name|default:pending_decision.requested_by.username }} el {% endif %}{{ pending_decision.requested_at|date:"d/m/Y H:i" }}.</p></div></div>{% endif %}
+<div class="ui-page case-page">
+    <a class="ui-back" href="{% url 'case_list' %}">{% ui_icon "back" %}Expedientes</a>
 
-<nav class="case-section-nav" aria-label="Secciones del expediente"><a href="#resumen">Resumen</a>{% if documents or case.report_file %}<a href="#informe">Informe</a>{% endif %}<a href="#hallazgos">Hallazgos</a></nav>
-
-<section class="case-summary" id="resumen" aria-labelledby="case-summary-title">
-    <h2 id="case-summary-title">Resumen</h2>
-    <dl class="summary-grid">
-        {% if case.audited_organization_id != user.organization_id %}<div><dt>Código institucional</dt><dd>{{ case.audited_organization.code }}</dd></div>{% endif %}
-        {% if user.role != 'institution' %}<div><dt>Auditor responsable</dt><dd>{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}{% if can_reassign_case %} · <a class="text-link" href="{% url 'director_reassign_case' case.pk %}">Reasignar</a>{% endif %}</dd></div>{% endif %}
-        <div><dt>Fecha del informe</dt><dd>{{ case.report_date|date:"d/m/Y"|default:"Por definir" }}</dd></div>
-        <div><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"d/m/Y"|default:"Por definir" }}</dd></div>
-        {% if case.audited_organization.kind == 'educational_center' %}<div><dt>Consejo Directivo Escolar</dt><dd><a class="text-link" href="{% url 'cde_detail' case.audited_organization.pk %}">Consultar CDE</a></dd></div>{% endif %}
-    </dl>
-</section>
-{% if documents or case.report_file %}<section class="section-block" id="informe" aria-labelledby="case-report-title"><div class="section-heading"><h2 id="case-report-title">Informe</h2></div>{% for document in documents %}<div class="document-bar"><div><span aria-hidden="true">DOC</span><div><strong>{{ document.title }} · versión {{ document.version }}</strong><small>{{ document.reference|default:"Sin referencia" }} · {{ document.get_status_display }}</small></div></div><a class="button button-secondary" href="{% url 'download_audit_document' document.pk %}">Descargar</a></div>{% empty %}{% if case.report_file %}<div class="document-bar"><div><span aria-hidden="true">PDF</span><div><strong>Informe de auditoría migrado</strong></div></div><a class="button button-secondary" href="{% url 'download_report' case.pk %}">Descargar</a></div>{% endif %}{% endfor %}</section>{% endif %}
-
-<section class="section-block" id="hallazgos" aria-labelledby="findings-title">
-    <div class="section-heading"><h2 id="findings-title">Hallazgos y recomendaciones</h2></div>
-    {% for finding in findings %}
-    <article class="finding-card" aria-labelledby="finding-{{ finding.pk }}-title">
-        <header><div><span class="finding-number">Hallazgo {{ finding.number }}</span><h3 id="finding-{{ finding.pk }}-title">{{ finding.title }}</h3></div><span class="risk risk-{{ finding.risk_level }}">Riesgo {{ finding.get_risk_level_display }}</span></header>
-        {% if finding.condition %}<details><summary>Condición</summary><p>{{ finding.condition|linebreaksbr }}</p></details>{% endif %}
-        <div class="recommendations">
-        {% for recommendation in finding.recommendations.all %}
-            <section class="recommendation-card" aria-labelledby="recommendation-{{ recommendation.pk }}-title">
-                <div class="recommendation-header"><h4 class="recommendation-number" id="recommendation-{{ recommendation.pk }}-title">Recomendación {{ recommendation.number }}</h4><span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span></div>
-                <p class="recommendation-text">{{ recommendation.text|linebreaksbr }}</p>
-                <dl class="meta-list horizontal">{% if recommendation.responsible_organization_id != user.organization_id %}<div><dt>Responsable</dt><dd>{{ recommendation.responsible_organization.name }}</dd></div>{% endif %}<div><dt>Fecha límite</dt><dd>{{ recommendation.deadline|date:"d/m/Y"|default:"Por definir" }}</dd></div></dl>
-                {% if recommendation.source_recommendation %}<div class="requirement-box"><strong>Informe anterior</strong><p>{{ recommendation.source_recommendation.source_document.reference|default:recommendation.source_recommendation.source_document.title }} · Recomendación {{ recommendation.source_recommendation.number }} · {{ recommendation.source_recommendation.get_status_display }}</p>{% if recommendation.source_recommendation.comments %}<p>{{ recommendation.source_recommendation.comments|linebreaksbr }}</p>{% endif %}</div>{% endif %}
-                {% if recommendation.evidence_requirements %}<div class="requirement-box"><strong>Documentación requerida</strong><p>{{ recommendation.evidence_requirements|linebreaksbr }}</p></div>{% endif %}
-                {% if recommendation.no_response_recorded_at %}<div class="review-result"><strong>Sin respuesta dentro del plazo</strong><p>El sistema registró automáticamente la recomendación como no cumplida el {{ recommendation.no_response_recorded_at|date:"d/m/Y H:i" }}.</p></div>{% endif %}
-                {% if recommendation.deadline_extensions.all %}<details><summary>Ver prórrogas</summary>{% for extension in recommendation.deadline_extensions.all %}<p><strong>{{ extension.business_days }} día{{ extension.business_days|pluralize }} hábil{{ extension.business_days|pluralize:"es" }}</strong>: {{ extension.previous_deadline|date:"d/m/Y" }} → {{ extension.new_deadline|date:"d/m/Y" }}<br>{{ extension.reason }}<br><small>{% if user.role != 'institution' %}{{ extension.granted_by.get_full_name|default:extension.granted_by.username }} · {% endif %}{{ extension.granted_at|date:"d/m/Y H:i" }}</small></p>{% endfor %}</details>{% endif %}
-
-                {% if recommendation.visible_responses %}<section class="response-history" aria-labelledby="response-history-{{ recommendation.pk }}"><h5 id="response-history-{{ recommendation.pk }}">Respuestas</h5><ol class="response-timeline">{% for response in recommendation.visible_responses %}<li class="response-block"><div class="response-title"><strong>Versión {{ response.version }}</strong><time datetime="{{ response.submitted_at|date:'c' }}">{{ response.submitted_at|date:"d/m/Y H:i" }}</time></div>{% if response.school_board_period %}<p><strong>CDE registrado:</strong> <a class="text-link" href="{% url 'cde_detail' response.school_board_period.organization_id %}">{{ response.school_board_period.school_year_start }}–{{ response.school_board_period.school_year_end }}</a></p>{% endif %}<p><strong>Estado declarado:</strong> {{ response.get_declared_status_display }}</p><p>{{ response.action_description|linebreaksbr }}</p><a class="text-link" href="{% url 'response_receipt' response.pk %}">Descargar constancia</a>{% if response.evidence.all %}<div class="evidence-list"><strong>Documentos adjuntos</strong>{% for item in response.evidence.all %}<a href="{% url 'download_evidence' item.pk %}"><span>{{ item.original_filename }}</span><small>{{ item.get_category_display }} · {{ item.get_scan_status_display }}</small></a>{% endfor %}</div>{% endif %}{% if response.review %}<div class="review-result"><strong>Resultado: {{ response.review.get_outcome_display }}</strong><p>{{ response.review.comments|linebreaksbr }}</p></div>{% elif user.role == 'auditor' or user.role == 'audit_manager' %}<a class="button button-secondary" href="{% url 'review_response' response.pk %}">Revisar respuesta</a>{% endif %}</li>{% endfor %}</ol></section>{% endif %}
-
-                <div class="recommendation-actions">
-                {% if user.role == 'auditor' or user.role == 'audit_manager' %}{% if recommendation.status == 'pending' or recommendation.status == 'correction_required' %}<a class="button button-secondary" href="{% url 'grant_deadline_extension' recommendation.pk %}">Registrar prórroga</a>{% endif %}{% endif %}
-                {% if user.role == 'institution' and user.organization_id == recommendation.responsible_organization_id and recommendation.status == 'pending' or user.role == 'institution' and user.organization_id == recommendation.responsible_organization_id and recommendation.status == 'correction_required' %}
-                <a class="button button-primary" href="{% url 'respond_recommendation' recommendation.pk %}">{% if recommendation.status == 'correction_required' %}Presentar corrección{% else %}Presentar respuesta{% endif %}</a>
-                {% elif user.role == 'institution' and recommendation.status == 'pending' or user.role == 'institution' and recommendation.status == 'correction_required' %}
-                <p class="muted">La respuesta debe ser presentada por {{ recommendation.responsible_organization.name }}.</p>
-                {% endif %}
-                </div>
-            </section>
-        {% empty %}<p class="muted">Este hallazgo aún no tiene recomendaciones registradas.</p>{% endfor %}
+    <div class="ui-page-header-row">
+        <header class="ui-page-header">
+            <div class="ui-chips">{% ui_case_status_chip case.status %}</div>
+            <h1 class="ui-page-title">{{ case.title }}</h1>
+            <p class="ui-page-context">{{ case.reference }} · {{ case.audited_organization.name }}</p>
+        </header>
+        {% if pending_decision and user.role == 'audit_manager' or can_edit_case or can_request_closure %}
+        <div class="ui-card-actions">
+            {% if pending_decision and user.role == 'audit_manager' %}<a class="ui-button ui-button-filled ui-button-large" href="{% url 'director_decision_detail' pending_decision.pk %}">Resolver solicitud</a>{% elif can_edit_case %}<a class="ui-button ui-button-filled ui-button-large" href="{% url 'case_builder' case.pk %}">Continuar borrador</a>{% endif %}
+            {% if can_request_closure %}<a class="ui-button ui-button-tonal" href="{% url 'request_case_closure' case.pk %}">Solicitar cierre</a>{% endif %}
         </div>
-    </article>
-    {% empty %}<div class="empty-state card"><h2>Sin hallazgos registrados</h2></div>{% endfor %}
-</section>
+        {% endif %}
+    </div>
+
+    {% if pending_decision %}
+    <div class="ui-callout ui-callout-inline" role="status">{% ui_icon "info" %}<span><strong>Solicitud de {{ pending_decision.get_kind_display|lower }} pendiente.</strong> Enviada por {{ pending_decision.requested_by.get_full_name|default:pending_decision.requested_by.username }} el {{ pending_decision.requested_at|date:"j b Y" }}.</span></div>
+    {% endif %}
+
+    <div class="ui-layout">
+    <div class="ui-layout-main">
+    {% if review_items %}
+    <section class="ui-section" aria-labelledby="case-review-title">
+        <h2 class="ui-section-title" id="case-review-title">Para revisar · {{ review_items|length }}</h2>
+        <div class="ui-list">
+            {% for item in review_items %}
+            <div class="ui-list-row">
+                <span class="ui-list-text"><span class="ui-list-title">Recomendación {{ item.recommendation.finding.number }}.{{ item.recommendation.number }} · versión {{ item.response.version }}</span><span class="ui-list-support">{{ item.recommendation.responsible_organization.name }} · llegó el {{ item.response.submitted_at|date:"j b Y" }}</span></span>
+                <a class="ui-button {% if forloop.first and not pending_decision and not can_edit_case %}ui-button-filled{% else %}ui-button-tonal{% endif %}" href="{% url 'review_response' item.response.pk %}">Revisar respuesta</a>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="ui-section" aria-labelledby="case-findings-title">
+        <h2 class="ui-section-title" id="case-findings-title">Hallazgos y recomendaciones</h2>
+        {% for finding in findings %}
+        <article class="ui-card" aria-labelledby="case-finding-{{ finding.pk }}">
+            <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span><span class="risk risk-{{ finding.risk_level }}">Riesgo {{ finding.get_risk_level_display|lower }}</span></div>
+            <h3 class="ui-card-title" id="case-finding-{{ finding.pk }}">{{ finding.title }}</h3>
+            {% if finding.condition %}<details class="ui-details"><summary>Condición</summary><p>{{ finding.condition|linebreaksbr }}</p></details>{% endif %}
+            <div class="ui-divided">
+                {% for recommendation in finding.recommendations.all %}
+                <section class="ui-recommendation" aria-labelledby="case-rec-{{ recommendation.pk }}">
+                    <div class="ui-chips">{% ui_status_chip recommendation.status %}{% if recommendation.status == 'pending' or recommendation.status == 'correction_required' %}{% ui_deadline_chip recommendation.deadline %}{% endif %}</div>
+                    <h4 class="ui-recommendation-title" id="case-rec-{{ recommendation.pk }}">Recomendación {{ finding.number }}.{{ recommendation.number }}</h4>
+                    <p>{{ recommendation.text|linebreaksbr }}</p>
+                    <p class="ui-help">Responde: {{ recommendation.responsible_organization.name }}{% if recommendation.deadline %} · fecha límite {{ recommendation.deadline|date:"j b Y" }}{% endif %}</p>
+                    {% if recommendation.no_response_recorded_at %}<p class="ui-help">Sin respuesta dentro del plazo: el sistema la marcó como no cumplida el {{ recommendation.no_response_recorded_at|date:"j b Y" }}.</p>{% endif %}
+                    {% with requirements=recommendation.evidence_requirements|ui_lines %}{% if requirements or recommendation.visible_responses or recommendation.deadline_extensions.all or recommendation.source_recommendation %}
+                    <details class="ui-details">
+                        <summary>{% if recommendation.visible_responses %}Respuestas · {{ recommendation.visible_responses|length }} versión{{ recommendation.visible_responses|length|pluralize:"es" }}{% else %}Más detalles{% endif %}</summary>
+                        <div class="ui-stack">
+                            {% if requirements %}<div><p class="ui-label">Documentación requerida</p><ul class="ui-plain-list">{% for item in requirements %}<li>{{ item }}</li>{% endfor %}</ul></div>{% endif %}
+                            {% if recommendation.source_recommendation %}<p class="ui-help">Informe anterior: {{ recommendation.source_recommendation.source_document.reference|default:recommendation.source_recommendation.source_document.title }}, recomendación {{ recommendation.source_recommendation.number }} ({{ recommendation.source_recommendation.get_status_display|lower }}).{% if recommendation.source_recommendation.comments %} {{ recommendation.source_recommendation.comments }}{% endif %}</p>{% endif %}
+                            {% for extension in recommendation.deadline_extensions.all %}<p class="ui-help">Prórroga de {{ extension.business_days }} día{{ extension.business_days|pluralize }} hábil{{ extension.business_days|pluralize:"es" }}: del {{ extension.previous_deadline|date:"j b Y" }} al {{ extension.new_deadline|date:"j b Y" }}. {{ extension.reason }} · {{ extension.granted_by.get_full_name|default:extension.granted_by.username }}, {{ extension.granted_at|date:"j b Y" }}</p>{% endfor %}
+                            {% for response in recommendation.visible_responses %}
+                            <div class="ui-version">
+                                <p class="ui-version-title">Versión {{ response.version }} · {{ response.submitted_at|date:"j b Y, H:i" }}</p>
+                                <p class="ui-help">El centro declaró: {{ response.get_declared_status_display|lower }}{% if response.school_board_period %} · <a href="{% url 'cde_detail' response.school_board_period.organization_id %}">CDE {{ response.school_board_period.school_year_start }}–{{ response.school_board_period.school_year_end }}</a>{% endif %}</p>
+                                <p>{{ response.action_description|linebreaksbr }}</p>
+                                {% if response.evidence.all %}<ul class="ui-plain-list">{% for item in response.evidence.all %}<li><a href="{% url 'download_evidence' item.pk %}">{{ item.original_filename }}</a> · {{ item.get_category_display }} · {{ item.get_scan_status_display|lower }}</li>{% endfor %}</ul>{% endif %}
+                                {% if response.review %}<div class="ui-callout ui-callout-inline{% if response.review.outcome == 'correction_required' %} ui-callout-correction{% endif %}"><span><strong>Resultado: {{ response.review.get_outcome_display|lower }}.</strong> {{ response.review.comments|linebreaksbr }}</span></div>{% endif %}
+                                <div class="ui-row-actions ui-row-actions-start">
+                                    {% if not response.review %}<a class="ui-button ui-button-tonal" href="{% url 'review_response' response.pk %}">Revisar respuesta</a>{% endif %}
+                                    <a class="ui-button ui-button-text" href="{% url 'response_receipt' response.pk %}">{% ui_icon "download" %}Descargar constancia</a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    {% endif %}{% endwith %}
+                    {% if recommendation.status == 'pending' or recommendation.status == 'correction_required' %}<div class="ui-row-actions ui-row-actions-start"><a class="ui-button ui-button-text" href="{% url 'grant_deadline_extension' recommendation.pk %}">{% ui_icon "calendar" %}Registrar prórroga</a></div>{% endif %}
+                </section>
+                {% empty %}
+                <p class="ui-help">Este hallazgo aún no tiene recomendaciones registradas.</p>
+                {% endfor %}
+            </div>
+        </article>
+        {% empty %}
+        <div class="ui-card"><p class="ui-card-support">Sin hallazgos registrados.</p></div>
+        {% endfor %}
+    </section>
+    </div>
+
+    <aside class="ui-layout-aside" aria-label="Datos del expediente">
+        <dl class="ui-list ui-facts">
+            <div class="ui-list-row"><dt>Código institucional</dt><dd>{{ case.audited_organization.code }}</dd></div>
+            <div class="ui-list-row"><dt>Auditor responsable</dt><dd>{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}{% if can_reassign_case %}<br><a href="{% url 'director_reassign_case' case.pk %}">Reasignar</a>{% endif %}</dd></div>
+            <div class="ui-list-row"><dt>Fecha del informe</dt><dd>{{ case.report_date|date:"j b Y"|default:"Por definir" }}</dd></div>
+            <div class="ui-list-row"><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"j b Y"|default:"Por definir" }}</dd></div>
+        </dl>
+        {% if documents or case.report_file %}
+        <section class="ui-section" aria-labelledby="case-report-title">
+            <h2 class="ui-section-title" id="case-report-title">Informe</h2>
+            <div class="ui-list">
+                {% for document in documents %}
+                <a class="ui-list-row" href="{% url 'download_audit_document' document.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ document.title }}</span><span class="ui-list-support">Versión {{ document.version }} · {{ document.reference|default:"sin referencia" }} · {{ document.get_status_display }}</span></span>{% ui_icon "download" %}<span class="ui-visually-hidden">Descargar</span></a>
+                {% empty %}
+                <a class="ui-list-row" href="{% url 'download_report' case.pk %}"><span class="ui-list-text"><span class="ui-list-title">Informe de auditoría migrado</span></span>{% ui_icon "download" %}<span class="ui-visually-hidden">Descargar</span></a>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+        {% if case.audited_organization.kind == 'educational_center' %}
+        <nav class="ui-list" aria-label="Más sobre el centro">
+            <a class="ui-list-row" href="{% url 'cde_detail' case.audited_organization.pk %}"><span class="ui-list-text"><span class="ui-list-title">Consejo Directivo Escolar</span><span class="ui-list-support">Consultar CDE</span></span>{% ui_icon "chevron" %}</a>
+        </nav>
+        {% endif %}
+    </aside>
+    </div>
+</div>
 {% endblock %}

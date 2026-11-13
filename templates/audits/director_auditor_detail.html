@@ -1,30 +1,95 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}{{ auditor.get_full_name|default:auditor.username }} | Auditores{% endblock %}
 {% block content %}
-<div class="auditor-admin-page">
-  <div class="page-heading heading-row"><div><a class="text-link" href="{% url 'director_auditors' %}">← Auditores</a><h1>{{ auditor.get_full_name|default:auditor.username }}</h1><p>@{{ auditor.username }} · {{ auditor.email|default:"Sin correo" }} · {% if auditor.is_active %}Activo{% else %}Archivado{% endif %}</p></div><div class="button-group"><a class="button button-secondary" href="{% url 'director_auditor_edit' auditor.pk %}">Editar</a><form method="post" action="{% url 'director_auditor_archive' auditor.pk %}">{% csrf_token %}<button class="button {% if auditor.is_active %}button-danger{% else %}button-tonal{% endif %}" type="submit">{% if auditor.is_active %}Archivar{% else %}Reactivar{% endif %}</button></form></div></div>
-  <section class="executive-stats" aria-label="Carga del auditor"><article class="executive-stat"><span>Organizaciones asignadas</span><strong>{{ assigned_count }}</strong></article><article class="executive-stat"><span>Expedientes abiertos</span><strong>{{ open_case_count }}</strong></article><article class="executive-stat"><span>Expedientes cerrados</span><strong>{{ closed_case_count }}</strong></article></section>
-  {% if auditor.is_active and open_case_count %}<div class="message message-info">Para archivarlo, primero reasigne o cierre sus {{ open_case_count }} expediente{{ open_case_count|pluralize }} abierto{{ open_case_count|pluralize }}.</div>{% endif %}
-  <div class="page-heading"><h2>Organizaciones</h2><p>Asigne el universo de organizaciones que atenderá este auditor.</p></div>
-  <form method="get" class="filter-bar auditor-organization-filter" role="search" data-location-filters data-auto-submit-filters>
-    <div class="field auditor-search-field"><label for="q">Buscar</label><input id="q" name="q" type="search" value="{{ query }}" placeholder="Nombre o código"></div>
-    <div class="field"><label for="department">Departamento</label><select id="department" name="department"><option value="">Todos</option>{% for option in department_options %}<option value="{{ option }}" {% if selected_department == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
-    <div class="field"><label for="municipality">Municipio</label><select id="municipality" name="municipality"><option value="">Todos</option>{% for option in municipality_options %}<option value="{{ option }}" {% if selected_municipality == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
-    <div class="field"><label for="kind">Tipo</label><select id="kind" name="kind"><option value="">Todos</option>{% for value,label in kind_options %}<option value="{{ value }}" {% if selected_kind == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-    <div class="field"><label for="assignment">Asignación</label><select id="assignment" name="assignment"><option value="all" {% if selected_assignment == 'all' %}selected{% endif %}>Todas</option><option value="assigned" {% if selected_assignment == 'assigned' %}selected{% endif %}>Asignadas</option><option value="available" {% if selected_assignment == 'available' %}selected{% endif %}>Disponibles</option></select></div>
-    <button class="button button-primary" type="submit">Filtrar</button><a class="button button-secondary" href="{% url 'director_auditor_detail' auditor.pk %}">Limpiar</a>
-  </form>
-  <form id="portfolio-bulk-form" method="post" action="{% url 'director_auditor_bulk_assignment' auditor.pk %}" class="card portfolio-bulk-bar">{% csrf_token %}
-    <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="department" value="{{ selected_department }}"><input type="hidden" name="municipality" value="{{ selected_municipality }}"><input type="hidden" name="kind" value="{{ selected_kind }}"><input type="hidden" name="assignment" value="{{ selected_assignment }}">
-    <div class="field grow"><label for="bulk-reason">Motivo del cambio <span class="muted">(opcional)</span></label><input id="bulk-reason" name="reason" maxlength="500"></div>
-    <div class="portfolio-bulk-actions"><strong>Seleccionadas</strong><button class="button button-primary button-compact" name="action" value="assign" type="submit" formaction="{% url 'director_auditor_bulk_assignment' auditor.pk %}" onclick="this.form.scope.value='selected'">Asignar</button><button class="button button-secondary button-compact" name="action" value="unassign" type="submit" onclick="this.form.scope.value='selected'">Desasignar</button></div>
-    <div class="portfolio-bulk-actions"><strong>Todas las filtradas ({{ page_obj.paginator.count }})</strong><button class="button button-primary button-compact" name="action" value="assign" type="submit" onclick="this.form.scope.value='filtered'">Asignar todas</button><button class="button button-secondary button-compact" name="action" value="unassign" type="submit" onclick="this.form.scope.value='filtered'">Desasignar todas</button></div>
-    <input type="hidden" name="scope" value="selected">
-    <label class="bulk-selection portfolio-select-page"><input type="checkbox" data-select-page="portfolio-organization"><span>Seleccionar toda la página</span></label>
-  </form>
-  <section class="table-card"><div class="table-responsive"><table data-mobile-cards><thead><tr><th><input type="checkbox" data-select-page="portfolio-organization" aria-label="Seleccionar toda la página"><span class="sr-only">Seleccionar</span></th><th>Organización</th><th>Tipo</th><th>Ubicación</th><th>Estado</th><th></th></tr></thead><tbody>{% for organization in organizations %}<tr><td><input type="checkbox" name="organization_ids" value="{{ organization.pk }}" form="portfolio-bulk-form" data-selection-item="portfolio-organization" aria-label="Seleccionar {{ organization.name }}"></td><td><strong>{{ organization.name }}</strong><br><small>{{ organization.code }}</small></td><td>{{ organization.get_kind_display }}</td><td>{{ organization.municipality|default:"—" }}{% if organization.department %}, {{ organization.department }}{% endif %}</td><td>{% if organization.is_assigned %}Asignada{% elif not organization.is_active %}Archivada{% else %}Disponible{% endif %}</td><td><form method="post" action="{% url 'director_auditor_assignment' auditor.pk organization.pk %}">{% csrf_token %}{% if organization.is_assigned %}<button class="button button-secondary button-compact" name="action" value="unassign" type="submit">Desasignar</button>{% elif organization.is_active and auditor.is_active %}<button class="button button-primary button-compact" name="action" value="assign" type="submit">Asignar</button>{% else %}<button class="button button-compact" disabled type="button">No disponible</button>{% endif %}</form></td></tr>{% empty %}<tr><td colspan="6">No hay organizaciones que coincidan con los filtros.</td></tr>{% endfor %}</tbody></table></div></section>
-  {% if page_obj.paginator.num_pages > 1 %}<nav class="pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;municipality={{ selected_municipality|urlencode }}&amp;kind={{ selected_kind }}&amp;assignment={{ selected_assignment }}&amp;page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;municipality={{ selected_municipality|urlencode }}&amp;kind={{ selected_kind }}&amp;assignment={{ selected_assignment }}&amp;page={{ page_obj.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
-  <div class="page-heading heading-row"><div><h2>Historial de cartera</h2><p>Últimos 50 resultados de asignación y desasignación.</p></div><form method="get"><label for="history-action">Tipo de cambio</label><select id="history-action" name="history_action" onchange="this.form.submit()"><option value="">Todos</option><option value="assign" {% if history_action == 'assign' %}selected{% endif %}>Asignaciones</option><option value="unassign" {% if history_action == 'unassign' %}selected{% endif %}>Desasignaciones</option></select></form></div>
-  <section class="table-card"><div class="table-responsive"><table data-mobile-cards><thead><tr><th>Fecha</th><th>Cambio</th><th>Organización</th><th>Resultado</th><th>Realizado por</th><th>Motivo</th></tr></thead><tbody>{% for change in portfolio_history %}<tr><td>{{ change.created_at|date:"d/m/Y H:i" }}</td><td>{{ change.get_action_display }}{% if change.is_bulk %}<br><small>Operación masiva</small>{% endif %}</td><td><strong>{{ change.organization.name }}</strong><br><small>{{ change.organization.code }}</small></td><td>{{ change.get_outcome_display }}{% if change.outcome_detail %}<br><small>{{ change.outcome_detail }}</small>{% endif %}</td><td>{% if change.actor %}{{ change.actor.get_full_name|default:change.actor.username }}{% else %}Migración del sistema{% endif %}</td><td>{{ change.reason|default:"Sin motivo indicado" }}</td></tr>{% empty %}<tr><td colspan="6">Todavía no hay cambios registrados.</td></tr>{% endfor %}</tbody></table></div></section>
+<div class="ui-page auditor-admin-page">
+    <a class="ui-back" href="{% url 'director_auditors' %}">{% ui_icon "back" %}Auditores</a>
+    <div class="ui-page-header-row">
+        <header class="ui-page-header">
+            <div class="ui-chips">{% if auditor.is_active %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Activo</span>{% else %}<span class="ui-chip">{% ui_icon "folder" %}Archivado</span>{% endif %}</div>
+            <h1 class="ui-page-title">{{ auditor.get_full_name|default:auditor.username }}</h1>
+            <p class="ui-page-context">@{{ auditor.username }} · {{ auditor.email|default:"Sin correo" }}</p>
+        </header>
+        <div class="ui-card-actions">
+            <a class="ui-button ui-button-outlined" href="{% url 'director_auditor_edit' auditor.pk %}">{% ui_icon "edit" %}Editar</a>
+            <form method="post" action="{% url 'director_auditor_archive' auditor.pk %}">{% csrf_token %}<button class="ui-button {% if auditor.is_active %}ui-button-danger-text{% else %}ui-button-tonal{% endif %}" type="submit">{% if auditor.is_active %}Archivar{% else %}Reactivar{% endif %}</button></form>
+        </div>
+    </div>
+
+    <div class="ui-figures" aria-label="Carga del auditor">
+        <div class="ui-figure"><strong>{{ assigned_count }}</strong><span>Organizaciones asignadas</span></div>
+        <div class="ui-figure"><strong>{{ open_case_count }}</strong><span>Expedientes abiertos</span></div>
+        <div class="ui-figure"><strong>{{ closed_case_count }}</strong><span>Expedientes cerrados</span></div>
+    </div>
+    {% if auditor.is_active and open_case_count %}<div class="ui-callout ui-callout-inline" role="status">{% ui_icon "info" %}<span>Para archivarlo, primero reasigne o cierre sus {{ open_case_count }} expediente{{ open_case_count|pluralize }} abierto{{ open_case_count|pluralize }}.</span></div>{% endif %}
+
+    <section class="ui-section" aria-labelledby="portfolio-title">
+        <div class="ui-section-head"><div><h2 class="ui-section-title" id="portfolio-title">Organizaciones</h2><p class="ui-help">Las organizaciones que atenderá este auditor.</p></div></div>
+        <form method="get" class="ui-filters" role="search" data-location-filters data-auto-submit-filters>
+            <div class="ui-field ui-field-grow"><label for="q">Buscar</label><input id="q" name="q" type="search" value="{{ query }}" placeholder="Nombre o código"></div>
+            <div class="ui-field"><label for="department">Departamento</label><select id="department" name="department"><option value="">Todos</option>{% for option in department_options %}<option value="{{ option }}" {% if selected_department == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="ui-field"><label for="municipality">Municipio</label><select id="municipality" name="municipality"><option value="">Todos</option>{% for option in municipality_options %}<option value="{{ option }}" {% if selected_municipality == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+            <div class="ui-field"><label for="kind">Tipo</label><select id="kind" name="kind"><option value="">Todos</option>{% for value,label in kind_options %}<option value="{{ value }}" {% if selected_kind == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="ui-field"><label for="assignment">Asignación</label><select id="assignment" name="assignment"><option value="all" {% if selected_assignment == 'all' %}selected{% endif %}>Todas</option><option value="assigned" {% if selected_assignment == 'assigned' %}selected{% endif %}>Asignadas</option><option value="available" {% if selected_assignment == 'available' %}selected{% endif %}>Disponibles</option></select></div>
+            <button class="ui-button ui-button-tonal" type="submit">Filtrar</button>
+            <a class="ui-button ui-button-text" href="{% url 'director_auditor_detail' auditor.pk %}">Limpiar</a>
+        </form>
+
+        <form id="portfolio-bulk-form" method="post" action="{% url 'director_auditor_bulk_assignment' auditor.pk %}" class="ui-card ui-card-compact">
+            {% csrf_token %}
+            <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="department" value="{{ selected_department }}"><input type="hidden" name="municipality" value="{{ selected_municipality }}"><input type="hidden" name="kind" value="{{ selected_kind }}"><input type="hidden" name="assignment" value="{{ selected_assignment }}">
+            <input type="hidden" name="scope" value="selected">
+            <div class="ui-field"><label for="bulk-reason">Motivo del cambio (opcional)</label><input id="bulk-reason" name="reason" maxlength="500"></div>
+            <label class="ui-check"><input type="checkbox" data-select-page="portfolio-organization"><span>Seleccionar toda la página</span></label>
+            <div class="ui-card-actions">
+                <button class="ui-button ui-button-tonal" name="action" value="assign" type="submit" formaction="{% url 'director_auditor_bulk_assignment' auditor.pk %}" data-set-scope="selected">Asignar seleccionadas</button>
+                <button class="ui-button ui-button-outlined" name="action" value="unassign" type="submit" data-set-scope="selected">Desasignar seleccionadas</button>
+                <button class="ui-button ui-button-text" name="action" value="assign" type="submit" data-set-scope="filtered">Asignar todas las filtradas ({{ page_obj.paginator.count }})</button>
+                <button class="ui-button ui-button-text" name="action" value="unassign" type="submit" data-set-scope="filtered">Desasignar todas las filtradas</button>
+            </div>
+        </form>
+
+        <div class="ui-table-wrap">
+            <table class="ui-table" data-mobile-cards>
+                <caption class="ui-visually-hidden">Organizaciones de la cartera</caption>
+                <thead><tr><th scope="col"><input type="checkbox" data-select-page="portfolio-organization" aria-label="Seleccionar toda la página"></th><th scope="col">Organización</th><th scope="col">Tipo</th><th scope="col">Ubicación</th><th scope="col">Estado</th><th scope="col" class="ui-table-end" data-card-action><span class="ui-visually-hidden">Acción</span></th></tr></thead>
+                <tbody>
+                    {% for organization in organizations %}
+                    <tr>
+                        <td><input type="checkbox" name="organization_ids" value="{{ organization.pk }}" form="portfolio-bulk-form" data-selection-item="portfolio-organization" aria-label="Seleccionar {{ organization.name }}"></td>
+                        <td><span class="ui-table-link">{{ organization.name }}</span><span class="ui-table-support">{{ organization.code }}</span></td>
+                        <td>{{ organization.get_kind_display }}</td>
+                        <td>{{ organization.municipality|default:"—" }}{% if organization.department %}, {{ organization.department }}{% endif %}</td>
+                        <td>{% if organization.is_assigned %}<span class="ui-chip ui-chip-info">{% ui_icon "check" %}Asignada</span>{% elif not organization.is_active %}<span class="ui-chip">Archivada</span>{% else %}<span class="ui-chip">Disponible</span>{% endif %}</td>
+                        <td class="ui-table-end"><form method="post" action="{% url 'director_auditor_assignment' auditor.pk organization.pk %}">{% csrf_token %}{% if organization.is_assigned %}<button class="ui-button ui-button-outlined" name="action" value="unassign" type="submit">Desasignar</button>{% elif organization.is_active and auditor.is_active %}<button class="ui-button ui-button-tonal" name="action" value="assign" type="submit">Asignar</button>{% else %}<button class="ui-button ui-button-text" disabled type="button">No disponible</button>{% endif %}</form></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6">No hay organizaciones que coincidan con los filtros.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if page_obj.paginator.num_pages > 1 %}<nav class="ui-pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a class="ui-button ui-button-outlined" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;municipality={{ selected_municipality|urlencode }}&amp;kind={{ selected_kind }}&amp;assignment={{ selected_assignment }}&amp;page={{ page_obj.previous_page_number }}">{% ui_icon "back" %}Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="ui-button ui-button-outlined" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;municipality={{ selected_municipality|urlencode }}&amp;kind={{ selected_kind }}&amp;assignment={{ selected_assignment }}&amp;page={{ page_obj.next_page_number }}">Siguiente{% ui_icon "forward" %}</a>{% endif %}</nav>{% endif %}
+    </section>
+
+    <section class="ui-section" aria-labelledby="portfolio-history-title">
+        <div class="ui-section-head">
+            <div><h2 class="ui-section-title" id="portfolio-history-title">Historial de cartera</h2><p class="ui-help">Últimos 50 cambios de asignación.</p></div>
+            <form method="get" class="ui-filters" data-auto-submit-filters><div class="ui-field"><label for="history-action">Tipo de cambio</label><select id="history-action" name="history_action"><option value="">Todos</option><option value="assign" {% if history_action == 'assign' %}selected{% endif %}>Asignaciones</option><option value="unassign" {% if history_action == 'unassign' %}selected{% endif %}>Desasignaciones</option></select></div><noscript><button class="ui-button ui-button-tonal" type="submit">Aplicar</button></noscript></form>
+        </div>
+        <div class="ui-table-wrap">
+            <table class="ui-table" data-mobile-cards>
+                <caption class="ui-visually-hidden">Historial de cartera</caption>
+                <thead><tr><th scope="col">Fecha</th><th scope="col">Cambio</th><th scope="col">Organización</th><th scope="col">Resultado</th><th scope="col">Realizado por</th><th scope="col">Motivo</th></tr></thead>
+                <tbody>
+                    {% for change in portfolio_history %}
+                    <tr><td>{{ change.created_at|date:"j b Y, H:i" }}</td><td>{{ change.get_action_display }}{% if change.is_bulk %}<span class="ui-table-support">Operación masiva</span>{% endif %}</td><td><span class="ui-table-link">{{ change.organization.name }}</span><span class="ui-table-support">{{ change.organization.code }}</span></td><td>{{ change.get_outcome_display }}{% if change.outcome_detail %}<span class="ui-table-support">{{ change.outcome_detail }}</span>{% endif %}</td><td>{% if change.actor %}{{ change.actor.get_full_name|default:change.actor.username }}{% else %}Migración del sistema{% endif %}</td><td>{{ change.reason|default:"Sin motivo indicado" }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="6">Todavía no hay cambios registrados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 {% endblock %}

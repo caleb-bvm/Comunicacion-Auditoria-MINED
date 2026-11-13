@@ -1,13 +1,23 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Reasignar {{ case.reference }} | Dirección de Auditoría{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'director_dashboard' %}">Inicio</a><span>/</span><a href="{% url 'case_detail' case.pk %}">{{ case.reference }}</a><span>/</span><span>Reasignar</span></nav>
-<div class="page-heading"><span class="case-reference">{{ case.reference }}</span><h1>Reasignar expediente</h1><p class="page-context">{{ case.audited_organization.name }}</p></div>
-<section class="assignment-current card" aria-labelledby="current-auditor-title"><span id="current-auditor-title">Auditor responsable actual</span><strong>{{ previous_auditor.get_full_name|default:previous_auditor.username }}</strong></section>
-<form method="post" class="editor-form card">
-    {% csrf_token %}
-    {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
-    <fieldset class="form-section"><legend>Nueva asignación</legend>{% for field in form %}<div class="field {% if field.errors %}field-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}</fieldset>
-    <div class="submit-panel"><p>La reasignación quedará registrada en la bitácora.</p><div class="button-group"><a class="button button-ghost" href="{% url 'case_detail' case.pk %}">Cancelar</a><button class="button button-primary" type="submit">Confirmar reasignación</button></div></div>
-</form>
+<div class="ui-page ui-page-form">
+    <a class="ui-back" href="{% url 'case_detail' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Reasignar expediente</h1>
+        <p class="ui-page-context">{{ case.audited_organization.name }}</p>
+    </header>
+    <div class="ui-list"><div class="ui-list-row">{% ui_icon "user" %}<span class="ui-list-text"><span class="ui-list-support">Auditor responsable actual</span><span class="ui-list-title">{{ previous_auditor.get_full_name|default:previous_auditor.username }}</span></span></div></div>
+    <form method="post" class="ui-card">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        {% include "includes/ui/form_fields.html" with fields=form %}
+        <p class="ui-help">La reasignación quedará registrada en la bitácora.</p>
+        <div class="ui-form-actions">
+            <a class="ui-button ui-button-text" href="{% url 'case_detail' case.pk %}">Cancelar</a>
+            <button class="ui-button ui-button-filled ui-button-large" type="submit">Confirmar reasignación</button>
+        </div>
+    </form>
+</div>
 {% endblock %}

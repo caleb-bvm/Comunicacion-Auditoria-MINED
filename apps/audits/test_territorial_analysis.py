@@ -131,11 +131,11 @@ class TerritorialAnalysisTests(TestCase):
 
         self.assertEqual(default.context["advanced_filter_count"], 0)
         self.assertFalse(default.context["advanced_filters_open"])
-        self.assertContains(default, '<details class="territorial-advanced-filters" >')
+        self.assertContains(default, '<details class="ui-details" data-advanced-filters >')
         self.assertEqual(filtered.context["advanced_filter_count"], 1)
         self.assertTrue(filtered.context["advanced_filters_open"])
         self.assertContains(
-            filtered, '<details class="territorial-advanced-filters" open>'
+            filtered, '<details class="ui-details" data-advanced-filters open>'
         )
         self.assertContains(filtered, "1 activo")
 
@@ -151,7 +151,7 @@ class TerritorialAnalysisTests(TestCase):
         self.assertFalse(response.context["advanced_filters_open"])
         self.assertContains(
             response,
-            '<fieldset class="period-filter-group analysis-period-selector" data-period-filter >',
+            '<fieldset class="ui-stack ui-fieldset" data-period-filter >',
         )
         self.assertContains(response, "Indique una fecha inicial y una fecha final válidas.")
 
@@ -215,7 +215,7 @@ class TerritorialAnalysisTests(TestCase):
         )
         self.assertContains(
             response,
-            '<div class="period-custom-dates" data-custom-period-dates >',
+            '<div class="ui-field-row" data-custom-period-dates >',
         )
         included_date = timezone.localdate(included_case.created_at).isoformat()
         self.assertContains(response, f'value="{included_date}"')
@@ -314,7 +314,7 @@ class TerritorialAnalysisTests(TestCase):
             reverse("director_statistics"), {"group_by": "department"}
         )
 
-        self.assertContains(response, '<table class="territory-table" data-mobile-cards>')
+        self.assertContains(response, '<table class="ui-table" data-mobile-cards>')
         self.assertContains(response, '<th scope="col" data-card-action>')
         self.assertContains(response, "% de los centros</small>")
         self.assertContains(response, "<small>sin resultados</small>")

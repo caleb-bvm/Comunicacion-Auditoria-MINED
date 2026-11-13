@@ -1,40 +1,22 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}{{ form_title }} | Auditoría Interna{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'case_list' %}">Expedientes</a><span>/</span><a href="{% url 'case_builder' case.pk %}">{{ case.reference }}</a><span>/</span><span>{{ form_title }}</span></nav>
-
-<ol class="workflow-steps" aria-label="Progreso del expediente">
-    <li class="is-complete"><span>✓</span><strong>Datos generales</strong></li>
-    <li class="is-active" aria-current="step"><span>2</span><strong>Contenido</strong></li>
-    <li><span>3</span><strong>Aprobación</strong></li>
-</ol>
-
-<div class="page-heading">
-    <span class="case-reference">{{ case.reference }}</span>
-    <h1>{{ form_title }}</h1>
+<div class="ui-page ui-page-form">
+    <a class="ui-back" href="{% url 'case_builder' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+    <header class="ui-page-header">
+        {% include "includes/ui/case_progress.html" with step=2 %}
+        <h1 class="ui-page-title">{{ form_title }}</h1>
+        <p class="ui-page-context">{{ case.audited_organization.name }}</p>
+    </header>
+    <form method="post" class="ui-card">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        {% include "includes/ui/form_fields.html" with fields=form %}
+        <div class="ui-form-actions">
+            <a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Cancelar</a>
+            <button class="ui-button ui-button-filled ui-button-large" type="submit">{{ submit_label }}</button>
+        </div>
+    </form>
 </div>
-
-<form method="post" class="editor-form card">
-    {% csrf_token %}
-    {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
-    <fieldset class="form-section">
-    <legend>Información</legend>
-    <div class="form-grid form-grid-two">
-        {% for field in form %}
-        <div class="field {% if field.errors %}field-error{% endif %} {% if field.name == 'title' or field.name == 'condition' or field.name == 'criteria' or field.name == 'cause' or field.name == 'effect' or field.name == 'text' or field.name == 'evidence_requirements' %}field-wide{% endif %}">
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
-            {{ field.errors }}
-        </div>
-        {% endfor %}
-    </div>
-    </fieldset>
-    <div class="submit-panel">
-        <div class="button-group">
-            <a class="button button-ghost" href="{% url 'case_builder' case.pk %}">Cancelar</a>
-            <button class="button button-primary" type="submit">{{ submit_label }}</button>
-        </div>
-    </div>
-</form>
 {% endblock %}

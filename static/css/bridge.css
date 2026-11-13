@@ -111,8 +111,6 @@
     padding: 0 var(--ui-space-3) 0 10px;
     gap: 6px;
     border-radius: var(--ui-radius-chip);
-    color: var(--ui-on-neutral-container);
-    background: var(--ui-neutral-container);
     box-shadow: none;
     font-size: var(--ui-text-support);
     line-height: 24px;
@@ -120,6 +118,7 @@
     letter-spacing: 0;
     text-transform: none;
 }
+.status, .risk { color: var(--ui-on-neutral-container); background: var(--ui-neutral-container); }
 .risk, .decision-kind, .attention-kind, .attention-badge, .context-state { padding-left: var(--ui-space-3); display: inline-flex; align-items: center; }
 .status-large { min-height: 36px; padding: 0 14px 0 10px; font-size: var(--ui-text-support); }
 .status::before {
@@ -264,3 +263,9 @@ tbody tr:hover { background: var(--ui-surface-highlight); }
 .historical-attachment-row { border: 1px solid var(--ui-outline-variant); border-radius: var(--ui-radius-tile); }
 .historical-attachment-row legend { font-size: var(--ui-text-body); font-weight: 600; }
 .history-choice { min-height: var(--ui-touch-large); }
+
+/* ---------- Mínimos de lectura y de toque en lo heredado ---------- */
+small { font-size: var(--ui-text-label); line-height: 20px; }
+.view-switch a, .view-switch button { min-height: var(--ui-touch); padding-inline: var(--ui-space-4); display: inline-flex; align-items: center; font-size: var(--ui-text-support); }
+.content details:not(.ui-details, .ui-disclosure) > summary { padding-block: var(--ui-space-3); cursor: pointer; }
+.center-profile-nav a, .case-section-nav a, .history-section-nav a, .alert-summary-nav a { min-height: var(--ui-touch); }

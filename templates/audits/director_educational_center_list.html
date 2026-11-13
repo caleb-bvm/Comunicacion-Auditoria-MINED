@@ -1,116 +1,72 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Centros educativos | Dirección de Auditoría{% endblock %}
 {% block content %}
-<div class="center-directory">
-    <div class="page-heading heading-row">
-        <div>
-            <h1>Centros educativos</h1>
-            <p>Consulte primero los centros con mayor prioridad y abra la ficha para ver el detalle.</p>
-        </div>
-        <a class="button button-secondary" href="{% url 'director_dashboard' %}">Volver al inicio</a>
-    </div>
+<div class="ui-page center-directory">
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Centros educativos</h1>
+        <p class="ui-page-context">{{ total_centers }} registrados · {{ audited_centers }} con auditorías · {{ overdue_centers }} con plazos vencidos</p>
+    </header>
 
-    <section class="executive-stats center-intelligence-stats" aria-label="Resumen de centros educativos">
-        <article class="executive-stat"><span>Centros registrados</span><strong>{{ total_centers }}</strong><small>{{ audited_centers }} con auditorías</small></article>
-        <article class="executive-stat executive-stat-risk"><span>Atención inmediata</span><strong>{{ immediate_attention_centers }}</strong><small>vencimientos o riesgo crítico</small></article>
-        <article class="executive-stat executive-stat-warning"><span>Con plazos vencidos</span><strong>{{ overdue_centers }}</strong><small>obligaciones abiertas</small></article>
-        <article class="executive-stat"><span>Sin acceso</span><strong>{{ pending_centers }}</strong><small>cuenta institucional inactiva</small></article>
-    </section>
-    <form method="get" class="filter-bar center-analytics-filter" role="search" data-location-filters data-auto-submit-filters>
+    <form method="get" class="ui-filters" role="search" data-location-filters data-auto-submit-filters>
         {% if selected_attention %}<input type="hidden" name="attention" value="{{ selected_attention }}">{% endif %}
         {% if selected_risk %}<input type="hidden" name="risk" value="{{ selected_risk }}">{% endif %}
         {% if selected_audits %}<input type="hidden" name="audits" value="{{ selected_audits }}">{% endif %}
         {% if selected_cde %}<input type="hidden" name="cde" value="{{ selected_cde }}">{% endif %}
         {% if selected_access %}<input type="hidden" name="access" value="{{ selected_access }}">{% endif %}
-        <div class="field center-search-field">
-            <label for="q">Buscar centro</label>
-            <input id="q" name="q" type="search" value="{{ query }}" placeholder="Nombre o código del centro" enterkeyhint="search">
-        </div>
-        <div class="field"><label for="department">Departamento</label><select id="department" name="department"><option value="">Todos</option>{% for option in department_options %}<option value="{{ option }}" {% if selected_department == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
-        <div class="field"><label for="district">Distrito</label><select id="district" name="district" {% if not selected_department %}disabled{% endif %}><option value="">{% if selected_department %}Todos{% else %}Seleccione un departamento{% endif %}</option>{% for option in district_options %}<option value="{{ option }}" {% if selected_district == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
-        <div class="center-filter-actions"><button class="button button-primary" type="submit">Buscar</button><a class="button button-secondary" href="{% url 'director_educational_centers' %}">Limpiar</a></div>
-        <nav class="center-quick-filters" aria-label="Filtros rápidos de centros">
-            <span class="center-quick-filter-label">Prioridades</span>
-            <div class="center-quick-filter-options">
-                <a class="center-quick-filter{% if not selected_attention and not selected_risk and not selected_audits and not selected_cde and not selected_access %} is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}"{% if not selected_attention and not selected_risk and not selected_audits and not selected_cde and not selected_access %} aria-current="page"{% endif %}>Todos</a>
-                <a class="center-quick-filter center-quick-filter-danger{% if selected_attention == 'immediate' %} is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;attention=immediate"{% if selected_attention == 'immediate' %} aria-current="page"{% endif %}>Atención inmediata <span>{{ immediate_attention_centers }}</span></a>
-                <a class="center-quick-filter center-quick-filter-warning{% if selected_attention == 'due_soon' %} is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;attention=due_soon"{% if selected_attention == 'due_soon' %} aria-current="page"{% endif %}>Próximos a vencer <span>{{ due_soon_centers }}</span></a>
-                <a class="center-quick-filter{% if selected_access == 'pending' %} is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;access=pending"{% if selected_access == 'pending' %} aria-current="page"{% endif %}>Sin acceso <span>{{ pending_centers }}</span></a>
-                <a class="center-quick-filter{% if selected_cde == 'pending' %} is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;cde=pending"{% if selected_cde == 'pending' %} aria-current="page"{% endif %}>Sin CDE vigente <span>{{ without_current_cde_centers }}</span></a>
-            </div>
-        </nav>
+        <div class="ui-field ui-field-grow"><label for="q">Buscar centro</label><input id="q" name="q" type="search" value="{{ query }}" placeholder="Nombre o código del centro" enterkeyhint="search"></div>
+        <div class="ui-field"><label for="department">Departamento</label><select id="department" name="department"><option value="">Todos</option>{% for option in department_options %}<option value="{{ option }}" {% if selected_department == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+        <div class="ui-field"><label for="district">Distrito</label><select id="district" name="district" {% if not selected_department %}disabled{% endif %}><option value="">{% if selected_department %}Todos{% else %}Seleccione un departamento{% endif %}</option>{% for option in district_options %}<option value="{{ option }}" {% if selected_district == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+        <button class="ui-button ui-button-tonal" type="submit">Buscar</button>
         {% if query or selected_department or selected_district or selected_attention or selected_risk or selected_audits or selected_cde or selected_access %}
-        <div class="active-filter-row" aria-label="Filtros aplicados">
-            <span>Filtros aplicados</span>
-            {% if query %}<a class="active-filter-chip" href="{% querystring q=None %}">“{{ query }}” <span aria-hidden="true">×</span></a>{% endif %}
-            {% if selected_department %}<a class="active-filter-chip" href="{% querystring department=None district=None %}">{{ selected_department }} <span aria-hidden="true">×</span></a>{% endif %}
-            {% if selected_district %}<a class="active-filter-chip" href="{% querystring district=None %}">{{ selected_district }} <span aria-hidden="true">×</span></a>{% endif %}
-            {% if selected_attention %}<a class="active-filter-chip" href="{% querystring attention=None %}">Prioridad <span aria-hidden="true">×</span></a>{% endif %}
-            {% if selected_risk %}<a class="active-filter-chip" href="{% querystring risk=None %}">Riesgo <span aria-hidden="true">×</span></a>{% endif %}
-            {% if selected_audits %}<a class="active-filter-chip" href="{% querystring audits=None %}">Cobertura <span aria-hidden="true">×</span></a>{% endif %}
-            {% if selected_access %}<a class="active-filter-chip" href="{% querystring access=None %}">Acceso <span aria-hidden="true">×</span></a>{% endif %}
-            {% if selected_cde %}<a class="active-filter-chip" href="{% querystring cde=None %}">CDE <span aria-hidden="true">×</span></a>{% endif %}
+        <div class="ui-filter-chips" aria-label="Filtros aplicados">
+            <span>Filtros:</span>
+            {% if query %}<a class="ui-chip ui-chip-info" href="{% querystring q=None %}">“{{ query }}”{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_department %}<a class="ui-chip ui-chip-info" href="{% querystring department=None district=None %}">{{ selected_department }}{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_district %}<a class="ui-chip ui-chip-info" href="{% querystring district=None %}">{{ selected_district }}{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_attention %}<a class="ui-chip ui-chip-info" href="{% querystring attention=None %}">{% if selected_attention == 'immediate' %}Atención inmediata{% elif selected_attention == 'due_soon' %}Próximos a vencer{% else %}Prioridad{% endif %}{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_risk %}<a class="ui-chip ui-chip-info" href="{% querystring risk=None %}">Riesgo{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_audits %}<a class="ui-chip ui-chip-info" href="{% querystring audits=None %}">Cobertura{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_access %}<a class="ui-chip ui-chip-info" href="{% querystring access=None %}">Sin acceso{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_cde %}<a class="ui-chip ui-chip-info" href="{% querystring cde=None %}">Sin CDE vigente{% ui_icon "close" %}</a>{% endif %}
+            <a class="ui-button ui-button-text" href="{% url 'director_educational_centers' %}">Quitar todos</a>
         </div>
         {% endif %}
     </form>
 
-    <div class="directory-result-heading"><div><strong>{{ page_obj.paginator.count }} centro{{ page_obj.paginator.count|pluralize }}</strong><span class="sort-indicator">Ordenados por prioridad</span></div><div class="view-switch" role="group" aria-label="Presentación de resultados"><button type="button" class="is-active" data-center-view="cards" aria-pressed="true">Tarjetas</button><button type="button" data-center-view="compact" aria-pressed="false">Lista compacta</button></div></div>
+    <div class="ui-page-header-row">
+        <nav class="ui-tabs" aria-label="Filtros rápidos de centros">
+            <a class="{% if not selected_attention and not selected_risk and not selected_audits and not selected_cde and not selected_access %}is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}"{% if not selected_attention and not selected_risk and not selected_audits and not selected_cde and not selected_access %} aria-current="page"{% endif %}>Todos</a>
+            <a class="{% if selected_attention == 'immediate' %}is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;attention=immediate"{% if selected_attention == 'immediate' %} aria-current="page"{% endif %}>Atención inmediata<span class="ui-tab-count">{{ immediate_attention_centers }}</span></a>
+            <a class="{% if selected_attention == 'due_soon' %}is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;attention=due_soon"{% if selected_attention == 'due_soon' %} aria-current="page"{% endif %}>Próximos a vencer<span class="ui-tab-count">{{ due_soon_centers }}</span></a>
+            <a class="{% if selected_access == 'pending' %}is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;access=pending"{% if selected_access == 'pending' %} aria-current="page"{% endif %}>Sin acceso<span class="ui-tab-count">{{ pending_centers }}</span></a>
+            <a class="{% if selected_cde == 'pending' %}is-active{% endif %}" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;cde=pending"{% if selected_cde == 'pending' %} aria-current="page"{% endif %}>Sin CDE vigente<span class="ui-tab-count">{{ without_current_cde_centers }}</span></a>
+        </nav>
+        <p class="ui-page-context" aria-live="polite">{{ page_obj.paginator.count }} centro{{ page_obj.paginator.count|pluralize }} · por prioridad</p>
+    </div>
 
-    <section class="center-directory-grid" data-center-directory aria-label="Directorio analítico de centros educativos">
-        {% for center in centers %}
-        <article class="center-directory-card attention-{{ center.attention_level }}">
-            <header class="center-card-header">
-                <div class="center-card-meta">
-                    <span class="center-code">{{ center.code }}</span>
-                    <span class="attention-badge attention-badge-{{ center.attention_level }}">{{ center.attention_label }}</span>
-                </div>
-                <div class="center-card-title">
-                    <h2><a href="{% url 'director_educational_center_detail' center.pk %}">{{ center.name }}</a></h2>
-                    <p>{% if center.district %}{{ center.district }} · {% endif %}{{ center.municipality|default:"Municipio no registrado" }}{% if center.department %} · {{ center.department }}{% endif %}</p>
-                </div>
-            </header>
+    {% if centers %}
+    <div class="ui-table-wrap">
+        <table class="ui-table" data-mobile-cards aria-label="Directorio de centros educativos">
+            <thead><tr><th scope="col">Centro</th><th scope="col">Atención</th><th scope="col">Activos</th><th scope="col">Vencidos</th><th scope="col">Cumple</th><th scope="col" class="ui-table-end" data-card-action><span class="ui-visually-hidden">Acción</span></th></tr></thead>
+            <tbody>
+                {% for center in centers %}
+                <tr{% if center.attention_level == 'immediate' %} class="is-highlighted"{% endif %}>
+                    <td><a class="ui-table-link" href="{% url 'director_educational_center_detail' center.pk %}">{{ center.name }}</a><span class="ui-table-support">{{ center.code }} · {% if center.district %}{{ center.district }}{% else %}{{ center.municipality|default:"Municipio no registrado" }}{% endif %}{% if center.department %} · {{ center.department }}{% endif %}</span><span class="ui-table-support">{% if center.attention_reasons %}{{ center.attention_reasons.0.label }} · {% endif %}{{ center.access_label }} · {{ center.cde_state_label }}</span></td>
+                    <td>{% include "includes/ui/attention_chip.html" with level=center.attention_level label=center.attention_label %}</td>
+                    <td><a class="ui-table-link" href="{% url 'case_list' %}?organization={{ center.pk }}" aria-label="Ver los {{ center.case_count }} expedientes de {{ center.name }}">{{ center.active_case_count }}</a><span class="ui-table-support">de {{ center.case_count }}</span></td>
+                    <td>{{ center.overdue_count }}<span class="ui-table-support">de {{ center.obligation_count }}</span></td>
+                    <td>{% if center.compliance_rate is not None %}{{ center.compliance_rate }}%{% else %}N/D{% endif %}</td>
+                    <td class="ui-table-end">{% if not center.active_user_count and center.email %}<form method="post" action="{% url 'director_activate_educational_center' center.pk %}">{% csrf_token %}<button class="ui-button ui-button-tonal" type="submit">{% if center.activation_pending %}Reenviar enlace{% else %}Activar acceso por correo{% endif %}</button></form>{% else %}<a class="ui-button ui-button-tonal" href="{% url 'director_educational_center_detail' center.pk %}">Ver detalle</a>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="ui-card"><h2 class="ui-card-title">No se encontraron centros</h2><p class="ui-card-support">Pruebe con otro nombre, código o ubicación.</p><div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'director_educational_centers' %}">Limpiar búsqueda</a></div></div>
+    {% endif %}
 
-            {% if center.attention_reasons %}
-            <div class="center-alert-summary">
-                <p>Motivos de prioridad</p>
-                <ul class="center-reason-list" aria-label="Razones de atención">
-                    {% for reason in center.attention_reasons|slice:":1" %}<li class="reason-{{ reason.kind }}">{{ reason.label }}</li>{% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-
-            <dl class="center-metric-grid">
-                <div><dt>Casos activos</dt><dd>{{ center.active_case_count }}</dd><small>{{ center.case_count }} en total</small></div>
-                <div><dt>Plazos vencidos</dt><dd>{{ center.overdue_count }}</dd><small>{{ center.obligation_count }} obligaciones</small></div>
-                <div><dt>Riesgo alto/crítico</dt><dd>{{ center.high_active_count|add:center.critical_active_count }}</dd><small>en casos activos</small></div>
-            </dl>
-
-            <div class="center-context-row">
-                <div class="center-context-statuses">
-                    <span class="context-state {% if center.access_active %}is-ok{% else %}is-warning{% endif %}">{{ center.access_label }}</span>
-                    <span class="context-state {% if center.has_current_cde %}is-ok{% else %}is-warning{% endif %}">{{ center.cde_state_label }}</span>
-                </div>
-                <small>{{ center.email|default:"Sin correo registrado" }}</small>
-                <small>Cumplimiento: {% if center.compliance_rate is not None %}{{ center.compliance_rate }}%{% else %}N/D{% endif %}</small>
-                <small>{% if center.latest_activity_at %}Última actividad: {{ center.latest_activity_at|date:"d/m/Y H:i" }}{% else %}Sin actividad auditora consolidada{% endif %}</small>
-            </div>
-
-            <footer class="center-card-actions">
-                <a class="button button-primary" href="{% url 'director_educational_center_detail' center.pk %}">Ver detalle</a>
-                <details class="action-menu">
-                    <summary class="button button-secondary" aria-label="Más acciones para {{ center.name }}">Más acciones</summary>
-                    <div class="action-menu-content">
-                        <a class="text-link center-cases-button" href="{% url 'case_list' %}?organization={{ center.pk }}">Ver expedientes ({{ center.case_count }})</a>
-                        {% if not center.active_user_count %}{% if center.email %}<form method="post" action="{% url 'director_activate_educational_center' center.pk %}">{% csrf_token %}<button class="text-link center-action-button" type="submit">{% if center.activation_pending %}Reenviar enlace{% else %}Activar acceso por correo{% endif %}</button></form>{% else %}<span>Falta registrar el correo</span>{% endif %}{% endif %}
-                    </div>
-                </details>
-            </footer>
-        </article>
-        {% empty %}
-        <div class="empty-state card center-directory-empty"><h2>No se encontraron centros</h2><p>Pruebe con otro nombre, código o ubicación.</p><a class="button button-secondary" href="{% url 'director_educational_centers' %}">Limpiar búsqueda</a></div>
-        {% endfor %}
-    </section>
-
-    {% if is_paginated %}<nav class="pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;attention={{ selected_attention|urlencode }}&amp;risk={{ selected_risk|urlencode }}&amp;audits={{ selected_audits|urlencode }}&amp;cde={{ selected_cde|urlencode }}&amp;access={{ selected_access|urlencode }}&amp;page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;attention={{ selected_attention|urlencode }}&amp;risk={{ selected_risk|urlencode }}&amp;audits={{ selected_audits|urlencode }}&amp;cde={{ selected_cde|urlencode }}&amp;access={{ selected_access|urlencode }}&amp;page={{ page_obj.next_page_number }}">Siguiente</a>{% endif %}</nav>{% endif %}
+    {% if is_paginated %}<nav class="ui-pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a class="ui-button ui-button-outlined" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;attention={{ selected_attention|urlencode }}&amp;risk={{ selected_risk|urlencode }}&amp;audits={{ selected_audits|urlencode }}&amp;cde={{ selected_cde|urlencode }}&amp;access={{ selected_access|urlencode }}&amp;page={{ page_obj.previous_page_number }}">{% ui_icon "back" %}Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="ui-button ui-button-outlined" href="?q={{ query|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;attention={{ selected_attention|urlencode }}&amp;risk={{ selected_risk|urlencode }}&amp;audits={{ selected_audits|urlencode }}&amp;cde={{ selected_cde|urlencode }}&amp;access={{ selected_access|urlencode }}&amp;page={{ page_obj.next_page_number }}">Siguiente{% ui_icon "forward" %}</a>{% endif %}</nav>{% endif %}
 </div>
 {% endblock %}

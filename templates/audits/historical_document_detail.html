@@ -1,60 +1,69 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}{{ document.reference|default:"Informe" }} | Informes{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta">{% if user.role == 'audit_manager' and document.organization.kind == 'educational_center' %}<a href="{% url 'director_educational_center_detail' document.organization_id %}">{{ document.organization.code }} · {{ document.organization.name }}</a>{% elif user.is_audit_staff %}<a href="{% url 'historical_document_list' %}">Informes</a>{% else %}<a href="{% url 'institution_history' %}">Historial</a>{% endif %}<span>/</span><span>{{ document.reference|default:document.pk }}</span></nav>
+<div class="ui-page">
+    {% if user.role == 'audit_manager' and document.organization.kind == 'educational_center' %}<a class="ui-back" href="{% url 'director_educational_center_detail' document.organization_id %}">{% ui_icon "back" %}{{ document.organization.code }} · {{ document.organization.name }}</a>{% elif user.is_audit_staff %}<a class="ui-back" href="{% url 'historical_document_list' %}">{% ui_icon "back" %}Informes</a>{% else %}<a class="ui-back" href="{% url 'institution_history' %}">{% ui_icon "back" %}Historial</a>{% endif %}
 
-<div class="page-heading heading-row">
-    <div>
-        <h1>{{ document.title }}</h1>
-        <p>{{ document.reference|default:"Sin referencia" }} · {{ document.organization.name }} · {{ document.document_date|date:"d/m/Y"|default:"Sin fecha" }}</p>
+    <div class="ui-page-header-row">
+        <header class="ui-page-header">
+            <h1 class="ui-page-title">{{ document.title }}</h1>
+            <p class="ui-page-context">{{ document.reference|default:"Sin referencia" }} · {{ document.organization.name }} · {{ document.document_date|date:"j b Y"|default:"Sin fecha" }}</p>
+        </header>
+        <div class="ui-card-actions">
+            {% if user.is_audit_staff %}<a class="ui-button ui-button-tonal" href="{% url 'historical_recommendation_create' document.pk %}">{% ui_icon "plus" %}Agregar recomendación</a>{% endif %}
+            <a class="ui-button ui-button-outlined" href="{% url 'download_audit_document' document.pk %}">{% ui_icon "download" %}Descargar original</a>
+        </div>
     </div>
-    <div class="button-group">
-        <a class="button button-secondary" href="{% url 'download_audit_document' document.pk %}">Descargar original</a>
-        {% if user.is_audit_staff %}<a class="button button-secondary" href="{% url 'historical_attachment_create' document.pk %}">Agregar documentos</a>{% if document.organization.kind == 'educational_center' %}<a class="button button-secondary" href="{% url 'center_historical_bulk_upload' document.organization_id %}?report={{ document.pk }}">Carga múltiple</a>{% endif %}<a class="button button-primary" href="{% url 'historical_recommendation_create' document.pk %}">Agregar recomendación</a>{% endif %}
+
+    <div class="ui-layout">
+    <div class="ui-layout-main">
+        <section class="ui-section" aria-labelledby="historical-recommendations-title">
+            <div class="ui-section-head"><h2 class="ui-section-title" id="historical-recommendations-title">Recomendaciones</h2><span class="ui-help">{{ document.historical_recommendations.count }} registrada{{ document.historical_recommendations.count|pluralize }}</span></div>
+            {% for recommendation in document.historical_recommendations.all %}
+            <article class="ui-card">
+                <div class="ui-chips">{% ui_status_chip recommendation.status recommendation.get_status_display %}</div>
+                <h3 class="ui-card-title">Recomendación {{ recommendation.number }}</h3>
+                <p>{{ recommendation.text|linebreaksbr }}</p>
+                <p class="ui-card-support">Responsable: {{ recommendation.responsible_organization.name|default:recommendation.responsible_description|default:"No identificado" }} · fecha límite original {{ recommendation.original_deadline|date:"j b Y"|default:"sin fecha" }}</p>
+                {% if recommendation.comments %}<details class="ui-details"><summary>Comentario registrado</summary><p>{{ recommendation.comments|linebreaksbr }}</p></details>{% endif %}
+            </article>
+            {% empty %}
+            <div class="ui-card">
+                <h3 class="ui-card-title">No hay recomendaciones registradas</h3>
+                {% if user.is_audit_staff %}<div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'historical_recommendation_create' document.pk %}">{% ui_icon "plus" %}Agregar recomendación</a></div>{% endif %}
+            </div>
+            {% endfor %}
+        </section>
+    </div>
+
+    <aside class="ui-layout-aside">
+        {% if user.is_audit_staff %}
+        <section class="ui-card ui-card-compact" aria-labelledby="original-title">
+            <h2 class="ui-card-title" id="original-title">Archivo original</h2>
+            <p class="ui-card-support">{{ document.original_filename }} · incorporado el {{ document.uploaded_at|date:"j b Y" }}</p>
+            {% include 'audits/historical_visibility_form.html' with item=document %}
+            {% if document.visibility == 'audit_only' %}<p class="ui-help">El centro podrá consultar los documentos compartidos cuando este informe también sea visible para la institución.</p>{% endif %}
+        </section>
+        {% endif %}
+
+        <section class="ui-section" aria-labelledby="historical-attachments-title">
+            <div class="ui-section-head"><h2 class="ui-section-title" id="historical-attachments-title">Documentos relacionados · {{ attachments.count }}</h2></div>
+            {% if user.is_audit_staff %}<div class="ui-card-actions"><a class="ui-button ui-button-text" href="{% url 'historical_attachment_create' document.pk %}">{% ui_icon "plus" %}Agregar documentos</a>{% if document.organization.kind == 'educational_center' %}<a class="ui-button ui-button-text" href="{% url 'center_historical_bulk_upload' document.organization_id %}?report={{ document.pk }}">{% ui_icon "upload" %}Carga múltiple</a>{% endif %}</div>{% endif %}
+            {% if attachments %}
+            <div class="ui-list">
+                {% for attachment in attachments %}
+                <div class="ui-list-row ui-attachment">
+                    <a class="ui-list-text" href="{% url 'download_audit_document' attachment.pk %}"><span class="ui-list-title">{{ attachment.title }}</span><span class="ui-list-support">{{ attachment.get_document_type_display }} · {{ attachment.reference|default:"Sin referencia" }} · {{ attachment.document_date|date:"j b Y"|default:"Sin fecha original" }}</span><span class="ui-list-support">{{ attachment.original_filename }} · Descargar documento</span></a>
+                    {% if user.is_audit_staff %}{% include 'audits/historical_visibility_form.html' with item=attachment %}{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="ui-help">No hay documentos relacionados disponibles.</p>
+            {% endif %}
+        </section>
+    </aside>
     </div>
 </div>
-
-{% if user.is_audit_staff %}<section class="card historical-original-meta"><p><strong>Archivo original:</strong> {{ document.original_filename }} · <strong>Incorporado:</strong> {{ document.uploaded_at|date:"d/m/Y H:i" }}</p>{% include 'audits/historical_visibility_form.html' with item=document %}{% if document.visibility == 'audit_only' %}<p class="help-text">El centro podrá consultar los documentos marcados como compartidos cuando este informe también sea visible para la institución.</p>{% endif %}</section>{% endif %}
-
-<section class="section-block" aria-labelledby="historical-attachments-title">
-    <div class="section-heading"><h2 id="historical-attachments-title">Documentos relacionados</h2><span>{{ attachments.count }} documento{{ attachments.count|pluralize }}</span></div>
-    <div class="document-profile-grid">
-    {% for attachment in attachments %}
-        <article>
-            <span class="document-profile-type">{{ attachment.get_document_type_display }}</span>
-            <strong>{{ attachment.title }}</strong>
-            <small>{{ attachment.reference|default:"Sin referencia" }} · {{ attachment.document_date|date:"d/m/Y"|default:"Sin fecha original" }}</small>
-            <small>{{ attachment.original_filename }}</small>
-            <a class="text-link" href="{% url 'download_audit_document' attachment.pk %}">Descargar documento</a>
-            {% if user.is_audit_staff %}{% include 'audits/historical_visibility_form.html' with item=attachment %}{% endif %}
-        </article>
-    {% empty %}<div class="compact-empty"><strong>No hay documentos relacionados disponibles</strong>{% if user.is_audit_staff %}<a href="{% url 'historical_attachment_create' document.pk %}">Agregar documentos</a>{% endif %}</div>{% endfor %}
-    </div>
-</section>
-
-<section class="section-block" aria-labelledby="historical-recommendations-title">
-    <div class="section-heading">
-        <div><h2 id="historical-recommendations-title">Recomendaciones</h2></div>
-        <span class="muted">{{ document.historical_recommendations.count }} registrada{{ document.historical_recommendations.count|pluralize }}</span>
-    </div>
-    {% for recommendation in document.historical_recommendations.all %}
-    <article class="recommendation-card">
-        <div class="recommendation-header">
-            <span class="recommendation-number">Recomendación {{ recommendation.number }}</span>
-            <span class="status status-{{ recommendation.status }}">{{ recommendation.get_status_display }}</span>
-        </div>
-        <p class="recommendation-text">{{ recommendation.text|linebreaksbr }}</p>
-        <dl class="meta-list horizontal">
-            <div><dt>Responsable</dt><dd>{{ recommendation.responsible_organization.name|default:recommendation.responsible_description|default:"No identificado" }}</dd></div>
-            <div><dt>Fecha límite original</dt><dd>{{ recommendation.original_deadline|date:"d/m/Y"|default:"Sin fecha" }}</dd></div>
-        </dl>
-        {% if recommendation.comments %}<div class="review-result"><strong>Comentario registrado</strong><p>{{ recommendation.comments|linebreaksbr }}</p></div>{% endif %}
-    </article>
-    {% empty %}
-    <div class="empty-state card">
-        <h3>No hay recomendaciones registradas</h3>
-        {% if user.is_audit_staff %}<a class="button button-primary" href="{% url 'historical_recommendation_create' document.pk %}">Agregar recomendación</a>{% endif %}
-    </div>
-    {% endfor %}
-</section>
 {% endblock %}

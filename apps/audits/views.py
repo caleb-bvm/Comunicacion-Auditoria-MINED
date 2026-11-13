@@ -2713,6 +2713,16 @@ def case_detail(request, pk):
         for task in institution_tasks:
             task.correction_comment = comments.get(task.pk, "")
         institution_tasks.sort(key=lambda task: (task.deadline is None, task.deadline or date.max))
+    else:
+        findings = list(findings)
+    # Respuestas cuya última versión espera dictamen: es lo primero que ve Auditoría.
+    review_items = []
+    if request.user.role != User.Role.INSTITUTION:
+        for finding in findings:
+            for recommendation in finding.recommendations.all():
+                latest = recommendation.visible_responses[0] if recommendation.visible_responses else None
+                if latest is not None and getattr(latest, "review", None) is None:
+                    review_items.append({"recommendation": recommendation, "response": latest})
     return render(
         request,
         template_name,
@@ -2721,6 +2731,7 @@ def case_detail(request, pk):
             "findings": findings,
             "documents": documents,
             "institution_tasks": institution_tasks,
+            "review_items": review_items,
             "can_edit_case": user_can_edit_case(request.user, case),
             "can_request_closure": (
                 request.user.role == User.Role.AUDITOR

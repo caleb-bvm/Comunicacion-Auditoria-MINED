@@ -1,13 +1,6 @@
-<fieldset class="historical-attachment-row">
-    <legend>Documento relacionado</legend>
+<fieldset class="ui-card ui-fieldset">
+    <legend class="ui-visually-hidden">Documento relacionado</legend>
+    <p class="ui-label" aria-hidden="true">Documento relacionado</p>
     {{ attachment.non_field_errors }}
-    <div class="form-grid form-grid-two">
-        {% for field in attachment %}
-        <div class="field {% if field.errors %}field-error{% endif %}{% if field.name == 'file' or field.name == 'title' %} field-wide{% endif %}">
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
-            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
-            {{ field.errors }}
-        </div>
-        {% endfor %}
-    </div>
+    {% include "includes/ui/form_fields.html" with fields=attachment %}
 </fieldset>

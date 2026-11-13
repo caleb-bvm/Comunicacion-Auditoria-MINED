@@ -1,28 +1,73 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Administración técnica | SIGA{% endblock %}
 {% block content %}
-<div class="role-workspace technical-workspace">
-  <header class="role-welcome"><div><span class="eyebrow">Operación de la plataforma</span><h1>Administración técnica</h1><p>Atienda incidencias y accesos sin intervenir en las decisiones de Auditoría.</p></div><div class="heading-actions"><a class="button button-secondary" href="{% url 'technical_users' %}">Buscar usuario</a><a class="button button-primary" href="{% url 'technical_user_create' %}">Nueva cuenta interna</a></div></header>
+<div class="ui-page technical-workspace">
+    <div class="ui-page-header-row">
+        <header class="ui-page-header">
+            <h1 class="ui-page-title">{% if support_queue %}Solicitudes por atender · {{ support_queue|length }}{% else %}Bandeja al día{% endif %}</h1>
+            <p class="ui-page-context">Administración técnica: incidencias y accesos, sin intervenir en las decisiones de Auditoría.</p>
+        </header>
+        <a class="ui-button ui-button-text" href="{% url 'technical_users' %}">{% ui_icon "search" %}Buscar usuario</a>
+    </div>
 
-  <section class="role-summary" aria-label="Resumen técnico">
-    <a href="{% url 'technical_support_requests' %}?status=open" class="{% if new_support_requests %}summary-warning{% endif %}"><span>Solicitudes nuevas</span><strong>{{ new_support_requests }}</strong><small>Esperan clasificación</small></a>
-    <a href="{% url 'technical_support_requests' %}?status=in_progress"><span>En atención</span><strong>{{ support_in_progress }}</strong><small>Seguimiento iniciado</small></a>
-    <a href="{% url 'technical_users' %}?status=inactive"><span>Cuentas suspendidas</span><strong>{{ inactive_users }}</strong><small>Acceso bloqueado</small></a>
-    <a href="{% url 'technical_activity_log' %}" class="{% if pending_scans %}summary-danger{% endif %}"><span>Archivos por analizar</span><strong>{{ pending_scans }}</strong><small>{% if pending_scans %}Revisar procesamiento{% else %}Sin pendientes{% endif %}</small></a>
-  </section>
+    <div class="ui-layout">
+    <div class="ui-layout-main">
+        {% if support_queue %}
+        <div class="ui-card-grid">
+            {% for item in support_queue %}
+            <article class="ui-card" aria-labelledby="support-{{ item.pk }}">
+                <div class="ui-chips"><span class="ui-chip {% if item.status == 'open' %}ui-chip-info{% else %}ui-chip-review{% endif %}">{% if item.status == 'open' %}{% ui_icon "alert" %}{% else %}{% ui_icon "clock" %}{% endif %}{{ item.get_status_display }}</span><span class="ui-chip">{{ item.get_category_display }}</span></div>
+                <h2 class="ui-card-title" id="support-{{ item.pk }}">{{ item.subject }}</h2>
+                <p class="ui-card-support">{% if item.requested_by %}{{ item.requested_by.get_full_name|default:item.requested_by.username }}{% else %}{{ item.requester_name|default:"Solicitud pública" }}{% endif %}{% if item.organization %} · {{ item.organization.name }}{% endif %} · hace {{ item.created_at|timesince }}</p>
+                <div class="ui-card-actions"><a class="ui-button {% if forloop.first %}ui-button-filled ui-button-large{% else %}ui-button-tonal{% endif %}" href="{% url 'technical_support_request_detail' item.pk %}">{% if item.status == 'open' %}Atender ahora{% else %}Continuar{% endif %}</a></div>
+            </article>
+            {% endfor %}
+        </div>
+        <a class="ui-button ui-button-text" href="{% url 'technical_support_requests' %}">Ver todas las solicitudes</a>
+        {% else %}
+        <div class="ui-card"><div class="ui-empty"><span class="ui-empty-mark">{% ui_icon "check" %}</span><div><h2 class="ui-card-title">No hay solicitudes técnicas abiertas</h2></div></div></div>
+        {% endif %}
 
-  <div class="role-work-grid">
-    <section class="card role-inbox" aria-labelledby="technical-inbox-title">
-      <div class="section-heading"><div><span class="eyebrow">Bandeja</span><h2 id="technical-inbox-title">Solicitudes que requieren atención</h2></div><a class="text-link" href="{% url 'technical_support_requests' %}">Ver todas</a></div>
-      {% if support_queue %}<div class="role-task-list">{% for item in support_queue %}<article class="role-task {% if item.status == 'open' %}role-task-warning{% endif %}"><span class="role-task-signal" aria-hidden="true"></span><div><div class="role-task-meta"><span class="work-item-type">{{ item.get_category_display }}</span><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span><small>Hace {{ item.created_at|timesince }}</small></div><h3>{{ item.subject }}</h3><p>{% if item.requested_by %}{{ item.requested_by.get_full_name|default:item.requested_by.username }}{% else %}{{ item.requester_name|default:"Solicitud pública" }}{% endif %}{% if item.organization %} · {{ item.organization.name }}{% endif %}</p></div><a class="button {% if item.status == 'open' %}button-primary{% else %}button-secondary{% endif %} button-compact" href="{% url 'technical_support_request_detail' item.pk %}">{% if item.status == 'open' %}Atender ahora{% else %}Continuar{% endif %}</a></article>{% endfor %}</div>{% else %}<div class="work-complete-state"><span aria-hidden="true">✓</span><div><strong>Bandeja al día</strong><p>No hay solicitudes técnicas abiertas.</p></div></div>{% endif %}
-    </section>
+        <section class="ui-section" aria-labelledby="recent-title">
+            <div class="ui-section-head"><h2 class="ui-section-title" id="recent-title">Actividad reciente</h2><a class="ui-button ui-button-text" href="{% url 'technical_activity_log' %}">Ver todos los logs</a></div>
+            <div class="ui-list">
+                {% for event in recent_activity %}
+                <div class="ui-list-row"><span class="ui-list-text"><span class="ui-list-title">{{ event.action }}</span><span class="ui-list-support">{{ event.created_at|date:"d/m/Y H:i" }} · {{ event.actor.username|default:"Sistema" }}{% if event.target_type %} · {{ event.target_type }} {{ event.target_id }}{% endif %}</span></span></div>
+                {% empty %}
+                <div class="ui-list-row"><span class="ui-list-support">Todavía no existen eventos registrados</span></div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
 
-    <aside class="role-side-column">
-      <section class="card system-health"><div class="section-heading"><h2>Estado del sistema</h2><a class="text-link" href="{% url 'technical_activity_log' %}">Ver logs</a></div><div class="health-check"><span class="status-dot {% if database_ok %}status-dot-success{% else %}status-dot-error{% endif %}"></span><div><strong>Base de datos</strong><small>{% if database_ok %}Operativa{% else %}No responde{% endif %}</small></div></div><div class="health-check"><span class="status-dot {% if pending_scans %}status-dot-warning{% else %}status-dot-success{% endif %}"></span><div><strong>Análisis de archivos</strong><small>{% if pending_scans %}{{ pending_scans }} pendiente{{ pending_scans|pluralize }}{% else %}Operativo y sin cola{% endif %}</small></div></div></section>
-      <section class="card role-context"><h2>Accesos</h2><dl><div><dt>Usuarios activos</dt><dd>{{ active_users }}</dd></div><div><dt>Cambio de contraseña</dt><dd>{{ forced_password_changes }}</dd></div><div><dt>Cuentas suspendidas</dt><dd>{{ inactive_users }}</dd></div></dl><a class="button button-secondary button-block" href="{% url 'technical_users' %}">Administrar usuarios</a></section>
+    <aside class="ui-layout-aside" aria-label="Estado y accesos">
+        <section class="ui-section" aria-labelledby="summary-title">
+            <h2 class="ui-section-title" id="summary-title">Resumen</h2>
+            <div class="ui-figures">
+                <a class="ui-figure{% if new_support_requests %} ui-figure-warning{% endif %}" href="{% url 'technical_support_requests' %}?status=open"><strong>{{ new_support_requests }}</strong><span>Solicitudes nuevas</span></a>
+                <a class="ui-figure" href="{% url 'technical_support_requests' %}?status=in_progress"><strong>{{ support_in_progress }}</strong><span>En atención</span></a>
+                <a class="ui-figure" href="{% url 'technical_users' %}?status=inactive"><strong>{{ inactive_users }}</strong><span>Cuentas suspendidas</span></a>
+                <a class="ui-figure{% if pending_scans %} ui-figure-danger{% endif %}" href="{% url 'technical_activity_log' %}"><strong>{{ pending_scans }}</strong><span>Archivos por analizar</span></a>
+            </div>
+        </section>
+        <section class="ui-section" aria-labelledby="health-title">
+            <h2 class="ui-section-title" id="health-title">Estado del sistema</h2>
+            <div class="ui-list">
+                <div class="ui-list-row"><span class="ui-list-text"><span class="ui-list-title">Base de datos</span></span>{% if database_ok %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Operativa</span>{% else %}<span class="ui-chip ui-chip-danger">{% ui_icon "alert" %}No responde</span>{% endif %}</div>
+                <div class="ui-list-row"><span class="ui-list-text"><span class="ui-list-title">Análisis de archivos</span></span>{% if pending_scans %}<span class="ui-chip ui-chip-warning">{% ui_icon "clock" %}{{ pending_scans }} pendiente{{ pending_scans|pluralize }}</span>{% else %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Sin cola</span>{% endif %}</div>
+            </div>
+        </section>
+        <section class="ui-section" aria-labelledby="accounts-title">
+            <h2 class="ui-section-title" id="accounts-title">Accesos</h2>
+            <dl class="ui-list ui-facts">
+                <div class="ui-list-row"><dt>Usuarios activos</dt><dd>{{ active_users }}</dd></div>
+                <div class="ui-list-row"><dt>Cambio de contraseña</dt><dd>{{ forced_password_changes }}</dd></div>
+                <div class="ui-list-row"><dt>Cuentas suspendidas</dt><dd>{{ inactive_users }}</dd></div>
+            </dl>
+            <a class="ui-button ui-button-tonal ui-button-block" href="{% url 'technical_user_create' %}">{% ui_icon "plus" %}Nueva cuenta interna</a>
+        </section>
     </aside>
-  </div>
-
-  <section class="section-block"><div class="section-heading"><div><h2>Actividad reciente</h2><p>Últimos eventos técnicos y administrativos registrados.</p></div><a class="text-link" href="{% url 'technical_activity_log' %}">Ver todos los logs</a></div><div class="recent-activity-list">{% for event in recent_activity %}<article><time>{{ event.created_at|date:"d/m/Y H:i" }}</time><div><strong>{{ event.action }}</strong><small>{{ event.actor.username|default:"Sistema" }}{% if event.target_type %} · {{ event.target_type }} {{ event.target_id }}{% endif %}</small></div></article>{% empty %}<div class="compact-empty"><strong>Todavía no existen eventos registrados</strong></div>{% endfor %}</div></section>
+    </div>
 </div>
 {% endblock %}

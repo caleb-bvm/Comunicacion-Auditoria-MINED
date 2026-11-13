@@ -1,24 +1,81 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Solicitud {{ case.reference }} | Dirección de Auditoría{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'director_dashboard' %}">Inicio</a><span>/</span><a href="{% url 'director_decisions' %}">Solicitudes</a><span>/</span><span>{{ case.reference }}</span></nav>
-<div class="page-heading heading-row"><div><h1>Solicitud de {{ decision.get_kind_display|lower }}</h1><p><strong>{{ case.reference }}</strong> · {{ case.audited_organization.name }} · {{ case.title }}</p></div><span class="status status-large status-{{ decision.status }}">{{ decision.get_status_display }}</span></div>
+<div class="ui-page decision-page">
+    <a class="ui-back" href="{% url 'director_decisions' %}">{% ui_icon "back" %}Decisiones</a>
+    <div class="ui-page-header-row">
+        <header class="ui-page-header">
+            <div class="ui-chips"><span class="ui-chip {% if decision.status == 'approved' %}ui-chip-success{% elif decision.status == 'returned' %}ui-chip-correction{% else %}ui-chip-warning{% endif %}">{% if decision.status == 'approved' %}{% ui_icon "check" %}{% elif decision.status == 'returned' %}{% ui_icon "back" %}{% else %}{% ui_icon "clock" %}{% endif %}{{ decision.get_status_display }}</span></div>
+            <h1 class="ui-page-title">Solicitud de {{ decision.get_kind_display|lower }}</h1>
+            <p class="ui-page-context">{{ case.reference }} · {{ case.audited_organization.name }} · {{ case.title }}</p>
+        </header>
+        <a class="ui-button ui-button-text" href="{% url 'case_detail' case.pk %}">Ver expediente{% ui_icon "forward" %}</a>
+    </div>
 
-<section class="decision-context">
-    <dl class="summary-grid"><div><dt>Solicitada por</dt><dd>{{ decision.requested_by.get_full_name|default:decision.requested_by.username }}</dd></div><div><dt>Fecha de solicitud</dt><dd>{{ decision.requested_at|date:"d/m/Y H:i" }}</dd></div><div><dt>Auditor responsable</dt><dd>{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}</dd></div><div><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"d/m/Y"|default:"Sin definir" }}</dd></div></dl>
-    {% if decision.request_note %}<div class="request-note"><strong>Fundamento de la solicitud</strong><p>{{ decision.request_note|linebreaksbr }}</p></div>{% endif %}
-    {% if decision.document %}<div class="document-bar"><div><span aria-hidden="true">DOC</span><div><strong>{{ decision.document.title }} · versión {{ decision.document.version }}</strong><small>{{ decision.document.original_filename }}</small></div></div><a class="button button-secondary" href="{% url 'download_audit_document' decision.document.pk %}">Revisar documento</a></div>{% endif %}
-</section>
+    <div class="ui-layout">
+    <div class="ui-layout-main">
+        {% if decision.request_note %}
+        <section class="ui-callout" aria-labelledby="request-note-title"><h2 class="ui-callout-title" id="request-note-title">Fundamento de la solicitud</h2><p>{{ decision.request_note|linebreaksbr }}</p></section>
+        {% endif %}
 
-<section class="section-block">
-    <div class="section-heading"><div><h2>Hallazgos y recomendaciones</h2></div><a class="button button-tonal" href="{% url 'case_detail' case.pk %}">Ver expediente <span aria-hidden="true">→</span></a></div>
-    <div class="decision-findings">{% for finding in findings %}<article class="decision-finding card"><header><div><span class="finding-number">Hallazgo {{ finding.number }}</span><h3>{{ finding.title }}</h3></div><span class="risk risk-{{ finding.risk_level }}">Riesgo {{ finding.get_risk_level_display }}</span></header>{% for recommendation in finding.recommendations.all %}<div class="decision-recommendation"><strong>Recomendación {{ finding.number }}.{{ recommendation.number }}</strong><p>{{ recommendation.text }}</p><small>{{ recommendation.responsible_organization.name }} · {{ recommendation.get_status_display }} · Límite {{ recommendation.deadline|date:"d/m/Y"|default:"sin definir" }}</small></div>{% empty %}<p class="muted">Sin recomendaciones.</p>{% endfor %}</article>{% empty %}<div class="empty-state card"><h2>Sin hallazgos</h2></div>{% endfor %}</div>
-</section>
+        <section class="ui-section" aria-labelledby="decision-findings-title">
+            <h2 class="ui-section-title" id="decision-findings-title">Hallazgos y recomendaciones</h2>
+            {% for finding in findings %}
+            <article class="ui-card" aria-labelledby="decision-finding-{{ finding.pk }}">
+                <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span><span class="risk risk-{{ finding.risk_level }}">Riesgo {{ finding.get_risk_level_display|lower }}</span></div>
+                <h3 class="ui-card-title" id="decision-finding-{{ finding.pk }}">{{ finding.title }}</h3>
+                <div class="ui-divided">
+                    {% for recommendation in finding.recommendations.all %}
+                    <section class="ui-recommendation">
+                        <div class="ui-chips">{% ui_status_chip recommendation.status %}</div>
+                        <h4 class="ui-recommendation-title">Recomendación {{ finding.number }}.{{ recommendation.number }}</h4>
+                        <p>{{ recommendation.text }}</p>
+                        <p class="ui-help">Responde: {{ recommendation.responsible_organization.name }} · {% if recommendation.deadline %}fecha límite {{ recommendation.deadline|date:"j b Y" }}{% else %}sin fecha límite{% endif %}</p>
+                    </section>
+                    {% empty %}<p class="ui-help">Sin recomendaciones.</p>{% endfor %}
+                </div>
+            </article>
+            {% empty %}
+            <div class="ui-card"><h3 class="ui-card-title">Sin hallazgos</h3></div>
+            {% endfor %}
+        </section>
+    </div>
 
-{% if decision.status == 'pending' %}<form method="post" class="decision-resolution card">
-    {% csrf_token %}
-    <div><h2>Resolver solicitud</h2><p>La justificación quedará registrada y no podrá modificarse.</p></div>
-    <div class="field {% if form.justification.errors %}field-error{% endif %}">{{ form.justification.label_tag }}{{ form.justification }}{% if form.justification.help_text %}<small>{{ form.justification.help_text }}</small>{% endif %}{{ form.justification.errors }}{{ form.action.errors }}</div>
-    <div class="decision-buttons"><button class="button button-secondary button-large" type="submit" name="action" value="return">Devolver con observaciones</button><button class="button button-primary button-large" type="submit" name="action" value="approve">Aprobar {{ decision.get_kind_display|lower }}</button></div>
-</form>{% else %}<section class="decision-resolved card"><span class="publication-check-icon" aria-hidden="true">{% if decision.status == 'approved' %}✓{% else %}↩{% endif %}</span><div><h2>{{ decision.get_status_display }}</h2><p>{{ decision.decision_note|linebreaksbr }}</p><small>{{ decision.decided_by.get_full_name|default:decision.decided_by.username }} · {{ decision.decided_at|date:"d/m/Y H:i" }}</small></div></section>{% endif %}
+    <aside class="ui-layout-aside" aria-label="Resolución">
+        {% if decision.status == 'pending' %}
+        <form method="post" class="ui-card" aria-labelledby="resolve-title">
+            {% csrf_token %}
+            <h2 class="ui-card-title" id="resolve-title">Resolver solicitud</h2>
+            <p class="ui-card-support">La justificación quedará registrada y no podrá modificarse.</p>
+            {% include "includes/ui/field.html" with field=form.justification %}
+            {{ form.action.errors }}
+            <div class="ui-stack">
+                <button class="ui-button ui-button-filled ui-button-large ui-button-block" type="submit" name="action" value="approve">{% ui_icon "check" %}Aprobar {{ decision.get_kind_display|lower }}</button>
+                <button class="ui-button ui-button-outlined ui-button-block" type="submit" name="action" value="return">Devolver con observaciones</button>
+            </div>
+        </form>
+        {% else %}
+        <section class="ui-card" aria-labelledby="resolved-title">
+            <h2 class="ui-card-title" id="resolved-title">{{ decision.get_status_display }}</h2>
+            <p>{{ decision.decision_note|linebreaksbr }}</p>
+            <p class="ui-card-support">{{ decision.decided_by.get_full_name|default:decision.decided_by.username }} · {{ decision.decided_at|date:"j b Y, H:i" }}</p>
+        </section>
+        {% endif %}
+
+        <dl class="ui-list ui-facts" aria-label="Datos de la solicitud">
+            <div class="ui-list-row"><dt>Solicitada por</dt><dd>{{ decision.requested_by.get_full_name|default:decision.requested_by.username }}</dd></div>
+            <div class="ui-list-row"><dt>Fecha</dt><dd>{{ decision.requested_at|date:"j b Y, H:i" }}</dd></div>
+            <div class="ui-list-row"><dt>Auditor responsable</dt><dd>{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}</dd></div>
+            <div class="ui-list-row"><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"j b Y"|default:"Sin definir" }}</dd></div>
+        </dl>
+
+        {% if decision.document %}
+        <div class="ui-list">
+            <a class="ui-list-row" href="{% url 'download_audit_document' decision.document.pk %}">{% ui_icon "file" %}<span class="ui-list-text"><span class="ui-list-title">{{ decision.document.title }} · versión {{ decision.document.version }}</span><span class="ui-list-support">{{ decision.document.original_filename }}</span></span>{% ui_icon "download" %}</a>
+        </div>
+        {% endif %}
+    </aside>
+    </div>
+</div>
 {% endblock %}

@@ -267,7 +267,7 @@
         if (event.target === suspensionDialog) suspensionDialog.close();
     });
 
-    const analysisForm = document.querySelector(".territorial-filter[data-analysis-mode]");
+    const analysisForm = document.querySelector("form[data-analysis-mode]");
     const periodFilter = analysisForm?.querySelector("[data-period-filter]");
     const periodOptions = periodFilter
         ? Array.from(periodFilter.querySelectorAll('input[name="period"]'))
@@ -277,7 +277,7 @@
     const periodEnd = periodFilter?.querySelector("#end");
     const periodSummary = periodFilter?.querySelector("[data-period-summary]");
     const periodError = periodFilter?.querySelector("[data-period-error]");
-    const periodServerError = periodFilter?.querySelector(".period-server-error");
+    const periodServerError = periodFilter?.querySelector("[data-period-server-error]");
     const analysisUpdateStatus = analysisForm?.querySelector(
         "[data-analysis-update-status]"
     );
@@ -287,7 +287,7 @@
     const departmentFilter = analysisForm?.querySelector("#department");
     const districtFilter = analysisForm?.querySelector("#district");
     const advancedAnalysisFilters = analysisForm?.querySelector(
-        ".territorial-advanced-filters"
+        "[data-advanced-filters]"
     );
     const analysisStateKey = "director-analysis-filter-state";
     let analysisSubmitTimer = null;
@@ -426,7 +426,7 @@
         persistAnalysisState();
         showAnalysisUpdate();
     });
-    document.querySelectorAll(".analysis-mode-switch a").forEach((link) => {
+    document.querySelectorAll("[data-analysis-mode-switch] a").forEach((link) => {
         link.addEventListener("click", () => {
             persistAnalysisState();
             showAnalysisUpdate();
@@ -435,6 +435,19 @@
     updatePeriodFilter();
     restoreAnalysisState();
 })();
+
+// Confirmaciones y alcance de envío sin manejadores en línea (la CSP los bloquea).
+document.querySelectorAll("form[data-confirm]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+        if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+});
+document.querySelectorAll("[data-set-scope]").forEach((button) => {
+    button.addEventListener("click", () => {
+        const scope = button.form?.querySelector('[name="scope"]');
+        if (scope) scope.value = button.dataset.setScope;
+    });
+});
 
 document.querySelectorAll("[data-select-page]").forEach((toggle) => {
     const group = toggle.dataset.selectPage;

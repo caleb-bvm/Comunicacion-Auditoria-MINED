@@ -1,6 +1,37 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Soporte técnico | Dirección{% endblock %}
 {% block content %}
-<div class="page-heading"><span class="eyebrow">Accesos</span><h1>Solicitudes a Administración Técnica</h1><p>Canalice incidencias y acciones técnicas con trazabilidad. Hay {{ open_count }} solicitud{{ open_count|pluralize:"es" }} abierta{{ open_count|pluralize }}.</p></div>
-<div class="technical-detail-grid"><form class="card" method="post">{% csrf_token %}<h2>Nueva solicitud</h2>{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}<button class="button button-primary" type="submit">Enviar solicitud</button></form><section class="card"><h2>Historial</h2><div class="request-list">{% for item in support_requests %}<article class="request-item"><header><strong>{{ item.subject }}</strong><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></header><small>{{ item.get_category_display }} · {{ item.created_at|date:"d/m/Y H:i" }}</small><p>{{ item.description }}</p>{% if item.resolution %}<div class="message message-info"><strong>Respuesta técnica:</strong> {{ item.resolution }}</div>{% endif %}</article>{% empty %}<p>No existen solicitudes técnicas.</p>{% endfor %}</div></section></div>
+<div class="ui-page">
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Solicitudes a Administración Técnica</h1>
+        <p class="ui-page-context">Hay {{ open_count }} solicitud{{ open_count|pluralize:"es" }} abierta{{ open_count|pluralize }}.</p>
+    </header>
+    <div class="ui-layout">
+        <div class="ui-layout-main">
+            <section class="ui-section" aria-labelledby="requests-history-title">
+                <h2 class="ui-section-title" id="requests-history-title">Historial</h2>
+                {% for item in support_requests %}
+                <article class="ui-card">
+                    <div class="ui-chips"><span class="ui-chip {% if item.status == 'resolved' or item.status == 'closed' %}ui-chip-success{% elif item.status == 'in_progress' %}ui-chip-review{% else %}ui-chip-info{% endif %}">{{ item.get_status_display }}</span></div>
+                    <h3 class="ui-card-title">{{ item.subject }}</h3>
+                    <p class="ui-card-support">{{ item.get_category_display }} · {{ item.created_at|date:"j b Y, H:i" }}</p>
+                    <p>{{ item.description }}</p>
+                    {% if item.resolution %}<div class="ui-callout ui-callout-inline">{% ui_icon "message" %}<span><strong>Respuesta técnica:</strong> {{ item.resolution }}</span></div>{% endif %}
+                </article>
+                {% empty %}
+                <div class="ui-card"><p class="ui-card-support">No existen solicitudes técnicas.</p></div>
+                {% endfor %}
+            </section>
+        </div>
+        <aside class="ui-layout-aside">
+            <form class="ui-card" method="post" aria-labelledby="new-request-title">
+                {% csrf_token %}
+                <h2 class="ui-card-title" id="new-request-title">Nueva solicitud</h2>
+                {% include "includes/ui/form_fields.html" with fields=form %}
+                <button class="ui-button ui-button-filled ui-button-large ui-button-block" type="submit">{% ui_icon "send" %}Enviar solicitud</button>
+            </form>
+        </aside>
+    </div>
+</div>
 {% endblock %}

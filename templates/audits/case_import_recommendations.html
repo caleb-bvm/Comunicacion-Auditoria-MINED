@@ -1,7 +1,34 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Importar recomendaciones | {{ case.reference }}{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'case_builder' case.pk %}">{{ case.reference }}</a><span>/</span><span>Importar recomendaciones</span></nav>
-<div class="page-heading"><span class="case-reference">{{ case.reference }}</span><h1>Importar recomendaciones anteriores</h1><p class="page-context">{{ case.audited_organization.name }}</p></div>
-{% if eligible %}<form method="post" class="editor-form card">{% csrf_token %}<fieldset class="form-section"><legend>Recomendaciones disponibles</legend><div class="field checkbox-history">{{ form.recommendations.errors }}{% for item in eligible %}<label class="history-choice"><input type="checkbox" name="recommendations" value="{{ item.pk }}"><span><strong>{{ item.source_document.reference|default:item.source_document.title }} · {{ item.number }}</strong><small>{{ item.get_status_display }}</small><p>{{ item.text|truncatechars:320 }}</p></span></label>{% endfor %}</div></fieldset><div class="submit-panel"><a class="button button-ghost" href="{% url 'case_builder' case.pk %}">Cancelar</a><button class="button button-primary" type="submit">Importar seleccionadas</button></div></form>{% else %}<div class="empty-state card"><h2>No hay recomendaciones disponibles</h2><p>Registre un informe anterior o verifique si sus recomendaciones ya fueron importadas.</p><div class="button-group"><a class="button button-ghost" href="{% url 'case_builder' case.pk %}">Volver</a><a class="button button-primary" href="{% url 'historical_document_create' %}">Registrar informe anterior</a></div></div>{% endif %}
+<div class="ui-page ui-page-form">
+    <a class="ui-back" href="{% url 'case_builder' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Importar recomendaciones anteriores</h1>
+        <p class="ui-page-context">{{ case.audited_organization.name }} · Marque las que siguen pendientes.</p>
+    </header>
+    {% if eligible %}
+    <form method="post" class="ui-card">
+        {% csrf_token %}
+        <fieldset class="ui-choices ui-choices-check">
+            <legend class="ui-visually-hidden">Recomendaciones disponibles</legend>
+            {{ form.recommendations.errors }}
+            {% for item in eligible %}
+            <label><input type="checkbox" name="recommendations" value="{{ item.pk }}"><span class="ui-choice-text"><strong>{{ item.source_document.reference|default:item.source_document.title }} · {{ item.number }} · {{ item.get_status_display }}</strong><span>{{ item.text|truncatechars:320 }}</span></span></label>
+            {% endfor %}
+        </fieldset>
+        <div class="ui-form-actions">
+            <a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Cancelar</a>
+            <button class="ui-button ui-button-filled ui-button-large" type="submit">Importar seleccionadas</button>
+        </div>
+    </form>
+    {% else %}
+    <div class="ui-card">
+        <h2 class="ui-card-title">No hay recomendaciones disponibles</h2>
+        <p class="ui-card-support">Registre un informe anterior o verifique si sus recomendaciones ya fueron importadas.</p>
+        <div class="ui-card-actions"><a class="ui-button ui-button-filled" href="{% url 'historical_document_create' %}">Registrar informe anterior</a><a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Volver</a></div>
+    </div>
+    {% endif %}
+</div>
 {% endblock %}

@@ -1,38 +1,65 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Alertas | Dirección{% endblock %}
 {% block content %}
-<div class="alerts-workspace">
-    <header class="page-heading"><span class="eyebrow">Seguimiento</span><h1>Alertas de gestión</h1><p>Situaciones pendientes ordenadas por el tipo de acción que requieren.</p></header>
+<div class="ui-page alerts-workspace">
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Alertas de gestión</h1>
+        <p class="ui-page-context">Lo pendiente, agrupado por lo que hay que hacer.</p>
+    </header>
 
-    <nav class="alert-summary-nav" aria-label="Tipos de alerta">
-        <a href="#expedientes-detenidos"><strong>{{ stalled_cases_count }}</strong><span>Expedientes detenidos</span><small>Revisar seguimiento</small></a>
-        <a href="#respuestas-pendientes"><strong>{{ pending_reviews_count }}</strong><span>Respuestas pendientes</span><small>Coordinar dictamen</small></a>
-        <a href="#invitaciones-vencidas"><strong>{{ expired_invitations_count }}</strong><span>Invitaciones vencidas</span><small>Reenviar acceso</small></a>
-        <a href="#datos-incompletos"><strong>{{ missing_email_count }}</strong><span>Centros sin correo</span><small>Completar datos</small></a>
+    <nav class="ui-figures" aria-label="Tipos de alerta">
+        <a class="ui-figure{% if stalled_cases_count %} ui-figure-warning{% endif %}" href="#expedientes-detenidos"><strong>{{ stalled_cases_count }}</strong><span>Expedientes detenidos</span></a>
+        <a class="ui-figure" href="#respuestas-pendientes"><strong>{{ pending_reviews_count }}</strong><span>Respuestas pendientes</span></a>
+        <a class="ui-figure" href="#invitaciones-vencidas"><strong>{{ expired_invitations_count }}</strong><span>Invitaciones vencidas</span></a>
+        <a class="ui-figure" href="#datos-incompletos"><strong>{{ missing_email_count }}</strong><span>Centros sin correo</span></a>
     </nav>
 
-    <div class="alert-action-sections">
-        <section id="expedientes-detenidos" class="card alert-action-section">
-            <div class="section-heading"><div><h2>Expedientes sin actividad</h2><p>Sin cambios durante más de 30 días.</p></div><span class="status status-returned">{{ stalled_cases_count }} pendientes</span></div>
-            <div class="actionable-list">{% for case in stalled_cases %}<article><div><strong>{{ case.reference }} · {{ case.audited_organization.name }}</strong><small>Último cambio: {{ case.updated_at|date:"d/m/Y" }}{% if case.assigned_auditor %} · {{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}{% endif %}</small></div><a class="button button-secondary button-compact" href="{% url 'case_detail' case.pk %}">Revisar expediente</a></article>{% empty %}<div class="compact-empty"><strong>No hay expedientes detenidos</strong></div>{% endfor %}</div>
-        </section>
+    <section id="expedientes-detenidos" class="ui-section" aria-labelledby="stalled-title">
+        <div class="ui-section-head"><div><h2 class="ui-section-title" id="stalled-title">Expedientes sin actividad</h2><p class="ui-help">Sin cambios durante más de 30 días.</p></div></div>
+        <div class="ui-list">
+            {% for case in stalled_cases %}
+            <a class="ui-list-row" href="{% url 'case_detail' case.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ case.audited_organization.name }}</span><span class="ui-list-support">{{ case.reference }} · último cambio el {{ case.updated_at|date:"j b Y" }}{% if case.assigned_auditor %} · {{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}{% endif %}</span></span>{% ui_icon "chevron" %}</a>
+            {% empty %}<div class="ui-list-row"><span class="ui-list-support">No hay expedientes detenidos</span></div>{% endfor %}
+        </div>
+    </section>
 
-        <section id="respuestas-pendientes" class="card alert-action-section">
-            <div class="section-heading"><div><h2>Respuestas por revisar</h2><p>Presentaciones institucionales que todavía no tienen dictamen.</p></div><span class="status status-pending">{{ pending_reviews_count }} pendientes</span></div>
-            <div class="actionable-list">{% for response in pending_reviews %}<article><div><strong>{{ response.recommendation.finding.case.reference }} · {{ response.recommendation.finding.case.audited_organization.name }}</strong><small>Recibida el {{ response.submitted_at|date:"d/m/Y H:i" }}</small></div><a class="button button-secondary button-compact" href="{% url 'case_detail' response.recommendation.finding.case.pk %}">Ver respuesta</a></article>{% empty %}<div class="compact-empty"><strong>No hay respuestas pendientes</strong></div>{% endfor %}</div>
-        </section>
+    <section id="respuestas-pendientes" class="ui-section" aria-labelledby="pending-title">
+        <div class="ui-section-head"><div><h2 class="ui-section-title" id="pending-title">Respuestas por revisar</h2><p class="ui-help">Respuestas de los centros que todavía no tienen dictamen.</p></div></div>
+        <div class="ui-list">
+            {% for response in pending_reviews %}
+            <a class="ui-list-row" href="{% url 'case_detail' response.recommendation.finding.case.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ response.recommendation.finding.case.audited_organization.name }}</span><span class="ui-list-support">{{ response.recommendation.finding.case.reference }} · recibida el {{ response.submitted_at|date:"j b Y, H:i" }}</span></span>{% ui_icon "chevron" %}</a>
+            {% empty %}<div class="ui-list-row"><span class="ui-list-support">No hay respuestas pendientes</span></div>{% endfor %}
+        </div>
+    </section>
 
-        <section id="invitaciones-vencidas" class="card alert-action-section">
-            <div class="section-heading"><div><h2>Invitaciones vencidas</h2><p>El centro no activó su cuenta dentro del plazo.</p></div><span class="status status-pending">{{ expired_invitations_count }} pendientes</span></div>
-            <div class="actionable-list">{% for account in expired_invitations %}<article><div><strong>{{ account.organization.name }}</strong><small>Enviada el {{ account.activation_requested_at|date:"d/m/Y H:i" }}</small></div><form method="post" action="{% url 'director_activate_educational_center' account.organization_id %}">{% csrf_token %}<button class="button button-secondary button-compact" type="submit">Reenviar enlace</button></form></article>{% empty %}<div class="compact-empty"><strong>No hay invitaciones vencidas</strong></div>{% endfor %}</div>
-        </section>
+    <section id="invitaciones-vencidas" class="ui-section" aria-labelledby="invitations-title">
+        <div class="ui-section-head"><div><h2 class="ui-section-title" id="invitations-title">Invitaciones vencidas</h2><p class="ui-help">El centro no activó su cuenta dentro del plazo.</p></div></div>
+        <div class="ui-list">
+            {% for account in expired_invitations %}
+            <div class="ui-list-row"><span class="ui-list-text"><span class="ui-list-title">{{ account.organization.name }}</span><span class="ui-list-support">Enviada el {{ account.activation_requested_at|date:"j b Y, H:i" }}</span></span><form method="post" action="{% url 'director_activate_educational_center' account.organization_id %}">{% csrf_token %}<button class="ui-button ui-button-tonal" type="submit">Reenviar enlace</button></form></div>
+            {% empty %}<div class="ui-list-row"><span class="ui-list-support">No hay invitaciones vencidas</span></div>{% endfor %}
+        </div>
+    </section>
 
-        <section id="datos-incompletos" class="card alert-action-section">
-            <div class="section-heading"><div><h2>Centros sin correo institucional</h2><p>Necesitan este dato antes de recibir acceso.</p></div><span class="status">{{ missing_email_count }} pendientes</span></div>
-            <div class="actionable-list">{% for center in missing_email %}<article><div><strong>{{ center.name }}</strong><small>Código {{ center.code }}</small></div><a class="button button-secondary button-compact" href="{% url 'director_educational_center_detail' center.pk %}">Abrir ficha</a></article>{% empty %}<div class="compact-empty"><strong>Todos los centros activos tienen correo</strong></div>{% endfor %}</div>
-        </section>
+    <section id="datos-incompletos" class="ui-section" aria-labelledby="missing-title">
+        <div class="ui-section-head"><div><h2 class="ui-section-title" id="missing-title">Centros sin correo institucional</h2><p class="ui-help">Necesitan este dato antes de recibir acceso.</p></div></div>
+        <div class="ui-list">
+            {% for center in missing_email %}
+            <a class="ui-list-row" href="{% url 'director_educational_center_detail' center.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ center.name }}</span><span class="ui-list-support">Código {{ center.code }}</span></span>{% ui_icon "chevron" %}</a>
+            {% empty %}<div class="ui-list-row"><span class="ui-list-support">Todos los centros activos tienen correo</span></div>{% endfor %}
+        </div>
+    </section>
 
-        {% if inactive_auditors %}<section class="card alert-action-section"><div class="section-heading"><div><h2>Auditores inactivos con carga</h2><p>Sus expedientes necesitan una nueva asignación.</p></div></div><div class="actionable-list">{% for auditor in inactive_auditors %}<article><div><strong>{{ auditor.get_full_name|default:auditor.username }}</strong><small>{{ auditor.open_cases_count }} expediente{{ auditor.open_cases_count|pluralize }}</small></div><a class="button button-secondary button-compact" href="{% url 'director_auditor_detail' auditor.pk %}">Reasignar carga</a></article>{% endfor %}</div></section>{% endif %}
-    </div>
+    {% if inactive_auditors %}
+    <section class="ui-section" aria-labelledby="inactive-title">
+        <div class="ui-section-head"><div><h2 class="ui-section-title" id="inactive-title">Auditores inactivos con carga</h2><p class="ui-help">Sus expedientes necesitan una nueva asignación.</p></div></div>
+        <div class="ui-list">
+            {% for auditor in inactive_auditors %}
+            <a class="ui-list-row" href="{% url 'director_auditor_detail' auditor.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ auditor.get_full_name|default:auditor.username }}</span><span class="ui-list-support">{{ auditor.open_cases_count }} expediente{{ auditor.open_cases_count|pluralize }} · reasignar carga</span></span>{% ui_icon "chevron" %}</a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 </div>
 {% endblock %}

@@ -1,22 +1,24 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Registrar informe anterior{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta">{% if center and user.role == 'audit_manager' %}<a href="{% url 'director_educational_center_detail' center.pk %}">{{ center.code }} · {{ center.name }}</a>{% else %}<a href="{% url 'historical_document_list' %}">Informes</a>{% endif %}<span>/</span><span>Informe anterior</span></nav>
-<div class="page-heading"><h1>Agregar informe anterior</h1><p>{% if center %}{{ center.code }} · {{ center.name }}. {% endif %}Adjunte el informe original y, si los tiene, sus documentos relacionados.</p></div>
-<form method="post" enctype="multipart/form-data" class="editor-form card" aria-label="Registrar informe anterior">
-    {% csrf_token %}
-    {% if form.non_field_errors %}<div class="form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-    <div class="form-grid form-grid-two">
-        {% for field in form %}
-        <div class="field {% if field.errors %}field-error{% endif %} {% if field.name == 'title' or field.name == 'file' %}field-wide{% endif %}">
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
-            {{ field.errors }}
+<div class="ui-page ui-page-form">
+    {% if center and user.role == 'audit_manager' %}<a class="ui-back" href="{% url 'director_educational_center_detail' center.pk %}">{% ui_icon "back" %}{{ center.code }} · {{ center.name }}</a>{% else %}<a class="ui-back" href="{% url 'historical_document_list' %}">{% ui_icon "back" %}Informes</a>{% endif %}
+    <header class="ui-page-header">
+        <h1 class="ui-page-title">Agregar informe anterior</h1>
+        <p class="ui-page-context">{% if center %}{{ center.code }} · {{ center.name }}. {% endif %}Adjunte el informe original y, si los tiene, sus documentos relacionados.</p>
+    </header>
+    <form method="post" enctype="multipart/form-data" class="ui-stack ui-stack-loose" aria-label="Registrar informe anterior">
+        {% csrf_token %}
+        <div class="ui-card">
+            {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% include "includes/ui/form_fields.html" with fields=form %}
         </div>
-        {% endfor %}
-    </div>
-    {% include 'audits/historical_attachment_fields.html' %}
-    <div class="submit-panel"><a class="button button-secondary" href="{% if center and user.role == 'audit_manager' %}{% url 'director_educational_center_detail' center.pk %}{% else %}{% url 'historical_document_list' %}{% endif %}">Cancelar</a><button class="button button-primary" type="submit">Guardar informe y documentos</button></div>
-</form>
+        {% include 'audits/historical_attachment_fields.html' %}
+        <div class="ui-form-actions">
+            <a class="ui-button ui-button-text" href="{% if center and user.role == 'audit_manager' %}{% url 'director_educational_center_detail' center.pk %}{% else %}{% url 'historical_document_list' %}{% endif %}">Cancelar</a>
+            <button class="ui-button ui-button-filled ui-button-large" type="submit">Guardar informe y documentos</button>
+        </div>
+    </form>
+</div>
 {% endblock %}

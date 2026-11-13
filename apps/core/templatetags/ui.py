@@ -94,3 +94,20 @@ def ui_lines(value):
         if cleaned:
             lines.append(cleaned)
     return lines
+
+
+# Estados de consultas y solicitudes de soporte → (tono del chip, ícono).
+REQUEST_STATUS = {
+    "open": ("info", "alert"),
+    "in_progress": ("review", "clock"),
+    "waiting_institution": ("warning", "message"),
+    "answered": ("success", "message"),
+    "resolved": ("success", "check"),
+    "closed": ("neutral", "check"),
+}
+
+
+@register.inclusion_tag("includes/ui/chip.html")
+def ui_request_status_chip(status, label):
+    tone, icon = REQUEST_STATUS.get(status, ("neutral", "pending"))
+    return {"tone": tone, "icon": icon, "label": label}

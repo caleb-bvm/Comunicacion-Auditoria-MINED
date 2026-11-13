@@ -1,96 +1,52 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Informes | Auditoría Interna{% endblock %}
 {% block content %}
-<div class="page-heading heading-row">
-    <div><h1>Informes</h1></div>
-    <div class="button-group"><a class="button button-secondary" href="{% url 'historical_document_create' %}">Registrar informe anterior</a><a class="button button-primary" href="{% url 'historical_bulk_upload' %}">Carga múltiple</a></div>
-</div>
-
-<form method="get" class="filter-bar report-filter-bar" role="search" aria-label="Buscar informes" data-location-filters data-auto-submit-filters>
-    <div class="field grow search-field">
-        <label for="q">Buscar</label>
-        <input id="q" name="q" value="{{ request.GET.q }}" placeholder="Referencia, centro o recomendación">
-    </div>
-    <div class="field">
-        <label for="department">Departamento</label>
-        <select id="department" name="department">
-            <option value="">Todos</option>
-            {% for department in department_options %}
-            <option value="{{ department }}" {% if selected_department == department %}selected{% endif %}>{{ department }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="field">
-        <label for="district">Distrito</label>
-        <select id="district" name="district">
-            <option value="">Todos</option>
-            {% for district in district_options %}
-            <option value="{{ district }}" {% if selected_district == district %}selected{% endif %}>{{ district }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="field">
-        <label for="organization">Institución</label>
-        <select id="organization" name="organization">
-            <option value="">Todas</option>
-            {% for organization in organizations %}
-            <option value="{{ organization.pk }}" {% if selected_organization == organization.pk|stringformat:'s' %}selected{% endif %}>{{ organization.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <button class="button button-secondary" type="submit">Aplicar filtros</button>
-</form>
-
-<section aria-labelledby="report-results-title">
-    <div class="section-heading">
-        <div><h2 id="report-results-title">Resultados</h2></div>
-        <span class="muted">{{ documents|length }} informe{{ documents|length|pluralize }}</span>
-    </div>
-    <div class="card table-card">
-        {% if documents %}
-        <div class="table-responsive">
-            <table data-mobile-cards>
-                <caption class="sr-only">Informes disponibles</caption>
-                <thead>
-                    <tr>
-                        <th scope="col">Informe</th>
-                        <th scope="col">Institución</th>
-                        <th scope="col">Tipo</th>
-                        <th scope="col">Fecha</th>
-                        <th scope="col">Estado</th>
-                        <th scope="col">Recomendaciones</th>
-                        <th scope="col" data-card-action><span class="sr-only">Acciones</span></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for document in documents %}
-                    <tr>
-                        <td>
-                            <strong>{{ document.reference|default:"Sin referencia" }}</strong>
-                            <small>{{ document.title }}{% if document.document_type == 'report' %} · versión {{ document.version }}{% endif %}</small>
-                        </td>
-                        <td>{{ document.organization.name }}</td>
-                        <td>{{ document.get_document_type_display }}</td>
-                        <td>{{ document.document_date|date:"d/m/Y"|default:"Sin fecha" }}</td>
-                        <td><span class="status status-{{ document.status }}">{{ document.get_status_display }}</span></td>
-                        <td>{% if document.document_type == 'historical_report' %}{{ document.previous_recommendation_count }}{% else %}{{ document.case_recommendation_count }}{% endif %}</td>
-                        <td>
-                            {% if document.document_type == 'historical_report' %}
-                            <a class="icon-link" href="{% url 'historical_document_detail' document.pk %}" aria-label="Abrir informe {{ document.reference|default:document.title }}"><span class="icon-link-text">Abrir informe</span><span aria-hidden="true">→</span></a>
-                            {% elif document.case_id %}
-                            <a class="icon-link" href="{% url 'case_detail' document.case_id %}" aria-label="Abrir expediente del informe {{ document.reference|default:document.title }}"><span class="icon-link-text">Abrir expediente</span><span aria-hidden="true">→</span></a>
-                            {% else %}
-                            <a class="icon-link" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar informe {{ document.reference|default:document.title }}"><span class="icon-link-text">Descargar</span><span aria-hidden="true">↓</span></a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="ui-page">
+    <div class="ui-page-header-row">
+        <header class="ui-page-header">
+            <h1 class="ui-page-title">Informes</h1>
+            <p class="ui-page-context" aria-live="polite">{{ documents|length }} informe{{ documents|length|pluralize }}</p>
+        </header>
+        <div class="ui-card-actions">
+            <a class="ui-button ui-button-tonal" href="{% url 'historical_bulk_upload' %}">{% ui_icon "upload" %}Carga múltiple</a>
+            <a class="ui-button ui-button-text" href="{% url 'historical_document_create' %}">{% ui_icon "plus" %}Registrar informe anterior</a>
         </div>
-        {% else %}
-        <div class="empty-state"><h3>No se encontraron informes</h3>{% if request.GET.q or selected_department or selected_district or selected_organization %}<p>Modifique los filtros para ampliar los resultados.</p>{% endif %}</div>
-        {% endif %}
     </div>
-</section>
+
+    <form method="get" class="ui-filters" role="search" aria-label="Buscar informes" data-location-filters data-auto-submit-filters>
+        <div class="ui-field ui-field-grow"><label for="q">Buscar</label><input id="q" name="q" type="search" value="{{ request.GET.q }}" placeholder="Referencia, centro o recomendación"></div>
+        <div class="ui-field"><label for="department">Departamento</label><select id="department" name="department"><option value="">Todos</option>{% for department in department_options %}<option value="{{ department }}" {% if selected_department == department %}selected{% endif %}>{{ department }}</option>{% endfor %}</select></div>
+        <div class="ui-field"><label for="district">Distrito</label><select id="district" name="district"><option value="">Todos</option>{% for district in district_options %}<option value="{{ district }}" {% if selected_district == district %}selected{% endif %}>{{ district }}</option>{% endfor %}</select></div>
+        <div class="ui-field"><label for="organization">Institución</label><select id="organization" name="organization"><option value="">Todas</option>{% for organization in organizations %}<option value="{{ organization.pk }}" {% if selected_organization == organization.pk|stringformat:'s' %}selected{% endif %}>{{ organization.name }}</option>{% endfor %}</select></div>
+        <button class="ui-button ui-button-tonal" type="submit">Aplicar filtros</button>
+    </form>
+
+    {% if documents %}
+    <div class="ui-table-wrap">
+        <table class="ui-table" data-mobile-cards>
+            <caption class="ui-visually-hidden">Informes disponibles</caption>
+            <thead><tr><th scope="col">Informe</th><th scope="col">Institución</th><th scope="col">Fecha</th><th scope="col">Estado</th><th scope="col">Recomendaciones</th><th scope="col" class="ui-table-end" data-card-action><span class="ui-visually-hidden">Acciones</span></th></tr></thead>
+            <tbody>
+                {% for document in documents %}
+                <tr>
+                    <td><span class="ui-table-link">{{ document.reference|default:"Sin referencia" }}</span><span class="ui-table-support">{{ document.get_document_type_display }} · {{ document.title }}{% if document.document_type == 'report' %} · versión {{ document.version }}{% endif %}</span></td>
+                    <td>{{ document.organization.name }}</td>
+                    <td>{{ document.document_date|date:"j b Y"|default:"Sin fecha" }}</td>
+                    <td><span class="ui-chip">{{ document.get_status_display }}</span></td>
+                    <td>{% if document.document_type == 'historical_report' %}{{ document.previous_recommendation_count }}{% else %}{{ document.case_recommendation_count }}{% endif %}</td>
+                    <td class="ui-table-end">
+                        {% if document.document_type == 'historical_report' %}<a class="ui-button ui-button-tonal" href="{% url 'historical_document_detail' document.pk %}" aria-label="Abrir informe {{ document.reference|default:document.title }}">Abrir informe</a>
+                        {% elif document.case_id %}<a class="ui-button ui-button-tonal" href="{% url 'case_detail' document.case_id %}" aria-label="Abrir expediente del informe {{ document.reference|default:document.title }}">Abrir expediente</a>
+                        {% else %}<a class="ui-button ui-button-text" href="{% url 'download_audit_document' document.pk %}" aria-label="Descargar informe {{ document.reference|default:document.title }}">{% ui_icon "download" %}Descargar</a>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="ui-card"><h2 class="ui-card-title">No se encontraron informes</h2>{% if request.GET.q or selected_department or selected_district or selected_organization %}<p class="ui-card-support">Modifique los filtros para ampliar los resultados.</p>{% endif %}</div>
+    {% endif %}
+</div>
 {% endblock %}

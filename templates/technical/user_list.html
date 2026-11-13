@@ -1,15 +1,41 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Usuarios | Administración técnica{% endblock %}
 {% block content %}
-<div class="page-heading heading-row"><div><span class="eyebrow">Administración técnica</span><h1>Usuarios y accesos</h1><p>Consulte el estado de las cuentas y aplique medidas de acceso con trazabilidad.</p></div><a class="button button-primary" href="{% url 'technical_user_create' %}">Nueva cuenta interna</a></div>
-<form class="filter-bar" method="get" role="search" aria-label="Filtrar usuarios" data-auto-submit-filters>
-  <div class="field search-field"><label for="q">Buscar</label><input type="search" id="q" name="q" value="{{ query }}" placeholder="Usuario, nombre, correo o institución"></div>
-  <div class="field"><label for="role">Rol</label><select id="role" name="role"><option value="">Todos</option>{% for value,label in roles %}<option value="{{ value }}" {% if role_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-  <div class="field"><label for="status">Estado</label><select id="status" name="status"><option value="">Todos</option><option value="active" {% if status_filter == 'active' %}selected{% endif %}>Activos</option><option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Suspendidos</option></select></div>
-  <button class="button button-tonal" type="submit">Aplicar</button>
-  {% if query or role_filter or status_filter %}<div class="active-filter-row"><span>Filtros activos:</span>{% if query %}<span class="active-filter-chip">Búsqueda: {{ query }}</span>{% endif %}{% if role_filter %}<span class="active-filter-chip">Rol seleccionado</span>{% endif %}{% if status_filter %}<span class="active-filter-chip">{% if status_filter == 'active' %}Activos{% else %}Suspendidos{% endif %}</span>{% endif %}<a class="active-filter-chip" href="{% url 'technical_users' %}">Limpiar todo ×</a></div>{% endif %}
-</form>
-<div class="results-heading" aria-live="polite"><h2>Cuentas</h2><span>{{ page_obj.paginator.count }} resultado{{ page_obj.paginator.count|pluralize }}</span></div>
-<div class="card table-card"><div class="table-responsive"><table data-mobile-cards><thead><tr><th>Usuario</th><th>Rol</th><th>Institución</th><th>Estado</th><th></th></tr></thead><tbody>{% for item in page_obj %}<tr><td><strong>{{ item.get_full_name|default:item.username }}</strong><small>{{ item.username }}{% if item.email %} · {{ item.email }}{% endif %}</small></td><td>{{ item.get_role_display }}</td><td>{{ item.organization.name|default:"Sin institución" }}</td><td><span class="status {% if item.is_active %}status-approved{% else %}status-returned{% endif %}">{% if item.is_active %}Activa{% else %}Suspendida{% endif %}</span>{% if item.must_change_password %}<small>Cambio de contraseña pendiente</small>{% endif %}</td><td><a class="button button-secondary button-compact" href="{% url 'technical_user_detail' item.pk %}">Administrar</a></td></tr>{% empty %}<tr><td colspan="5"><div class="compact-empty"><strong>No se encontraron cuentas</strong><p>Quite algún filtro o pruebe otra búsqueda.</p></div></td></tr>{% endfor %}</tbody></table></div></div>
-{% include "technical/_pagination.html" %}
+<div class="ui-page">
+    <div class="ui-page-header-row">
+        <header class="ui-page-header">
+            <h1 class="ui-page-title">Usuarios y accesos</h1>
+            <p class="ui-page-context" aria-live="polite">{{ page_obj.paginator.count }} resultado{{ page_obj.paginator.count|pluralize }}</p>
+        </header>
+        <a class="ui-button ui-button-tonal" href="{% url 'technical_user_create' %}">{% ui_icon "plus" %}Nueva cuenta interna</a>
+    </div>
+    <form class="ui-filters" method="get" role="search" aria-label="Filtrar usuarios" data-auto-submit-filters>
+        <div class="ui-field ui-field-grow"><label for="q">Buscar</label><input type="search" id="q" name="q" value="{{ query }}" placeholder="Usuario, nombre, correo o institución"></div>
+        <div class="ui-field"><label for="role">Rol</label><select id="role" name="role"><option value="">Todos</option>{% for value,label in roles %}<option value="{{ value }}" {% if role_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="ui-field"><label for="status">Estado</label><select id="status" name="status"><option value="">Todos</option><option value="active" {% if status_filter == 'active' %}selected{% endif %}>Activos</option><option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Suspendidos</option></select></div>
+        <button class="ui-button ui-button-tonal" type="submit">Aplicar</button>
+        {% if query or role_filter or status_filter %}<div class="ui-filter-chips"><span>Filtros:</span>{% if query %}<span class="ui-chip ui-chip-info">Búsqueda: {{ query }}</span>{% endif %}{% if role_filter %}<span class="ui-chip ui-chip-info">Rol seleccionado</span>{% endif %}{% if status_filter %}<span class="ui-chip ui-chip-info">{% if status_filter == 'active' %}Activos{% else %}Suspendidos{% endif %}</span>{% endif %}<a class="ui-button ui-button-text" href="{% url 'technical_users' %}">Limpiar todo</a></div>{% endif %}
+    </form>
+    <div class="ui-table-wrap">
+        <table class="ui-table" data-mobile-cards>
+            <caption class="ui-visually-hidden">Cuentas</caption>
+            <thead><tr><th scope="col">Usuario</th><th scope="col">Rol</th><th scope="col">Institución</th><th scope="col">Estado</th><th scope="col" class="ui-table-end" data-card-action><span class="ui-visually-hidden">Acción</span></th></tr></thead>
+            <tbody>
+                {% for item in page_obj %}
+                <tr>
+                    <td><a class="ui-table-link" href="{% url 'technical_user_detail' item.pk %}">{{ item.get_full_name|default:item.username }}</a><span class="ui-table-support">{{ item.username }}{% if item.email %} · {{ item.email }}{% endif %}</span></td>
+                    <td>{{ item.get_role_display }}</td>
+                    <td>{{ item.organization.name|default:"Sin institución" }}</td>
+                    <td>{% if item.is_active %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Activa</span>{% else %}<span class="ui-chip ui-chip-danger">{% ui_icon "lock" %}Suspendida</span>{% endif %}{% if item.must_change_password %}<span class="ui-table-support">Cambio de contraseña pendiente</span>{% endif %}</td>
+                    <td class="ui-table-end"><a class="ui-button ui-button-tonal" href="{% url 'technical_user_detail' item.pk %}">Administrar</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5">No se encontraron cuentas. Quite algún filtro o pruebe otra búsqueda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "technical/_pagination.html" %}
+</div>
 {% endblock %}

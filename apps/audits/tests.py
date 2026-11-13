@@ -116,21 +116,19 @@ class DirectorAuditorAdministrationTests(TestCase):
 
     def test_portfolio_and_center_tables_render_as_mobile_cards(self):
         detail = self.client.get(reverse("director_auditor_detail", args=[self.auditor.pk]))
-        self.assertContains(detail, "<table data-mobile-cards>", count=2)
-        self.assertContains(detail, 'class="bulk-selection portfolio-select-page"')
+        self.assertContains(detail, '<table class="ui-table" data-mobile-cards>', count=2)
+        self.assertContains(detail, 'data-select-page="portfolio-organization"', count=2)
 
         preview = self.client.post(
             reverse("director_auditor_bulk_assignment", args=[self.auditor.pk]),
             {"action": "assign", "scope": "selected", "organization_ids": [self.organization.pk]},
         )
-        self.assertContains(preview, "<table data-mobile-cards>", count=1)
+        self.assertContains(preview, '<table class="ui-table" data-mobile-cards>', count=1)
 
         center = self.client.get(reverse("director_educational_center_detail", args=[self.organization.pk]))
-        self.assertContains(center, '<table class="profile-table" data-mobile-cards>', count=3)
+        self.assertContains(center, '<table class="ui-table" data-mobile-cards>', count=3)
         content = center.content.decode()
-        tags_start = content.index('class="center-profile-identity-tags"')
-        self.assertLess(tags_start, content.index("attention-badge"), "La alerta va junto a las etiquetas del centro")
-        self.assertLess(content.index("attention-badge"), content.index("<h1>"))
+        self.assertLess(content.index('class="ui-chip'), content.index('class="ui-page-title"'), "La alerta va junto a las etiquetas del centro")
 
     def test_technical_user_history_renders_as_mobile_cards(self):
         technical_admin = User.objects.create_user(
@@ -140,7 +138,7 @@ class DirectorAuditorAdministrationTests(TestCase):
 
         response = self.client.get(reverse("technical_user_detail", args=[self.auditor.pk]))
 
-        self.assertContains(response, "<table data-mobile-cards>", count=1)
+        self.assertContains(response, '<table class="ui-table" data-mobile-cards>', count=1)
 
     def test_bulk_unassignment_reports_open_case_as_blocked(self):
         self.auditor.assigned_organizations.add(self.organization)
@@ -670,8 +668,6 @@ class AccessAndWorkflowTests(TestCase):
             responsible_organization=self.other_center,
             deadline=date.today(),
         )
-        status_tag = f'<div class="heading-tags"><span class="case-reference">IA-001</span><span class="status status-{self.case.status}">'
-
         self.client.force_login(self.institution_user)
         detail = self.client.get(reverse("case_detail", args=[self.case.pk]))
         case_list = self.client.get(reverse("case_list"))
@@ -686,9 +682,9 @@ class AccessAndWorkflowTests(TestCase):
         detail = self.client.get(reverse("case_detail", args=[self.case.pk]))
         case_list = self.client.get(reverse("case_list"))
 
-        self.assertContains(detail, status_tag)
+        self.assertContains(detail, "ui-chip")
         self.assertContains(detail, "Código institucional")
-        self.assertContains(detail, "<dt>Responsable</dt>", count=2)
+        self.assertContains(detail, "Responde:", count=2)
         self.assertContains(case_list, f"{self.case.reference} · {self.center.code} ·")
 
     def test_pending_recommendation_for_another_organization_explains_missing_response_button(self):

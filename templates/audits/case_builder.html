@@ -1,59 +1,82 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Contenido de {{ case.reference }} | Auditoría Interna{% endblock %}
 {% block content %}
-<nav class="breadcrumb" aria-label="Ruta"><a href="{% url 'case_list' %}">Expedientes</a><span>/</span><span>{{ case.reference }}</span></nav>
-
-<ol class="workflow-steps" aria-label="Progreso del expediente">
-    <li class="is-complete"><span>✓</span><strong>Datos generales</strong></li>
-    <li class="is-active" aria-current="step"><span>2</span><strong>Contenido</strong></li>
-    <li><span>3</span><strong>Aprobación</strong></li>
-</ol>
-
-<div class="page-heading heading-row">
-    <div><span class="case-reference">{{ case.reference }} · Borrador</span><h1>Hallazgos y recomendaciones</h1><p class="page-context">{{ case.audited_organization.name }} · {{ case.title }}</p></div>
-    <div class="button-group"><a class="button button-secondary" href="{% url 'case_edit' case.pk %}">Editar datos generales</a><a class="button button-secondary" href="{% url 'case_import_recommendations' case.pk %}">Importar anteriores</a><a class="button button-primary" href="{% url 'finding_create' case.pk %}">Agregar hallazgo</a></div>
-</div>
-
-<div class="draft-notice" role="status"><span aria-hidden="true">i</span><div><strong>El borrador no es visible para las instituciones.</strong></div></div>
-
-<section class="card document-workspace" aria-labelledby="report-versions-title">
-    <div class="section-heading"><h2 id="report-versions-title">Informe</h2><a class="button button-primary" href="{% url 'case_report_upload' case.pk %}">Cargar informe</a></div>
-    {% for document in documents %}
-    <div class="builder-recommendation"><div class="builder-recommendation-copy"><strong>Versión {{ document.version }} · {{ document.title }}</strong><small>{{ document.reference|default:"Sin referencia" }} · {{ document.get_status_display }} · {{ document.uploaded_at|date:"d/m/Y H:i" }}</small></div><a class="button button-ghost button-compact" href="{% url 'download_audit_document' document.pk %}">Descargar</a></div>
-    {% empty %}<div class="inline-empty"><p>Cargue el informe elaborado en Word antes de solicitar aprobación.</p></div>{% endfor %}
-</section>
-
-<section class="builder-list">
-    {% for finding in findings %}
-    <article class="builder-finding card">
-        <header>
-            <div><span class="finding-number">Hallazgo {{ finding.number }}</span><h2>{{ finding.title }}</h2></div>
-            <span class="risk risk-{{ finding.risk_level }}">Riesgo {{ finding.get_risk_level_display }}</span>
+<div class="ui-page case-builder-page">
+    <a class="ui-back" href="{% url 'case_list' %}">{% ui_icon "back" %}Expedientes</a>
+    <div class="ui-page-header-row">
+        <header class="ui-page-header">
+            {% include "includes/ui/case_progress.html" with step=2 %}
+            <h1 class="ui-page-title">Hallazgos y recomendaciones</h1>
+            <p class="ui-page-context">{{ case.reference }} · {{ case.audited_organization.name }} · {{ case.title }}</p>
         </header>
-        <div class="item-actions">
-            <a class="button button-tonal button-compact" href="{% url 'finding_edit' finding.pk %}">Editar hallazgo</a>
-            <form method="post" action="{% url 'finding_delete' finding.pk %}" onsubmit="return confirm('¿Eliminar este hallazgo y todas sus recomendaciones?');">{% csrf_token %}<button class="button button-danger button-compact" type="submit">Eliminar</button></form>
+        <div class="ui-card-actions">
+            <a class="ui-button ui-button-tonal" href="{% url 'finding_create' case.pk %}">{% ui_icon "plus" %}Agregar hallazgo</a>
+            <a class="ui-button ui-button-text" href="{% url 'case_edit' case.pk %}">Editar datos generales</a>
+            <a class="ui-button ui-button-text" href="{% url 'case_import_recommendations' case.pk %}">Importar anteriores</a>
         </div>
-        <div class="builder-recommendations">
-            {% for recommendation in finding.recommendations.all %}
-            <div class="builder-recommendation">
-                <div class="builder-recommendation-copy"><span class="recommendation-number">Recomendación {{ finding.number }}.{{ recommendation.number }}</span><p>{{ recommendation.text|truncatechars:260 }}</p><small>{{ recommendation.responsible_organization.name }} · Límite: {{ recommendation.deadline|date:"d/m/Y"|default:"Sin definir" }}{% if recommendation.source_recommendation %} · Importada de {{ recommendation.source_recommendation.source_document.reference }}{% endif %}</small></div>
-                <div class="item-actions">
-                    <a class="button button-ghost button-compact" href="{% url 'recommendation_edit' recommendation.pk %}">Editar</a>
-                    <form method="post" action="{% url 'recommendation_delete' recommendation.pk %}" onsubmit="return confirm('¿Eliminar esta recomendación?');">{% csrf_token %}<button class="button button-danger-link button-compact" type="submit">Eliminar</button></form>
-                </div>
-            </div>
-            {% empty %}<div class="inline-empty"><p>Este hallazgo todavía no tiene recomendaciones.</p></div>{% endfor %}
-            <a class="button button-secondary" href="{% url 'recommendation_create' finding.pk %}">Agregar recomendación</a>
-        </div>
-    </article>
-    {% empty %}
-    <div class="empty-state card"><span class="empty-state-icon" aria-hidden="true">01</span><h2>No hay hallazgos</h2><p>Agregue el primer hallazgo y sus recomendaciones.</p><a class="button button-primary" href="{% url 'finding_create' case.pk %}">Agregar hallazgo</a></div>
-    {% endfor %}
-</section>
+    </div>
 
-<section class="builder-next card">
-    <div><h2>Revisión final</h2><p>{% if publication_issues %}Falta completar {{ publication_issues|length }} requisito{{ publication_issues|length|pluralize }}.{% else %}El expediente está listo para solicitar aprobación.{% endif %}</p></div>
-    <a class="button button-primary button-large" href="{% url 'case_publish' case.pk %}">Revisar expediente <span aria-hidden="true">→</span></a>
-</section>
+    <div class="ui-callout ui-callout-inline" role="status">{% ui_icon "lock" %}<span><strong>Borrador.</strong> Las instituciones no lo ven hasta que Dirección lo apruebe.</span></div>
+
+    <div class="ui-layout">
+    <div class="ui-layout-main">
+        <section class="ui-section" aria-label="Hallazgos">
+            {% for finding in findings %}
+            <article class="ui-card" aria-labelledby="builder-finding-{{ finding.pk }}">
+                <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span><span class="risk risk-{{ finding.risk_level }}">Riesgo {{ finding.get_risk_level_display|lower }}</span></div>
+                <h2 class="ui-card-title" id="builder-finding-{{ finding.pk }}">{{ finding.title }}</h2>
+                <div class="ui-row-actions ui-row-actions-start">
+                    <a class="ui-button ui-button-text" href="{% url 'finding_edit' finding.pk %}">{% ui_icon "edit" %}Editar hallazgo</a>
+                    <form method="post" action="{% url 'finding_delete' finding.pk %}" data-confirm="¿Eliminar este hallazgo y todas sus recomendaciones?">{% csrf_token %}<button class="ui-button ui-button-danger-text" type="submit">Eliminar</button></form>
+                </div>
+                <div class="ui-divided">
+                    {% for recommendation in finding.recommendations.all %}
+                    <section class="ui-recommendation" aria-labelledby="builder-rec-{{ recommendation.pk }}">
+                        <h3 class="ui-recommendation-title" id="builder-rec-{{ recommendation.pk }}">Recomendación {{ finding.number }}.{{ recommendation.number }}</h3>
+                        <p>{{ recommendation.text|truncatechars:260 }}</p>
+                        <p class="ui-help">Responde: {{ recommendation.responsible_organization.name }} · {% if recommendation.deadline %}fecha límite {{ recommendation.deadline|date:"j b Y" }}{% else %}sin fecha límite{% endif %}{% if recommendation.source_recommendation %} · importada de {{ recommendation.source_recommendation.source_document.reference }}{% endif %}</p>
+                        <div class="ui-row-actions ui-row-actions-start">
+                            <a class="ui-button ui-button-text" href="{% url 'recommendation_edit' recommendation.pk %}">Editar</a>
+                            <form method="post" action="{% url 'recommendation_delete' recommendation.pk %}" data-confirm="¿Eliminar esta recomendación?">{% csrf_token %}<button class="ui-button ui-button-danger-text" type="submit">Eliminar</button></form>
+                        </div>
+                    </section>
+                    {% empty %}
+                    <p class="ui-help">Este hallazgo todavía no tiene recomendaciones.</p>
+                    {% endfor %}
+                </div>
+                <div class="ui-card-actions"><a class="ui-button ui-button-outlined" href="{% url 'recommendation_create' finding.pk %}">{% ui_icon "plus" %}Agregar recomendación</a></div>
+            </article>
+            {% empty %}
+            <div class="ui-card">
+                <h2 class="ui-card-title">No hay hallazgos</h2>
+                <p class="ui-card-support">Agregue el primer hallazgo y sus recomendaciones.</p>
+                <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'finding_create' case.pk %}">{% ui_icon "plus" %}Agregar hallazgo</a></div>
+            </div>
+            {% endfor %}
+        </section>
+    </div>
+
+    <aside class="ui-layout-aside" aria-label="Informe y envío">
+        <section class="ui-card" aria-labelledby="builder-next-title">
+            <div class="ui-chips">{% if publication_issues %}<span class="ui-chip ui-chip-warning">{% ui_icon "alert" %}Falta{{ publication_issues|length|pluralize:"n" }} {{ publication_issues|length }}</span>{% else %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Listo</span>{% endif %}</div>
+            <h2 class="ui-card-title" id="builder-next-title">Revisión final</h2>
+            <p class="ui-card-support">{% if publication_issues %}Falta completar {{ publication_issues|length }} requisito{{ publication_issues|length|pluralize }}.{% else %}El expediente está listo para solicitar aprobación.{% endif %}</p>
+            <div class="ui-card-actions"><a class="ui-button ui-button-filled ui-button-large ui-button-block" href="{% url 'case_publish' case.pk %}">Revisar expediente{% ui_icon "forward" %}</a></div>
+        </section>
+        <section class="ui-section" aria-labelledby="report-versions-title">
+            <div class="ui-section-head"><h2 class="ui-section-title" id="report-versions-title">Informe</h2><a class="ui-button ui-button-text" href="{% url 'case_report_upload' case.pk %}">{% ui_icon "upload" %}Cargar informe</a></div>
+            {% if documents %}
+            <div class="ui-list">
+                {% for document in documents %}
+                <a class="ui-list-row" href="{% url 'download_audit_document' document.pk %}">{% ui_icon "file" %}<span class="ui-list-text"><span class="ui-list-title">Versión {{ document.version }} · {{ document.title }}</span><span class="ui-list-support">{{ document.reference|default:"Sin referencia" }} · {{ document.get_status_display }} · {{ document.uploaded_at|date:"j b Y" }}</span></span>{% ui_icon "download" %}</a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="ui-help">Cargue el informe elaborado en Word antes de solicitar aprobación.</p>
+            {% endif %}
+        </section>
+    </aside>
+    </div>
+</div>
 {% endblock %}

@@ -1,8 +1,10 @@
-<form method="post" action="{% url 'historical_document_visibility' item.pk %}" class="historical-visibility-form">
+<form method="post" action="{% url 'historical_document_visibility' item.pk %}" class="ui-inline-form historical-visibility-form">
     {% csrf_token %}
-    <label for="visibility-{{ item.pk }}">Visibilidad</label>
-    <select id="visibility-{{ item.pk }}" name="visibility">
-        {% for value, label in visibility_choices %}<option value="{{ value }}"{% if item.visibility == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
-    </select>
-    <button class="button button-secondary" type="submit">Guardar visibilidad</button>
+    <div class="ui-field">
+        <label for="visibility-{{ item.pk }}">Visibilidad</label>
+        <select id="visibility-{{ item.pk }}" name="visibility">
+            {% for value, label in visibility_choices %}<option value="{{ value }}"{% if item.visibility == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+    </div>
+    <button class="ui-button ui-button-outlined" type="submit">Guardar visibilidad</button>
 </form>
