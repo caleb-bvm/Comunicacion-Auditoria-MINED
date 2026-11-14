@@ -9,6 +9,7 @@ from apps.accounts.models import User
 from apps.institutions.models import Organization
 
 from apps.core.validators import EVIDENCE_ACCEPT, validate_evidence_file
+from apps.core.widgets import FastSelect
 
 from .models import (
     AuditCase,
@@ -135,6 +136,7 @@ class AuditCaseForm(forms.ModelForm):
         )
         widgets = {
             "title": forms.Textarea(attrs={"rows": 2}),
+            "audited_organization": FastSelect,
             "report_date": forms.DateInput(attrs={"type": "date"}),
             "period_start": forms.DateInput(attrs={"type": "date"}),
             "period_end": forms.DateInput(attrs={"type": "date"}),
@@ -150,7 +152,7 @@ class AuditCaseForm(forms.ModelForm):
         self.user = user
         self.fields["audited_organization"].queryset = Organization.objects.filter(
             is_active=True
-        ).order_by("name")
+        ).only("code", "name").order_by("name")
         self.fields["assigned_auditor"].queryset = User.objects.filter(
             is_active=True,
             role=User.Role.AUDITOR,
@@ -214,6 +216,7 @@ class HistoricalDocumentForm(forms.ModelForm):
             "visibility",
         )
         widgets = {
+            "organization": FastSelect,
             "document_date": forms.DateInput(attrs={"type": "date"}),
             "file": forms.ClearableFileInput(attrs={"accept": ".pdf,.docx"}),
         }
@@ -227,7 +230,7 @@ class HistoricalDocumentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["organization"].queryset = Organization.objects.filter(
             is_active=True
-        ).order_by("name")
+        ).only("code", "name").order_by("name")
         if organization is not None:
             self.fields["organization"].queryset = Organization.objects.filter(pk=organization.pk)
             self.fields["organization"].initial = organization.pk
@@ -295,6 +298,7 @@ class HistoricalRecommendationForm(forms.ModelForm):
         )
         widgets = {
             "text": forms.Textarea(attrs={"rows": 6}),
+            "responsible_organization": FastSelect,
             "comments": forms.Textarea(attrs={"rows": 4}),
             "original_deadline": forms.DateInput(attrs={"type": "date"}),
         }
@@ -303,7 +307,7 @@ class HistoricalRecommendationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["responsible_organization"].queryset = Organization.objects.filter(
             is_active=True
-        ).order_by("name")
+        ).only("code", "name").order_by("name")
 
 
 class HistoricalRecommendationImportForm(forms.Form):
@@ -349,6 +353,7 @@ class RecommendationForm(forms.ModelForm):
         fields = ("number", "text", "responsible_organization", "deadline", "evidence_requirements")
         widgets = {
             "text": forms.Textarea(attrs={"rows": 5}),
+            "responsible_organization": FastSelect,
             "deadline": forms.DateInput(attrs={"type": "date"}),
             "evidence_requirements": forms.Textarea(attrs={"rows": 4}),
         }
@@ -361,7 +366,7 @@ class RecommendationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["responsible_organization"].queryset = Organization.objects.filter(
             is_active=True
-        ).order_by("name")
+        ).only("code", "name").order_by("name")
 
 
 class DecisionResolutionForm(forms.Form):

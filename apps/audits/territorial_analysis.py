@@ -558,13 +558,15 @@ def build_territorial_analysis(params, today=None):
         "advanced_filters_open": bool(advanced_filter_count),
     }
 
-    center_queryset = center_analytics_queryset(today=today)
+    territory_filters = {}
     if filters["selected_department"]:
-        center_queryset = center_queryset.filter(
-            department=filters["selected_department"]
-        )
+        territory_filters["department"] = filters["selected_department"]
     if filters["selected_district"] and hasattr(Organization, "district"):
-        center_queryset = center_queryset.filter(district=filters["selected_district"])
+        territory_filters["district"] = filters["selected_district"]
+    center_queryset = center_analytics_queryset(today=today).filter(**territory_filters)
+    territory_scope = Organization.objects.filter(
+        kind=Organization.Kind.EDUCATIONAL_CENTER, **territory_filters
+    )
 
     scoped_centers = enrich_centers(list(center_queryset), today=today)
     quick_filters = _quick_filters(scoped_centers, filters)
@@ -572,6 +574,11 @@ def build_territorial_analysis(params, today=None):
         center for center in scoped_centers if _matches_center_filters(center, filters)
     ]
     center_ids = [center.pk for center in centers]
+    # Sin filtros por centro, una subconsulta evita enviar miles de ids como
+    # parámetros en cada consulta de actividad; el resultado es el mismo.
+    center_scope = (
+        territory_scope.values("pk") if len(centers) == len(scoped_centers) else center_ids
+    )
     center_count = len(centers)
     audited_center_count = sum(bool(center.case_count) for center in centers)
     immediate_center_count = sum(
@@ -594,23 +601,23 @@ def build_territorial_analysis(params, today=None):
     )
 
     cases = AuditCase.objects.filter(
-        audited_organization_id__in=center_ids,
+        audited_organization_id__in=center_scope,
         status__in=CONSOLIDATED_CASE_STATUSES,
     )
     responses = Response.objects.filter(
-        recommendation__responsible_organization_id__in=center_ids,
+        recommendation__responsible_organization_id__in=center_scope,
         recommendation__finding__case__status__in=CONSOLIDATED_CASE_STATUSES,
     )
     reviews = Review.objects.filter(
-        response__recommendation__responsible_organization_id__in=center_ids,
+        response__recommendation__responsible_organization_id__in=center_scope,
         response__recommendation__finding__case__status__in=CONSOLIDATED_CASE_STATUSES,
     )
     extensions = DeadlineExtension.objects.filter(
-        recommendation__responsible_organization_id__in=center_ids,
+        recommendation__responsible_organization_id__in=center_scope,
         recommendation__finding__case__status__in=CONSOLIDATED_CASE_STATUSES,
     )
     automatic_no_response = Recommendation.objects.filter(
-        responsible_organization_id__in=center_ids,
+        responsible_organization_id__in=center_scope,
         finding__case__status__in=CONSOLIDATED_CASE_STATUSES,
         no_response_recorded_at__isnull=False,
     )

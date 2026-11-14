@@ -2,6 +2,7 @@ import time
 
 from django.conf import settings
 from django.contrib.auth import logout
+from django.middleware.gzip import GZipMiddleware
 from django.shortcuts import redirect
 
 
@@ -32,3 +33,22 @@ class SecurityHeadersMiddleware:
         response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
         return response
+
+
+class PageCompressionMiddleware(GZipMiddleware):
+    """Comprime solo páginas HTML y JSON generadas por Django.
+
+    Los formularios con el catálogo de centros pesan ~500 KB y comprimidos ~30 KB.
+    GZipMiddleware agrega bytes aleatorios a cada respuesta (mitigación
+    Heal-The-Breach) y Django enmascara el token CSRF en cada página, lo que
+    neutraliza BREACH. Los archivos y exportaciones (PDF, XLSX, evidencias) ya
+    están comprimidos o se transmiten por partes, así que se dejan intactos.
+    """
+
+    compressible_types = ("text/html", "application/json")
+
+    def process_response(self, request, response):
+        content_type = response.get("Content-Type", "")
+        if response.streaming or not content_type.startswith(self.compressible_types):
+            return response
+        return super().process_response(request, response)

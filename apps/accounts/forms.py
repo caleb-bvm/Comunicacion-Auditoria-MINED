@@ -1,5 +1,6 @@
 from django import forms
 
+from apps.core.widgets import FastSelect
 from apps.institutions.models import Organization
 
 from .models import TechnicalSupportRequest
@@ -9,11 +10,11 @@ class TechnicalSupportRequestForm(forms.ModelForm):
     class Meta:
         model = TechnicalSupportRequest
         fields = ("category", "subject", "organization", "description")
-        widgets = {"description": forms.Textarea(attrs={"rows": 5})}
+        widgets = {"description": forms.Textarea(attrs={"rows": 5}), "organization": FastSelect}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["organization"].queryset = Organization.objects.order_by("name")
+        self.fields["organization"].queryset = Organization.objects.only("code", "name").order_by("name")
         self.fields["organization"].required = False
 
 

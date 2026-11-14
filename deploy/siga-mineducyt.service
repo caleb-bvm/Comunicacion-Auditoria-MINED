@@ -10,9 +10,12 @@ Group=siga-mineducyt
 WorkingDirectory=/srv/siga-mineducyt
 EnvironmentFile=/etc/siga-mineducyt/production.env
 Environment=DJANGO_SETTINGS_MODULE=config.settings.production
+# Procesos de Gunicorn. production.env puede sobrescribirlo (WEB_CONCURRENCY);
+# regla práctica: 2 x núcleos + 1, limitado por la memoria (~150 MB por proceso).
+Environment=WEB_CONCURRENCY=3
 ExecStartPre=/srv/siga-mineducyt/.venv/bin/python manage.py check --deploy --fail-level ERROR
 ExecStartPre=/srv/siga-mineducyt/.venv/bin/python manage.py deployment_preflight
-ExecStart=/srv/siga-mineducyt/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 180 --max-requests 500 --max-requests-jitter 50 --error-logfile -
+ExecStart=/srv/siga-mineducyt/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --timeout 180 --max-requests 500 --max-requests-jitter 50 --error-logfile -
 Restart=on-failure
 RestartSec=5
 UMask=0077

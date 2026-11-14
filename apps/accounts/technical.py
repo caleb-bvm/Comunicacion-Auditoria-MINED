@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
 from apps.audits.models import ActivityLog, Evidence
+from apps.core.widgets import FastSelect
 from apps.institutions.models import Organization
 
 from .forms import TechnicalSupportResolutionForm
@@ -47,6 +48,7 @@ class InternalUserForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ("username", "first_name", "last_name", "email", "job_title", "role", "organization")
+        widgets = {"organization": FastSelect}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -54,7 +56,9 @@ class InternalUserForm(forms.ModelForm):
             (User.Role.TECHNICAL_ADMIN, User.Role.TECHNICAL_ADMIN.label),
             (User.Role.AUDITOR, User.Role.AUDITOR.label),
         )
-        self.fields["organization"].queryset = Organization.objects.filter(is_active=True).order_by("name")
+        self.fields["organization"].queryset = (
+            Organization.objects.filter(is_active=True).only("code", "name").order_by("name")
+        )
         self.fields["organization"].required = True
 
     def clean(self):
