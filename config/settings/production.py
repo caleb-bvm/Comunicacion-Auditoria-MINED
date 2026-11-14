@@ -58,6 +58,7 @@ DATABASES = {
         **required_database_values,
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
         "CONN_MAX_AGE": 60,
+        "CONN_HEALTH_CHECKS": True,
         "OPTIONS": database_options,
     }
 }
@@ -78,3 +79,10 @@ CSRF_COOKIE_NAME = "__Host-csrftoken"
 MEDIA_ROOT = Path(os.environ.get("PRIVATE_MEDIA_ROOT", "/var/lib/siga-mineducyt/private"))
 if not MEDIA_ROOT.is_absolute() or MEDIA_ROOT == STATIC_ROOT or STATIC_ROOT in MEDIA_ROOT.parents:
     raise ImproperlyConfigured("PRIVATE_MEDIA_ROOT debe ser absoluto y estar fuera de archivos públicos.")
+
+# Nombres con hash de contenido: Nginx puede cachearlos un año sin servir
+# versiones viejas después de una actualización.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"},
+}
