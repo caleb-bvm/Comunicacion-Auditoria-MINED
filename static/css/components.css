@@ -42,6 +42,10 @@ body {
 
 /* ---------- Estructura: menú lateral y barra inferior ---------- */
 .sidebar { background: var(--ui-surface-low); padding: var(--ui-space-6) var(--ui-space-3); }
+@media (min-width: 901px) {
+    /* El menú de Dirección es más alto que la pantalla: barra de desplazamiento fina y discreta. */
+    .sidebar { scrollbar-width: thin; scrollbar-color: var(--ui-outline-variant) transparent; }
+}
 .sidebar-brand strong { font-size: var(--ui-text-body); }
 .sidebar-brand small { font-size: var(--ui-text-support); color: var(--ui-on-surface-variant); }
 .nav-section-label {

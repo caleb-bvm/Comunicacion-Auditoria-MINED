@@ -20,7 +20,7 @@
         <div class="ui-card-grid">
             {% for decision in pending_decisions %}
             <article class="ui-card" aria-labelledby="decision-{{ decision.pk }}">
-                <div class="ui-chips"><span class="ui-chip {% if decision.kind == 'closure' %}ui-chip-success{% else %}ui-chip-info{% endif %}">{% if decision.kind == 'closure' %}{% ui_icon "check" %}Piden cerrarlo{% else %}{% ui_icon "send" %}Piden publicarlo{% endif %}</span><span class="ui-chip ui-chip-warning">{% ui_icon "clock" %}Espera hace {{ decision.requested_at|timesince }}</span></div>
+                <div class="ui-chips"><span class="ui-chip {% if decision.kind == 'closure' %}ui-chip-success{% else %}ui-chip-info{% endif %}">{% if decision.kind == 'closure' %}{% ui_icon "check" %}Piden cerrarlo{% else %}{% ui_icon "send" %}Piden publicarlo{% endif %}</span><span class="ui-chip ui-chip-warning">{% ui_icon "clock" %}Espera desde hace {{ decision.requested_at|timesince }}</span></div>
                 <h2 class="ui-card-title" id="decision-{{ decision.pk }}">{{ decision.case.audited_organization.name }}</h2>
                 <p class="ui-card-support">{{ decision.case.reference }} · {{ decision.case.title|truncatechars:90 }}</p>
                 <div class="ui-card-actions"><a class="ui-button {% if forloop.first %}ui-button-filled ui-button-large{% else %}ui-button-tonal{% endif %}" href="{% url 'director_decision_detail' decision.pk %}">{% if decision.kind == 'closure' %}Decidir el cierre{% else %}Decidir la publicación{% endif %}</a></div>

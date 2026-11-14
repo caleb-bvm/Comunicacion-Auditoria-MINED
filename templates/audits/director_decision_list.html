@@ -27,7 +27,7 @@
         <article class="ui-card" aria-labelledby="decision-{{ decision.pk }}">
             <div class="ui-chips">
                 <span class="ui-chip {% if decision.kind == 'closure' %}ui-chip-success{% else %}ui-chip-info{% endif %}">{% if decision.kind == 'closure' %}{% ui_icon "check" %}{% else %}{% ui_icon "send" %}{% endif %}{{ decision.get_kind_display }}</span>
-                {% if selected_status == 'pending' %}<span class="ui-chip ui-chip-warning">{% ui_icon "clock" %}Espera hace {{ decision.requested_at|timesince }}</span>{% elif decision.decided_at %}<span class="ui-chip">Resuelta el {{ decision.decided_at|date:"j b Y" }}</span>{% endif %}
+                {% if selected_status == 'pending' %}<span class="ui-chip ui-chip-warning">{% ui_icon "clock" %}Espera desde hace {{ decision.requested_at|timesince }}</span>{% elif decision.decided_at %}<span class="ui-chip">Resuelta el {{ decision.decided_at|date:"j b Y" }}</span>{% endif %}
             </div>
             <h2 class="ui-card-title" id="decision-{{ decision.pk }}">{{ decision.case.audited_organization.name }}</h2>
             <p class="ui-card-support">{{ decision.case.reference }} · {{ decision.case.title|truncatechars:90 }} · {{ decision.case.assigned_auditor.get_full_name|default:decision.case.assigned_auditor.username }}</p>
