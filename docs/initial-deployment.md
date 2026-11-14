@@ -163,7 +163,9 @@ El instalador:
 4. Comprueba la base de datos, las migraciones, la carpeta privada, el antivirus y
    el correo. Si alguno falla, se detiene y dice cuál.
 5. Instala Nginx y los servicios, y activa las tareas diarias: vencimientos,
-   respaldo y verificación semanal de archivos.
+   respaldo y verificación semanal de archivos. Si encuentra el sitio de ejemplo
+   de Nginx (`/etc/nginx/sites-enabled/default`), lo desactiva, porque ocupa el
+   mismo puerto 80 como sitio predeterminado.
 
 Al terminar muestra la dirección del sistema. Si aparece la advertencia de que el
 respaldo no está configurado, vuelva al paso 8 y ejecute de nuevo el instalador.

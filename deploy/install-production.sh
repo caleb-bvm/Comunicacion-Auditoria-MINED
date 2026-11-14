@@ -165,6 +165,15 @@ sed -e "s/auditoria\.example\.org/$DOMAIN/g" \
     -e "s|__SSL_CERTIFICATE_KEY__|$KEY_FILE|g" \
     "$APP_DIR/deploy/nginx.conf" >"$nginx_tmp"
 install -o root -g root -m 0644 "$nginx_tmp" "$NGINX_CONFIG"
+# El sitio de ejemplo de Debian/Ubuntu también declara default_server en el
+# puerto 80 y haría fallar nginx -t. Solo se quita el enlace; el archivo original
+# sigue en sites-available.
+if [[ -L /etc/nginx/sites-enabled/default ]]; then
+    rm /etc/nginx/sites-enabled/default
+    echo "Se desactivó el sitio predeterminado de Nginx (sites-enabled/default)."
+elif [[ -e /etc/nginx/sites-enabled/default ]]; then
+    fail "/etc/nginx/sites-enabled/default no es un enlace; revíselo y quítelo manualmente."
+fi
 nginx -t
 
 echo "[9/9] Habilitando servicios y tareas programadas..."

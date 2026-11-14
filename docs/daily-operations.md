@@ -1,12 +1,14 @@
 # Operación diaria
 
-Esta guía reúne las comprobaciones de seguimiento. Ejecute los comandos desde el
-proyecto, con su entorno virtual y la configuración del entorno correspondiente.
+Esta guía reúne las comprobaciones de seguimiento en el servidor. Los comandos
+`siga …` ejecutan `manage.py` con el usuario y la configuración del servicio;
+defina la función `siga` en la sesión como se indica en
+[el despliegue inicial](initial-deployment.md#11-preparar-el-comando-de-administración).
 
 ## Recomendaciones vencidas
 
-```powershell
-.\.venv\Scripts\python.exe manage.py process_overdue_recommendations
+```bash
+siga process_overdue_recommendations
 ```
 
 El comando informa cuántas recomendaciones cambió a no cumplidas. Un resultado de
@@ -21,8 +23,8 @@ de una recomendación afectada cuando el resultado necesite revisión.
 
 Con el análisis antivirus habilitado:
 
-```powershell
-.\.venv\Scripts\python.exe manage.py scan_pending_evidence
+```bash
+siga scan_pending_evidence
 ```
 
 El comando examina evidencias pendientes y aprueba las que pasan el análisis.
@@ -43,9 +45,9 @@ journalctl -u siga-mineducyt-backup.service -u siga-mineducyt-verify-storage.ser
 
 Para una verificación manual rápida (existencia y tamaño) o completa (con huellas):
 
-```powershell
-.\.venv\Scripts\python.exe manage.py verify_private_storage
-.\.venv\Scripts\python.exe manage.py verify_private_storage --checksums
+```bash
+siga verify_private_storage
+siga verify_private_storage --checksums
 ```
 
 Si informa archivos faltantes o alterados, restáurelos desde el respaldo. Los
@@ -58,12 +60,14 @@ Los PDF de informes anteriores al despliegue pueden estar en carpetas sin orden:
 el comando recorre la carpeta y sus subcarpetas y asigna cada archivo por el
 código institucional escrito en su nombre (`Informe 10234 2019.pdf`,
 `CE10234.pdf`, `Gestión DDE Santa Ana.pdf`). Copie los archivos al servidor en una
-carpeta fuera de `media/` y ejecútelo con el usuario y entorno del servicio
-(ver la sección siguiente), primero en simulación:
+carpeta que pueda leer el usuario del servicio (por ejemplo `/srv/carga-inicial`)
+y ejecútelo primero en simulación:
 
 ```bash
-python manage.py import_historical_reports /ruta/informes --user auditor.responsable --dry-run --report simulacion.csv
-python manage.py import_historical_reports /ruta/informes --user auditor.responsable --report importacion.csv
+siga import_historical_reports /srv/carga-inicial/informes --user auditor.responsable \
+    --dry-run --report /var/tmp/simulacion.csv
+siga import_historical_reports /srv/carga-inicial/informes --user auditor.responsable \
+    --report /var/tmp/importacion.csv
 ```
 
 Cada informe queda como documento anterior de su institución, sin expediente,
@@ -102,14 +106,10 @@ los pendientes. No incluya contraseñas ni contenido de evidencias en ese regist
 ## Después de una actualización
 
 El instalador ejecuta esta comprobación y el servicio la repite en cada inicio. Para
-ejecutarla manualmente en el servidor, con el mismo usuario y entorno del servicio:
+ejecutarla manualmente en el servidor:
 
 ```bash
-sudo systemd-run --wait --pipe --collect --uid=siga-mineducyt --gid=siga-mineducyt \
-    --property=WorkingDirectory=/srv/siga-mineducyt \
-    --property=EnvironmentFile=/etc/siga-mineducyt/production.env \
-    --setenv=DJANGO_SETTINGS_MODULE=config.settings.production \
-    /srv/siga-mineducyt/.venv/bin/python manage.py deployment_preflight
+siga deployment_preflight
 ```
 
 Deben aparecer cinco resultados `[OK]`: base de datos, migraciones,
