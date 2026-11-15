@@ -1,6 +1,5 @@
 from io import BytesIO
 import hashlib
-from pathlib import Path
 
 from django.conf import settings
 from django.core.files.base import ContentFile

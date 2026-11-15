@@ -15,7 +15,6 @@ from django.core.paginator import Paginator
 from django.http import FileResponse, Http404, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import ListView, TemplateView
 
@@ -63,7 +62,6 @@ from .models import (
     AuditCase,
     AuditDocument,
     CaseDecision,
-    DeadlineExtension,
     Evidence,
     Finding,
     HistoricalRecommendation,
@@ -142,11 +140,6 @@ def user_is_director(user):
 def require_director(user):
     if not user_is_director(user):
         raise PermissionDenied("Esta acción corresponde a la Dirección de Auditoría.")
-
-
-def institutional_username(organization):
-    """The official code is the institutional login identifier."""
-    return organization.code
 
 
 def user_can_edit_case(user, case):

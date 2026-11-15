@@ -1262,7 +1262,7 @@ class Command(BaseCommand):
             ],
             category=Evidence.Category.ACCOUNTING,
         )
-        review = self._upsert_review(
+        self._upsert_review(
             response,
             auditor,
             outcome=Review.Outcome.COMPLIED,

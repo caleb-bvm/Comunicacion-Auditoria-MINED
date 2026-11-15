@@ -2,11 +2,10 @@ from collections import defaultdict
 from datetime import date, timedelta
 from urllib.parse import urlencode
 
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
-from apps.accounts.models import User
 from apps.institutions.models import Organization
 
 from .center_analytics import (

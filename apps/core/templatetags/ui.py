@@ -77,12 +77,6 @@ def ui_deadline_chip(deadline):
     return state
 
 
-@register.simple_tag
-def ui_deadline_label(deadline):
-    state = deadline_state(deadline)
-    return state["label"] if state else "Sin fecha límite"
-
-
 @register.filter
 def ui_lines(value):
     """Divide un texto en líneas no vacías, sin viñetas ni guiones iniciales."""
