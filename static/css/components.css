@@ -417,6 +417,29 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-form-error { border-radius: var(--ui-radius-tile); padding: var(--ui-space-4) var(--ui-space-5); background: var(--ui-danger-container); color: var(--ui-on-danger-container); font-size: var(--ui-text-support); font-weight: 600; }
 .ui-form-error .errorlist { margin: 0; padding: 0; list-style: none; }
 
+/* Buscador de organizaciones (combobox) */
+.ui-org-search { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ui-org-search-results {
+    position: absolute;
+    top: calc(var(--ui-touch-large) + 4px);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    max-height: 320px;
+    overflow-y: auto;
+    margin: 0;
+    padding: var(--ui-space-2) 0;
+    list-style: none;
+    background: var(--ui-surface-card);
+    border: 1px solid var(--ui-outline-variant);
+    border-radius: var(--ui-radius-field);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+}
+.ui-org-search-results[hidden] { display: none; }
+.ui-org-search-option { padding: 10px var(--ui-space-4); font-size: var(--ui-text-body); line-height: 24px; cursor: pointer; }
+.ui-org-search-option:hover, .ui-org-search-option[aria-selected="true"] { background: var(--ui-primary-container); color: var(--ui-on-primary-container); }
+.ui-org-search-status:empty { display: none; }
+
 /* Opciones en forma de tarjeta */
 .ui-choices { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--ui-space-2); }
 .ui-choices > div { display: contents; }

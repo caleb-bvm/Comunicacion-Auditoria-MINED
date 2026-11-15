@@ -1,6 +1,6 @@
 from django import forms
 
-from apps.core.widgets import FastSelect
+from apps.core.widgets import OrganizationSearchSelect
 from apps.institutions.models import Organization
 
 from .models import TechnicalSupportRequest
@@ -10,7 +10,7 @@ class TechnicalSupportRequestForm(forms.ModelForm):
     class Meta:
         model = TechnicalSupportRequest
         fields = ("category", "subject", "organization", "description")
-        widgets = {"description": forms.Textarea(attrs={"rows": 5}), "organization": FastSelect}
+        widgets = {"description": forms.Textarea(attrs={"rows": 5}), "organization": OrganizationSearchSelect(include_inactive=True)}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

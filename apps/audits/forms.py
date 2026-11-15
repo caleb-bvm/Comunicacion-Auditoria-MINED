@@ -9,7 +9,7 @@ from apps.accounts.models import User
 from apps.institutions.models import Organization
 
 from apps.core.validators import EVIDENCE_ACCEPT, validate_evidence_file
-from apps.core.widgets import FastSelect
+from apps.core.widgets import FastSelect, OrganizationSearchSelect
 
 from .models import (
     AuditCase,
@@ -136,7 +136,7 @@ class AuditCaseForm(forms.ModelForm):
         )
         widgets = {
             "title": forms.Textarea(attrs={"rows": 2}),
-            "audited_organization": FastSelect,
+            "audited_organization": OrganizationSearchSelect,
             "report_date": forms.DateInput(attrs={"type": "date"}),
             "period_start": forms.DateInput(attrs={"type": "date"}),
             "period_end": forms.DateInput(attrs={"type": "date"}),
@@ -159,6 +159,8 @@ class AuditCaseForm(forms.ModelForm):
         ).order_by("first_name", "last_name", "username")
         if user and user.role == User.Role.AUDITOR:
             assigned = user.assigned_organizations.filter(is_active=True)
+            # Pocas organizaciones asignadas: lista completa en lugar del buscador del catálogo.
+            self.fields["audited_organization"].widget = FastSelect()
             self.fields["audited_organization"].queryset = assigned.order_by("name")
             self.fields["audited_organization"].help_text = (
                 "Solo se muestran las organizaciones que Dirección le ha asignado."
@@ -216,7 +218,7 @@ class HistoricalDocumentForm(forms.ModelForm):
             "visibility",
         )
         widgets = {
-            "organization": FastSelect,
+            "organization": OrganizationSearchSelect,
             "document_date": forms.DateInput(attrs={"type": "date"}),
             "file": forms.ClearableFileInput(attrs={"accept": ".pdf,.docx"}),
         }
@@ -298,7 +300,7 @@ class HistoricalRecommendationForm(forms.ModelForm):
         )
         widgets = {
             "text": forms.Textarea(attrs={"rows": 6}),
-            "responsible_organization": FastSelect,
+            "responsible_organization": OrganizationSearchSelect,
             "comments": forms.Textarea(attrs={"rows": 4}),
             "original_deadline": forms.DateInput(attrs={"type": "date"}),
         }
@@ -353,7 +355,7 @@ class RecommendationForm(forms.ModelForm):
         fields = ("number", "text", "responsible_organization", "deadline", "evidence_requirements")
         widgets = {
             "text": forms.Textarea(attrs={"rows": 5}),
-            "responsible_organization": FastSelect,
+            "responsible_organization": OrganizationSearchSelect,
             "deadline": forms.DateInput(attrs={"type": "date"}),
             "evidence_requirements": forms.Textarea(attrs={"rows": 4}),
         }

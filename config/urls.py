@@ -8,6 +8,7 @@ from apps.accounts.views import (
     password_reset_request, password_support_request,
 )
 from apps.core.views import ui_reference
+from apps.institutions.search import organization_search
 
 
 urlpatterns = [
@@ -35,6 +36,7 @@ urlpatterns = [
          name="institution_technical_support"),
     path("activar-cuenta/<uidb64>/<token>/", ActivateAccountView.as_view(), name="activate_account"),
     path("dev/ui/", ui_reference, name="ui_reference"),
+    path("organizaciones/buscar/", organization_search, name="organization_search"),
     path("cde/", include("apps.institutions.urls")),
     path("", include("apps.audits.urls")),
 ]

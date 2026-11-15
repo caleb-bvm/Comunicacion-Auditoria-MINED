@@ -176,6 +176,7 @@
     });
 
     enhanceFileInputs(document);
+    enhanceOrganizationSearch(document);
 
     document.querySelectorAll("[data-location-filters]").forEach((form) => {
         const department = form.querySelector('[name="department"]');
@@ -522,5 +523,165 @@ function enhanceFileInputs(root) {
                 })
             );
         });
+    });
+}
+
+// Buscador de organizaciones: el <select> llega solo con la opción elegida y aquí se
+// convierte en un cuadro de búsqueda (patrón combobox de ARIA) que consulta el catálogo.
+function enhanceOrganizationSearch(root) {
+    root.querySelectorAll("select[data-org-search]").forEach((select, instance) => {
+        if (select.dataset.orgSearchEnhanced || select.disabled) return;
+        select.dataset.orgSearchEnhanced = "true";
+        const wrapper = document.createElement("div");
+        wrapper.className = "ui-org-search";
+        const input = document.createElement("input");
+        const listbox = document.createElement("ul");
+        const status = document.createElement("p");
+        const baseId = select.id || `org-search-${instance}`;
+        input.type = "text";
+        input.id = baseId;
+        input.autocomplete = "off";
+        input.spellcheck = false;
+        input.placeholder = "Escriba el código o el nombre";
+        input.required = select.required;
+        input.setAttribute("role", "combobox");
+        input.setAttribute("aria-autocomplete", "list");
+        input.setAttribute("aria-expanded", "false");
+        input.setAttribute("aria-controls", `${baseId}-results`);
+        ["aria-describedby", "aria-invalid"].forEach((attribute) => {
+            if (select.hasAttribute(attribute)) input.setAttribute(attribute, select.getAttribute(attribute));
+        });
+        listbox.id = `${baseId}-results`;
+        listbox.className = "ui-org-search-results";
+        listbox.setAttribute("role", "listbox");
+        listbox.hidden = true;
+        status.className = "ui-help ui-org-search-status";
+        status.setAttribute("role", "status");
+        select.id = `${baseId}-select`;
+        select.required = false;
+        select.hidden = true;
+        select.tabIndex = -1;
+        select.before(wrapper);
+        wrapper.append(input, listbox, status, select);
+
+        const chosen = select.selectedOptions[0];
+        if (chosen && chosen.value) input.value = chosen.textContent.trim();
+        const emptyOption = Array.from(select.options).find((option) => option.value === "");
+        let results = [];
+        let active = -1;
+        let timer;
+        let controller;
+
+        const setStatus = (text) => { status.textContent = text; };
+        const close = () => {
+            listbox.hidden = true;
+            input.setAttribute("aria-expanded", "false");
+            input.removeAttribute("aria-activedescendant");
+            active = -1;
+        };
+        const highlight = (index) => {
+            active = index;
+            Array.from(listbox.children).forEach((item, position) => {
+                item.setAttribute("aria-selected", String(position === index));
+                if (position === index) {
+                    input.setAttribute("aria-activedescendant", item.id);
+                    item.scrollIntoView({ block: "nearest" });
+                }
+            });
+        };
+        const setValue = (result) => {
+            const options = emptyOption ? [emptyOption] : [];
+            if (result) options.push(new Option(result.text, result.id, true, true));
+            select.replaceChildren(...options);
+            select.value = result ? String(result.id) : "";
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+        };
+        const choose = (result) => {
+            setValue(result);
+            input.value = result.text;
+            input.setCustomValidity("");
+            setStatus("");
+            close();
+        };
+        const render = (more) => {
+            listbox.replaceChildren(...results.map((result, index) => {
+                const item = document.createElement("li");
+                item.id = `${baseId}-option-${index}`;
+                item.className = "ui-org-search-option";
+                item.setAttribute("role", "option");
+                item.setAttribute("aria-selected", "false");
+                item.textContent = result.text;
+                // mousedown evita que el campo pierda el foco antes de elegir.
+                item.addEventListener("mousedown", (event) => {
+                    event.preventDefault();
+                    choose(result);
+                });
+                return item;
+            }));
+            const open = results.length > 0;
+            listbox.hidden = !open;
+            input.setAttribute("aria-expanded", String(open));
+            active = -1;
+            if (!results.length) setStatus("No se encontraron organizaciones con ese texto.");
+            else if (more) setStatus(`Se muestran los primeros ${results.length} resultados; escriba más para precisar.`);
+            else setStatus(results.length === 1 ? "1 resultado." : `${results.length} resultados.`);
+        };
+        const search = async (term) => {
+            controller?.abort();
+            controller = new AbortController();
+            const url = new URL(select.dataset.orgSearch, window.location.origin);
+            url.searchParams.set("q", term);
+            setStatus("Buscando…");
+            try {
+                const response = await fetch(url, {
+                    headers: { Accept: "application/json" },
+                    signal: controller.signal,
+                });
+                if (!response.ok) throw new Error(String(response.status));
+                const data = await response.json();
+                results = data.results;
+                render(data.more);
+            } catch (error) {
+                if (error.name === "AbortError") return;
+                results = [];
+                close();
+                setStatus("No se pudo consultar el catálogo. Intente de nuevo.");
+            }
+        };
+
+        input.addEventListener("input", () => {
+            if (select.value) setValue(null);
+            const term = input.value.trim();
+            input.setCustomValidity(term ? "Elija una organización de la lista de resultados." : "");
+            clearTimeout(timer);
+            if (term.replace(/\s+/g, "").length < 2) {
+                controller?.abort();
+                results = [];
+                close();
+                setStatus(term ? "Escriba al menos 2 caracteres." : "");
+                return;
+            }
+            timer = setTimeout(() => search(term), 200);
+        });
+        input.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                if (!results.length) return;
+                event.preventDefault();
+                if (listbox.hidden) {
+                    listbox.hidden = false;
+                    input.setAttribute("aria-expanded", "true");
+                }
+                const step = event.key === "ArrowDown" ? 1 : -1;
+                highlight((active + step + results.length) % results.length);
+            } else if (event.key === "Enter" && !listbox.hidden) {
+                event.preventDefault();
+                if (active >= 0) choose(results[active]);
+                else if (results.length === 1) choose(results[0]);
+            } else if (event.key === "Escape" && !listbox.hidden) {
+                event.preventDefault();
+                close();
+            }
+        });
+        input.addEventListener("blur", close);
     });
 }
