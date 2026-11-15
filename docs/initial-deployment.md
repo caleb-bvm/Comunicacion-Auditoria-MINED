@@ -2,7 +2,8 @@
 
 Esta guía describe, en orden, todo lo que hay que hacer para poner SIGA-MINEDUCYT en
 el servidor por primera vez y dejarlo listo antes de que lo usen los centros. Para
-actualizar una instalación que ya funciona basta con el paso 9.
+actualizar una instalación que ya funciona, siga
+[«Actualizar una instalación»](daily-operations.md#actualizar-una-instalación).
 
 Los detalles técnicos de seguridad, respaldo y restauración están en
 [la guía de producción](production-security.md).
@@ -156,16 +157,20 @@ sudo bash deploy/install-production.sh --domain auditoria.mined.gob.sv \
 
 El instalador:
 
-1. Respalda la base de datos antes de cambiar nada.
-2. Aplica las migraciones. En la primera instalación esto también registra la
+1. Valida la configuración de Nginx y el certificado. Si encuentra el sitio de
+   ejemplo de Nginx (`/etc/nginx/sites-enabled/default`), lo desactiva, porque
+   ocupa el mismo puerto 80 como sitio predeterminado. Si la validación falla,
+   restaura la configuración anterior y se detiene sin tocar la base de datos.
+2. Instala las dependencias de `requirements.txt` (solo si cambiaron), compila el
+   código y revisa la configuración de seguridad de Django.
+3. Respalda la base de datos antes de migrar.
+4. Aplica las migraciones. En la primera instalación esto también registra la
    Dirección de Auditoría Interna (`DAI-MINED`) y las 14 Direcciones Departamentales.
-3. Prepara los archivos estáticos y revisa la configuración de seguridad.
-4. Comprueba la base de datos, las migraciones, la carpeta privada, el antivirus y
+5. Prepara los archivos estáticos y deja sus versiones comprimidas para Nginx.
+6. Comprueba la base de datos, las migraciones, la carpeta privada, el antivirus y
    el correo. Si alguno falla, se detiene y dice cuál.
-5. Instala Nginx y los servicios, y activa las tareas diarias: vencimientos,
-   respaldo y verificación semanal de archivos. Si encuentra el sitio de ejemplo
-   de Nginx (`/etc/nginx/sites-enabled/default`), lo desactiva, porque ocupa el
-   mismo puerto 80 como sitio predeterminado.
+7. Instala los servicios, inicia la aplicación, espera a que responda y activa
+   las tareas diarias: vencimientos, respaldo y verificación semanal de archivos.
 
 Al terminar muestra la dirección del sistema. Si aparece la advertencia de que el
 respaldo no está configurado, vuelva al paso 8 y ejecute de nuevo el instalador.

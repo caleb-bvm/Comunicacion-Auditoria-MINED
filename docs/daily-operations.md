@@ -103,6 +103,26 @@ Anote la hora de ejecución, el entorno, el resultado, la cantidad procesada y e
 responsable. Guarde los errores en el registro del servicio y dé seguimiento a
 los pendientes. No incluya contraseñas ni contenido de evidencias en ese registro.
 
+## Actualizar una instalación
+
+Publique solo versiones de `master` con el CI aprobado. Con la cuenta de
+administración del servidor:
+
+```bash
+cd /srv/siga-mineducyt
+sudo git pull --ff-only
+sudo bash deploy/install-production.sh --domain auditoria.mined.gob.sv     --cert /etc/ssl/siga/fullchain.pem --key /etc/ssl/siga/privkey.pem
+```
+
+El instalador solo ejecuta `pip` cuando cambia `requirements.txt`. Si únicamente
+cambió el código, recarga Gunicorn sin cortar las solicitudes en curso: los
+procesos nuevos cargan la versión actualizada y los anteriores terminan lo que
+estaban atendiendo. Reinicia el servicio por completo en la primera instalación
+o cuando cambian `production.env`, `requirements.txt` o la unidad de systemd.
+Para forzar el reinicio, agregue `--restart`. Al final espera a que la aplicación
+responda; si no lo hace en 30 segundos, muestra el registro del servicio y la
+ruta de la copia previa de la base de datos.
+
 ## Después de una actualización
 
 El instalador ejecuta esta comprobación y el servicio la repite en cada inicio. Para

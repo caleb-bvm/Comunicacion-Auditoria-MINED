@@ -104,7 +104,7 @@ sudo bash ./deploy/install-production.sh --domain auditoria.mined.gob.sv \
     --cert /ruta/fullchain.pem --key /ruta/privkey.pem
 ```
 
-`--cert` y `--key` indican el certificado institucional; sin ellos se usan las rutas de Let's Encrypt. El instalador guarda una copia de PostgreSQL antes de migrar, aplica migraciones, recopila archivos estáticos, ejecuta las comprobaciones, instala las plantillas de Nginx y systemd, habilita el servicio y el temporizador diario, ejecuta una vez el procesamiento de vencimientos y muestra el estado final. Puede ejecutarse nuevamente para publicar una actualización. Se detiene inmediatamente si falta un requisito o falla una comprobación.
+`--cert` y `--key` indican el certificado institucional; sin ellos se usan las rutas de Let's Encrypt. El instalador valida Nginx y la configuración de Django antes de tocar la base de datos, instala las dependencias si cambiaron, guarda una copia de PostgreSQL, aplica migraciones, recopila y comprime los archivos estáticos, ejecuta las comprobaciones, instala las plantillas de systemd, habilita el servicio y los temporizadores, comprueba que la aplicación responda y muestra el estado final. Puede ejecutarse nuevamente para publicar una actualización: si solo cambió el código, recarga Gunicorn sin interrumpir el servicio (ver [docs/daily-operations.md](docs/daily-operations.md#actualizar-una-instalación)). Se detiene inmediatamente si falta un requisito o falla una comprobación.
 
 Nunca use el servidor de desarrollo ni la clave incluida en `config/settings/development.py` en un servidor institucional.
 
