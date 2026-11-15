@@ -34,7 +34,6 @@
         <div class="ui-section-head"><h2 class="ui-section-title" id="publish-report-title">Informe Word</h2><a class="ui-button ui-button-text" href="{% url 'case_report_upload' case.pk %}">Cargar nueva versión</a></div>
         <div class="ui-list">
             {% if report_document %}<div class="ui-list-row">{% ui_icon "file" %}<span class="ui-list-text"><span class="ui-list-title">Versión {{ report_document.version }} · {{ report_document.title }}</span><span class="ui-list-support">{{ report_document.original_filename }}</span></span></div>
-            {% elif case.report_file %}<div class="ui-list-row">{% ui_icon "file" %}<span class="ui-list-text"><span class="ui-list-title">Informe heredado en PDF</span></span></div>
             {% else %}<div class="ui-list-row"><span class="ui-list-support">No hay un informe cargado.</span></div>{% endif %}
         </div>
     </section>

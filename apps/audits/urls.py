@@ -90,7 +90,6 @@ urlpatterns = [
         views.request_case_closure,
         name="request_case_closure",
     ),
-    path("expedientes/<int:pk>/informe/", views.download_report, name="download_report"),
     path(
         "documentos/<int:pk>/descargar/",
         views.download_audit_document,

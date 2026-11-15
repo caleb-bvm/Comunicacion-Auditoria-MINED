@@ -83,14 +83,12 @@
     </div>
 
     <aside class="ui-layout-aside" aria-label="Informe y Consejo Directivo">
-    {% if documents or case.report_file %}
+    {% if documents %}
     <section class="ui-section" aria-labelledby="case-report-title">
         <h2 class="ui-section-title" id="case-report-title">Informe</h2>
         <div class="ui-list">
             {% for document in documents %}
             <a class="ui-list-row" href="{% url 'download_audit_document' document.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ document.title }}</span><span class="ui-list-support">Versión {{ document.version }}{% if document.reference %} · {{ document.reference }}{% endif %}</span></span>{% ui_icon "download" %}<span class="ui-visually-hidden">Descargar</span></a>
-            {% empty %}
-            <a class="ui-list-row" href="{% url 'download_report' case.pk %}"><span class="ui-list-text"><span class="ui-list-title">Informe de auditoría</span><span class="ui-list-support">Documento migrado</span></span>{% ui_icon "download" %}<span class="ui-visually-hidden">Descargar</span></a>
             {% endfor %}
         </div>
     </section>
@@ -101,7 +99,7 @@
         <a class="ui-list-row" href="{% url 'cde_detail' case.audited_organization.pk %}"><span class="ui-list-text"><span class="ui-list-title">Consejo Directivo Escolar</span><span class="ui-list-support">Integrantes registrados del centro</span></span>{% ui_icon "chevron" %}</a>
     </nav>
     {% endif %}
-    {% if not documents and not case.report_file and case.audited_organization.kind != 'educational_center' %}<p class="ui-help">Este expediente no tiene documentos para su centro.</p>{% endif %}
+    {% if not documents and case.audited_organization.kind != 'educational_center' %}<p class="ui-help">Este expediente no tiene documentos para su centro.</p>{% endif %}
     </aside>
     </div>
 </div>

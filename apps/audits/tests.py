@@ -1232,9 +1232,6 @@ class AccessAndWorkflowTests(TestCase):
             reference="IA-RETURN-001",
             title="Borrador para devolución",
             audited_organization=self.center,
-            report_file=SimpleUploadedFile(
-                "informe.pdf", b"%PDF-1.4\ncontenido", content_type="application/pdf"
-            ),
             report_date=date.today(),
             response_deadline=date.today(),
             status=AuditCase.Status.PENDING_PUBLICATION,

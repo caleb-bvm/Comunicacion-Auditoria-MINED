@@ -48,12 +48,6 @@ class AuditCase(models.Model):
         on_delete=models.PROTECT,
         related_name="audit_cases",
     )
-    report_file = models.FileField(
-        "informe PDF",
-        upload_to=private_upload_path,
-        validators=[validate_evidence_file],
-        blank=True,
-    )
     report_date = models.DateField("fecha del informe", null=True, blank=True)
     period_start = models.DateField("inicio del período", null=True, blank=True)
     period_end = models.DateField("fin del período", null=True, blank=True)

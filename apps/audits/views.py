@@ -2831,45 +2831,6 @@ def download_audit_document(request, pk):
     return response
 
 
-def download_report(request, pk):
-    if not request.user.is_authenticated:
-        return redirect(f"/ingresar/?next={request.path}")
-    case = get_accessible_case(request.user, pk)
-    document_statuses = [
-        AuditDocument.Status.APPROVED,
-        AuditDocument.Status.PENDING_APPROVAL,
-        AuditDocument.Status.DRAFT,
-        AuditDocument.Status.RETURNED,
-    ]
-    if request.user.role == User.Role.INSTITUTION:
-        document_statuses = [AuditDocument.Status.APPROVED]
-    document = case.documents.filter(
-        document_type=AuditDocument.DocumentType.REPORT,
-        status__in=document_statuses,
-    ).order_by("-version").first()
-    if document:
-        if not user_can_access_document(request.user, document):
-            raise PermissionDenied("No tiene autorización para descargar este informe.")
-        response = protected_file_response(
-            document.file.open("rb"),
-            as_attachment=True,
-            filename=document.original_filename,
-        )
-        if response.status_code == 200:
-            log_activity(request, "report_downloaded", case=case, target=document)
-        return response
-    if not case.report_file:
-        raise Http404("Este expediente no tiene un informe adjunto.")
-    response = protected_file_response(
-        case.report_file.open("rb"),
-        as_attachment=True,
-        filename=f"{case.reference}.pdf",
-    )
-    if response.status_code == 200:
-        log_activity(request, "report_downloaded", case=case, target=case)
-    return response
-
-
 @transaction.atomic
 def respond_recommendation(request, pk):
     if not request.user.is_authenticated:

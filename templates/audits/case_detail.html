@@ -97,14 +97,12 @@
             <div class="ui-list-row"><dt>Fecha del informe</dt><dd>{{ case.report_date|date:"j b Y"|default:"Por definir" }}</dd></div>
             <div class="ui-list-row"><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"j b Y"|default:"Por definir" }}</dd></div>
         </dl>
-        {% if documents or case.report_file %}
+        {% if documents %}
         <section class="ui-section" aria-labelledby="case-report-title">
             <h2 class="ui-section-title" id="case-report-title">Informe</h2>
             <div class="ui-list">
                 {% for document in documents %}
                 <a class="ui-list-row" href="{% url 'download_audit_document' document.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ document.title }}</span><span class="ui-list-support">Versión {{ document.version }} · {{ document.reference|default:"sin referencia" }} · {{ document.get_status_display }}</span></span>{% ui_icon "download" %}<span class="ui-visually-hidden">Descargar</span></a>
-                {% empty %}
-                <a class="ui-list-row" href="{% url 'download_report' case.pk %}"><span class="ui-list-text"><span class="ui-list-title">Informe de auditoría migrado</span></span>{% ui_icon "download" %}<span class="ui-visually-hidden">Descargar</span></a>
                 {% endfor %}
             </div>
         </section>
