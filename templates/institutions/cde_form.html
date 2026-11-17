@@ -3,20 +3,26 @@
 {% block title %}{{ title }} | {{ organization.name }}{% endblock %}
 {% block content %}
 <div class="ui-page ui-page-form">
-    <a class="ui-back" href="{% url 'cde_detail' organization.pk %}">{% ui_icon "back" %}Consejo Directivo Escolar</a>
-    <header class="ui-page-header">
-        <p class="ui-page-context">{{ organization.name }} · {{ organization.code }}</p>
-        <h1 class="ui-page-title">{{ title }}</h1>
-    </header>
-    <form method="post" enctype="multipart/form-data" class="ui-card" aria-label="{{ title }}">
-        {% csrf_token %}
-        {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-        {% if intro %}<p class="ui-card-support">{{ intro }}</p>{% endif %}
-        {% include "includes/ui/form_fields.html" with fields=form %}
-        <div class="ui-form-actions">
-            <a class="ui-button ui-button-text" href="{% url 'cde_detail' organization.pk %}">Cancelar</a>
-            <button class="ui-button ui-button-filled ui-button-large" type="submit">{{ submit_label }}</button>
+    <div class="ui-layout ui-layout-context">
+        <a class="ui-back ui-layout-full" href="{% url 'cde_detail' organization.pk %}">{% ui_icon "back" %}Consejo Directivo Escolar</a>
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                <p class="ui-page-context">{{ organization.name }} · {{ organization.code }}</p>
+                <h1 class="ui-page-title">{{ title }}</h1>
+            </header>
         </div>
-    </form>
+        <div class="ui-layout-main">
+            <form method="post" enctype="multipart/form-data" class="ui-card ui-form-grid" aria-label="{{ title }}">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                {% if intro %}<p class="ui-card-support">{{ intro }}</p>{% endif %}
+                {% include "includes/ui/form_fields.html" with fields=form %}
+                <div class="ui-form-actions">
+                    <a class="ui-button ui-button-text" href="{% url 'cde_detail' organization.pk %}">Cancelar</a>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit">{{ submit_label }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

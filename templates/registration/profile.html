@@ -3,17 +3,27 @@
 {% block title %}Mi perfil | Auditoría Interna{% endblock %}
 {% block content %}
 <div class="ui-page ui-page-form">
-    <header class="ui-page-header">
-        <h1 class="ui-page-title">Mi perfil</h1>
-    </header>
-    <dl class="ui-list ui-facts">
-        <div class="ui-list-row"><dt>Usuario</dt><dd>{{ user.username }}</dd></div>
-        <div class="ui-list-row"><dt>Correo electrónico</dt><dd>{{ user.email|default:"Sin correo registrado" }}</dd></div>
-        {% if user.organization %}<div class="ui-list-row"><dt>Institución</dt><dd>{{ user.organization.name }}</dd></div>{% endif %}
-        <div class="ui-list-row"><dt>Rol</dt><dd>{{ user.get_role_display }}</dd></div>
-    </dl>
-    <div class="ui-card-actions">
-        <a class="ui-button ui-button-tonal" href="{% url 'password_change' %}">{% ui_icon "lock" %}Cambiar contraseña</a>
+    <div class="ui-layout ui-layout-context">
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                <h1 class="ui-page-title">Mi perfil</h1>
+            </header>
+            <dl class="ui-list ui-facts">
+                <div class="ui-list-row"><dt>Usuario</dt><dd>{{ user.username }}</dd></div>
+                <div class="ui-list-row"><dt>Correo electrónico</dt><dd>{{ user.email|default:"Sin correo registrado" }}</dd></div>
+                {% if user.organization %}<div class="ui-list-row"><dt>Institución</dt><dd>{{ user.organization.name }}</dd></div>{% endif %}
+                <div class="ui-list-row"><dt>Rol</dt><dd>{{ user.get_role_display }}</dd></div>
+            </dl>
+        </div>
+        <div class="ui-layout-main">
+            <section class="ui-card" aria-labelledby="profile-password-title">
+                <h2 class="ui-card-title" id="profile-password-title">Contraseña</h2>
+                <p class="ui-card-support">Puede actualizar su contraseña cuando lo necesite.</p>
+                <div class="ui-card-actions">
+                    <a class="ui-button ui-button-tonal" href="{% url 'password_change' %}">{% ui_icon "lock" %}Cambiar contraseña</a>
+                </div>
+            </section>
+        </div>
     </div>
 </div>
 {% endblock %}

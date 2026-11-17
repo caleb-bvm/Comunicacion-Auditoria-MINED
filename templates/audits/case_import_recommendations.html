@@ -3,32 +3,38 @@
 {% block title %}Importar recomendaciones | {{ case.reference }}{% endblock %}
 {% block content %}
 <div class="ui-page ui-page-form">
-    <a class="ui-back" href="{% url 'case_builder' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
-    <header class="ui-page-header">
-        <h1 class="ui-page-title">Importar recomendaciones anteriores</h1>
-        <p class="ui-page-context">{{ case.audited_organization.name }} · Marque las que siguen pendientes.</p>
-    </header>
-    {% if eligible %}
-    <form method="post" class="ui-card">
-        {% csrf_token %}
-        <fieldset class="ui-choices ui-choices-check">
-            <legend class="ui-visually-hidden">Recomendaciones disponibles</legend>
-            {{ form.recommendations.errors }}
-            {% for item in eligible %}
-            <label><input type="checkbox" name="recommendations" value="{{ item.pk }}"><span class="ui-choice-text"><strong>{{ item.source_document.reference|default:item.source_document.title }} · {{ item.number }} · {{ item.get_status_display }}</strong><span>{{ item.text|truncatechars:320 }}</span></span></label>
-            {% endfor %}
-        </fieldset>
-        <div class="ui-form-actions">
-            <a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Cancelar</a>
-            <button class="ui-button ui-button-filled ui-button-large" type="submit">Importar seleccionadas</button>
+    <div class="ui-layout ui-layout-context">
+        <a class="ui-back ui-layout-full" href="{% url 'case_builder' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                <h1 class="ui-page-title">Importar recomendaciones anteriores</h1>
+                <p class="ui-page-context">{{ case.audited_organization.name }} · Marque las que siguen pendientes.</p>
+            </header>
         </div>
-    </form>
-    {% else %}
-    <div class="ui-card">
-        <h2 class="ui-card-title">No hay recomendaciones disponibles</h2>
-        <p class="ui-card-support">Registre un informe anterior o verifique si sus recomendaciones ya fueron importadas.</p>
-        <div class="ui-card-actions"><a class="ui-button ui-button-filled" href="{% url 'historical_document_create' %}">Registrar informe anterior</a><a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Volver</a></div>
+        <div class="ui-layout-main">
+            {% if eligible %}
+            <form method="post" class="ui-card ui-form-grid">
+                {% csrf_token %}
+                <fieldset class="ui-choices ui-choices-check">
+                    <legend class="ui-visually-hidden">Recomendaciones disponibles</legend>
+                    {{ form.recommendations.errors }}
+                    {% for item in eligible %}
+                    <label><input type="checkbox" name="recommendations" value="{{ item.pk }}"><span class="ui-choice-text"><strong>{{ item.source_document.reference|default:item.source_document.title }} · {{ item.number }} · {{ item.get_status_display }}</strong><span>{{ item.text|truncatechars:320 }}</span></span></label>
+                    {% endfor %}
+                </fieldset>
+                <div class="ui-form-actions">
+                    <a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Cancelar</a>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit">Importar seleccionadas</button>
+                </div>
+            </form>
+            {% else %}
+            <div class="ui-card">
+                <h2 class="ui-card-title">No hay recomendaciones disponibles</h2>
+                <p class="ui-card-support">Registre un informe anterior o verifique si sus recomendaciones ya fueron importadas.</p>
+                <div class="ui-card-actions"><a class="ui-button ui-button-filled" href="{% url 'historical_document_create' %}">Registrar informe anterior</a><a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Volver</a></div>
+            </div>
+            {% endif %}
+        </div>
     </div>
-    {% endif %}
 </div>
 {% endblock %}

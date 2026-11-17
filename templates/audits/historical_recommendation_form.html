@@ -3,19 +3,25 @@
 {% block title %}Agregar recomendación{% endblock %}
 {% block content %}
 <div class="ui-page ui-page-form">
-    <a class="ui-back" href="{% url 'historical_document_detail' document.pk %}">{% ui_icon "back" %}{{ document.reference|default:"Informe" }}</a>
-    <header class="ui-page-header">
-        <h1 class="ui-page-title">Agregar recomendación</h1>
-        <p class="ui-page-context">{{ document.organization.name }} · {{ document.reference|default:document.title }}</p>
-    </header>
-    <form method="post" class="ui-card" aria-label="Agregar recomendación">
-        {% csrf_token %}
-        {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-        {% include "includes/ui/form_fields.html" with fields=form %}
-        <div class="ui-form-actions">
-            <a class="ui-button ui-button-text" href="{% url 'historical_document_detail' document.pk %}">Cancelar</a>
-            <button class="ui-button ui-button-filled ui-button-large" type="submit">Guardar recomendación</button>
+    <div class="ui-layout ui-layout-context">
+        <a class="ui-back ui-layout-full" href="{% url 'historical_document_detail' document.pk %}">{% ui_icon "back" %}{{ document.reference|default:"Informe" }}</a>
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                <h1 class="ui-page-title">Agregar recomendación</h1>
+                <p class="ui-page-context">{{ document.organization.name }} · {{ document.reference|default:document.title }}</p>
+            </header>
         </div>
-    </form>
+        <div class="ui-layout-main">
+            <form method="post" class="ui-card ui-form-grid" aria-label="Agregar recomendación">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                {% include "includes/ui/form_fields.html" with fields=form %}
+                <div class="ui-form-actions">
+                    <a class="ui-button ui-button-text" href="{% url 'historical_document_detail' document.pk %}">Cancelar</a>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit">Guardar recomendación</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

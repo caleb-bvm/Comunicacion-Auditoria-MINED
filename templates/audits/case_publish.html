@@ -3,55 +3,60 @@
 {% block title %}Solicitar aprobación de {{ case.reference }} | Auditoría Interna{% endblock %}
 {% block content %}
 <div class="ui-page ui-page-form">
-    <a class="ui-back" href="{% url 'case_builder' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
-    <header class="ui-page-header">
-        {% include "includes/ui/case_progress.html" with step=3 %}
-        <h1 class="ui-page-title">Solicitar aprobación</h1>
-        <p class="ui-page-context">{{ case.reference }} · {{ case.audited_organization.name }}</p>
-    </header>
+    <div class="ui-layout ui-layout-context">
+        <a class="ui-back ui-layout-full" href="{% url 'case_builder' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                {% include "includes/ui/case_progress.html" with step=3 %}
+                <h1 class="ui-page-title">Solicitar aprobación</h1>
+                <p class="ui-page-context">{{ case.reference }} · {{ case.audited_organization.name }}</p>
+            </header>
 
-    {% if publication_issues %}
-    <div class="ui-callout ui-callout-warning" role="alert" aria-labelledby="requisitos-pendientes">
-        <h2 class="ui-callout-title" id="requisitos-pendientes">Faltan requisitos</h2>
-        <ul>{% for issue in publication_issues %}<li>{{ issue }}</li>{% endfor %}</ul>
-        <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'case_edit' case.pk %}">Completar datos generales</a></div>
+            {% if publication_issues %}
+            <div class="ui-callout ui-callout-warning" role="alert" aria-labelledby="requisitos-pendientes">
+                <h2 class="ui-callout-title" id="requisitos-pendientes">Faltan requisitos</h2>
+                <ul>{% for issue in publication_issues %}<li>{{ issue }}</li>{% endfor %}</ul>
+                <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'case_edit' case.pk %}">Completar datos generales</a></div>
+            </div>
+            {% else %}
+            <div class="ui-callout ui-callout-inline" role="status">{% ui_icon "check" %}<span><strong>Requisitos completos.</strong> Puede enviarlo a Dirección.</span></div>
+            {% endif %}
+        </div>
+        <div class="ui-layout-main">
+            <section class="ui-section" aria-labelledby="publish-general-title">
+                <div class="ui-section-head"><h2 class="ui-section-title" id="publish-general-title">Datos generales</h2><a class="ui-button ui-button-text" href="{% url 'case_edit' case.pk %}">Editar</a></div>
+                <dl class="ui-list ui-facts">
+                    <div class="ui-list-row"><dt>Referencia</dt><dd>{{ case.reference }}</dd></div>
+                    <div class="ui-list-row"><dt>Institución auditada</dt><dd>{{ case.audited_organization.name }}</dd></div>
+                    <div class="ui-list-row"><dt>Auditor responsable</dt><dd>{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}</dd></div>
+                    <div class="ui-list-row"><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"j b Y"|default:"Sin definir" }}</dd></div>
+                </dl>
+            </section>
+
+            <section class="ui-section" aria-labelledby="publish-report-title">
+                <div class="ui-section-head"><h2 class="ui-section-title" id="publish-report-title">Informe Word</h2><a class="ui-button ui-button-text" href="{% url 'case_report_upload' case.pk %}">Cargar nueva versión</a></div>
+                <div class="ui-list">
+                    {% if report_document %}<div class="ui-list-row">{% ui_icon "file" %}<span class="ui-list-text"><span class="ui-list-title">Versión {{ report_document.version }} · {{ report_document.title }}</span><span class="ui-list-support">{{ report_document.original_filename }}</span></span></div>
+                    {% else %}<div class="ui-list-row"><span class="ui-list-support">No hay un informe cargado.</span></div>{% endif %}
+                </div>
+            </section>
+
+            <section class="ui-section" aria-labelledby="publish-content-title">
+                <div class="ui-section-head"><h2 class="ui-section-title" id="publish-content-title">Contenido</h2><a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Editar</a></div>
+                <div class="ui-list">
+                    {% for finding in findings %}<div class="ui-list-row"><span class="ui-list-text"><span class="ui-list-title">Hallazgo {{ finding.number }} · {{ finding.title }}</span><span class="ui-list-support">{{ finding.recommendations.all|length }} recomendación{{ finding.recommendations.all|length|pluralize:"es" }}</span></span></div>{% empty %}<div class="ui-list-row"><span class="ui-list-support">No hay hallazgos registrados.</span></div>{% endfor %}
+                </div>
+            </section>
+
+            <form method="post" class="ui-card ui-form-grid">
+                {% csrf_token %}
+                <p><strong>No podrá editar el borrador mientras la solicitud esté pendiente.</strong> Si Dirección lo devuelve, podrá corregirlo.</p>
+                <div class="ui-form-actions">
+                    <a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Volver al contenido</a>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit" {% if publication_issues %}disabled{% endif %}>{% ui_icon "send" %}Enviar para aprobación</button>
+                </div>
+            </form>
+        </div>
     </div>
-    {% else %}
-    <div class="ui-callout ui-callout-inline" role="status">{% ui_icon "check" %}<span><strong>Requisitos completos.</strong> Puede enviarlo a Dirección.</span></div>
-    {% endif %}
-
-    <section class="ui-section" aria-labelledby="publish-general-title">
-        <div class="ui-section-head"><h2 class="ui-section-title" id="publish-general-title">Datos generales</h2><a class="ui-button ui-button-text" href="{% url 'case_edit' case.pk %}">Editar</a></div>
-        <dl class="ui-list ui-facts">
-            <div class="ui-list-row"><dt>Referencia</dt><dd>{{ case.reference }}</dd></div>
-            <div class="ui-list-row"><dt>Institución auditada</dt><dd>{{ case.audited_organization.name }}</dd></div>
-            <div class="ui-list-row"><dt>Auditor responsable</dt><dd>{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}</dd></div>
-            <div class="ui-list-row"><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"j b Y"|default:"Sin definir" }}</dd></div>
-        </dl>
-    </section>
-
-    <section class="ui-section" aria-labelledby="publish-report-title">
-        <div class="ui-section-head"><h2 class="ui-section-title" id="publish-report-title">Informe Word</h2><a class="ui-button ui-button-text" href="{% url 'case_report_upload' case.pk %}">Cargar nueva versión</a></div>
-        <div class="ui-list">
-            {% if report_document %}<div class="ui-list-row">{% ui_icon "file" %}<span class="ui-list-text"><span class="ui-list-title">Versión {{ report_document.version }} · {{ report_document.title }}</span><span class="ui-list-support">{{ report_document.original_filename }}</span></span></div>
-            {% else %}<div class="ui-list-row"><span class="ui-list-support">No hay un informe cargado.</span></div>{% endif %}
-        </div>
-    </section>
-
-    <section class="ui-section" aria-labelledby="publish-content-title">
-        <div class="ui-section-head"><h2 class="ui-section-title" id="publish-content-title">Contenido</h2><a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Editar</a></div>
-        <div class="ui-list">
-            {% for finding in findings %}<div class="ui-list-row"><span class="ui-list-text"><span class="ui-list-title">Hallazgo {{ finding.number }} · {{ finding.title }}</span><span class="ui-list-support">{{ finding.recommendations.all|length }} recomendación{{ finding.recommendations.all|length|pluralize:"es" }}</span></span></div>{% empty %}<div class="ui-list-row"><span class="ui-list-support">No hay hallazgos registrados.</span></div>{% endfor %}
-        </div>
-    </section>
-
-    <form method="post" class="ui-card">
-        {% csrf_token %}
-        <p><strong>No podrá editar el borrador mientras la solicitud esté pendiente.</strong> Si Dirección lo devuelve, podrá corregirlo.</p>
-        <div class="ui-form-actions">
-            <a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Volver al contenido</a>
-            <button class="ui-button ui-button-filled ui-button-large" type="submit" {% if publication_issues %}disabled{% endif %}>{% ui_icon "send" %}Enviar para aprobación</button>
-        </div>
-    </form>
 </div>
 {% endblock %}

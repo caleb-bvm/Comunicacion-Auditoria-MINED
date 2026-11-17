@@ -3,19 +3,25 @@
 {% block title %}Agregar documentos | Informe anterior{% endblock %}
 {% block content %}
 <div class="ui-page ui-page-form">
-    <a class="ui-back" href="{% url 'historical_document_detail' document.pk %}">{% ui_icon "back" %}{{ document.reference|default:document.title }}</a>
-    <header class="ui-page-header">
-        <h1 class="ui-page-title">Agregar documentos al informe</h1>
-        <p class="ui-page-context">{{ document.organization.code }} · {{ document.organization.name }} · {{ document.title }}</p>
-    </header>
-    <form method="post" enctype="multipart/form-data" class="ui-stack ui-stack-loose">
-        {% csrf_token %}
-        {% if error %}<div class="ui-form-error" role="alert">{{ error }}</div>{% endif %}
-        {% include 'audits/historical_attachment_fields.html' %}
-        <div class="ui-form-actions">
-            <a class="ui-button ui-button-text" href="{% url 'historical_document_detail' document.pk %}">Cancelar</a>
-            <button class="ui-button ui-button-filled ui-button-large" type="submit">{% ui_icon "upload" %}Guardar documentos</button>
+    <div class="ui-layout ui-layout-context">
+        <a class="ui-back ui-layout-full" href="{% url 'historical_document_detail' document.pk %}">{% ui_icon "back" %}{{ document.reference|default:document.title }}</a>
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                <h1 class="ui-page-title">Agregar documentos al informe</h1>
+                <p class="ui-page-context">{{ document.organization.code }} · {{ document.organization.name }} · {{ document.title }}</p>
+            </header>
         </div>
-    </form>
+        <div class="ui-layout-main">
+            <form method="post" enctype="multipart/form-data" class="ui-stack ui-stack-loose">
+                {% csrf_token %}
+                {% if error %}<div class="ui-form-error" role="alert">{{ error }}</div>{% endif %}
+                {% include 'audits/historical_attachment_fields.html' %}
+                <div class="ui-form-actions">
+                    <a class="ui-button ui-button-text" href="{% url 'historical_document_detail' document.pk %}">Cancelar</a>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit">{% ui_icon "upload" %}Guardar documentos</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

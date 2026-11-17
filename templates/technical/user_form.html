@@ -3,19 +3,25 @@
 {% block title %}Nueva cuenta interna | Administración técnica{% endblock %}
 {% block content %}
 <div class="ui-page ui-page-form">
-    <a class="ui-back" href="{% url 'technical_users' %}">{% ui_icon "back" %}Usuarios</a>
-    <header class="ui-page-header">
-        <h1 class="ui-page-title">Nueva cuenta interna</h1>
-        <p class="ui-page-context">Para personal técnico o auditor. Las cuentas de los centros se activan desde Dirección.</p>
-    </header>
-    <form class="ui-card" method="post">
-        {% csrf_token %}
-        {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-        {% include "includes/ui/form_fields.html" with fields=form %}
-        <div class="ui-form-actions">
-            <a class="ui-button ui-button-text" href="{% url 'technical_users' %}">Cancelar</a>
-            <button class="ui-button ui-button-filled ui-button-large" type="submit">{% ui_icon "plus" %}Crear cuenta</button>
+    <div class="ui-layout ui-layout-context">
+        <a class="ui-back ui-layout-full" href="{% url 'technical_users' %}">{% ui_icon "back" %}Usuarios</a>
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                <h1 class="ui-page-title">Nueva cuenta interna</h1>
+                <p class="ui-page-context">Para personal técnico o auditor. Las cuentas de los centros se activan desde Dirección.</p>
+            </header>
         </div>
-    </form>
+        <div class="ui-layout-main">
+            <form class="ui-card ui-form-grid" method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                {% include "includes/ui/form_fields.html" with fields=form %}
+                <div class="ui-form-actions">
+                    <a class="ui-button ui-button-text" href="{% url 'technical_users' %}">Cancelar</a>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit">{% ui_icon "plus" %}Crear cuenta</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

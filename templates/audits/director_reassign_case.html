@@ -3,21 +3,27 @@
 {% block title %}Reasignar {{ case.reference }} | Dirección de Auditoría{% endblock %}
 {% block content %}
 <div class="ui-page ui-page-form">
-    <a class="ui-back" href="{% url 'case_detail' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
-    <header class="ui-page-header">
-        <h1 class="ui-page-title">Reasignar expediente</h1>
-        <p class="ui-page-context">{{ case.audited_organization.name }}</p>
-    </header>
-    <div class="ui-list"><div class="ui-list-row">{% ui_icon "user" %}<span class="ui-list-text"><span class="ui-list-support">Auditor responsable actual</span><span class="ui-list-title">{{ previous_auditor.get_full_name|default:previous_auditor.username }}</span></span></div></div>
-    <form method="post" class="ui-card">
-        {% csrf_token %}
-        {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-        {% include "includes/ui/form_fields.html" with fields=form %}
-        <p class="ui-help">La reasignación quedará registrada en la bitácora.</p>
-        <div class="ui-form-actions">
-            <a class="ui-button ui-button-text" href="{% url 'case_detail' case.pk %}">Cancelar</a>
-            <button class="ui-button ui-button-filled ui-button-large" type="submit">Confirmar reasignación</button>
+    <div class="ui-layout ui-layout-context">
+        <a class="ui-back ui-layout-full" href="{% url 'case_detail' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                <h1 class="ui-page-title">Reasignar expediente</h1>
+                <p class="ui-page-context">{{ case.audited_organization.name }}</p>
+            </header>
+            <div class="ui-list"><div class="ui-list-row">{% ui_icon "user" %}<span class="ui-list-text"><span class="ui-list-support">Auditor responsable actual</span><span class="ui-list-title">{{ previous_auditor.get_full_name|default:previous_auditor.username }}</span></span></div></div>
         </div>
-    </form>
+        <div class="ui-layout-main">
+            <form method="post" class="ui-card ui-form-grid">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                {% include "includes/ui/form_fields.html" with fields=form %}
+                <p class="ui-help">La reasignación quedará registrada en la bitácora.</p>
+                <div class="ui-form-actions">
+                    <a class="ui-button ui-button-text" href="{% url 'case_detail' case.pk %}">Cancelar</a>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit">Confirmar reasignación</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -2,23 +2,23 @@
 {% load ui %}
 {% block title %}Registrar prórroga | {{ case.reference }}{% endblock %}
 {% block content %}
-<div class="ui-page">
-    <a class="ui-back" href="{% url 'case_detail' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
-    <header class="ui-page-header">
-        <h1 class="ui-page-title">Registrar prórroga</h1>
-        <p class="ui-page-context">La nueva fecha cuenta solo días hábiles: excluye fines de semana y asuetos.</p>
-    </header>
+<div class="ui-page ui-page-form">
     <div class="ui-layout ui-layout-context">
-        <aside class="ui-layout-aside" aria-labelledby="extension-recommendation-title">
-            <section class="ui-card">
+        <a class="ui-back ui-layout-full" href="{% url 'case_detail' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                <h1 class="ui-page-title">Registrar prórroga</h1>
+                <p class="ui-page-context">La nueva fecha cuenta solo días hábiles: excluye fines de semana y asuetos.</p>
+            </header>
+            <section class="ui-card" aria-labelledby="extension-recommendation-title">
                 <div class="ui-chips">{% ui_deadline_chip recommendation.deadline %}</div>
                 <h2 class="ui-card-title" id="extension-recommendation-title">Recomendación {{ recommendation.finding.number }}.{{ recommendation.number }}</h2>
                 <p>{{ recommendation.text|linebreaksbr }}</p>
                 <p class="ui-card-support">Responde: {{ recommendation.responsible_organization.name }} · fecha límite vigente {{ recommendation.deadline|date:"j b Y" }}</p>
             </section>
-        </aside>
+        </div>
         <div class="ui-layout-main">
-            <form method="post" class="ui-card">
+            <form method="post" class="ui-card ui-form-grid">
                 {% csrf_token %}
                 {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
                 {% include "includes/ui/form_fields.html" with fields=form %}

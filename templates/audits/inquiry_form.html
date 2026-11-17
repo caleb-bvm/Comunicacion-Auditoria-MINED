@@ -3,19 +3,25 @@
 {% block title %}Nueva consulta | SIGA{% endblock %}
 {% block content %}
 <div class="ui-page ui-page-form">
-    <a class="ui-back" href="{% url 'audit_inquiries' %}">{% ui_icon "back" %}Consultas</a>
-    <header class="ui-page-header">
-        <h1 class="ui-page-title">Nueva consulta</h1>
-        <p class="ui-page-context">Elija el expediente y escriba su pregunta. Llegará a Auditoría.</p>
-    </header>
-    <form method="post" enctype="multipart/form-data" class="ui-card">
-        {% csrf_token %}
-        {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-        {% include "includes/ui/form_fields.html" with fields=form %}
-        <div class="ui-form-actions">
-            <a class="ui-button ui-button-text" href="{% url 'audit_inquiries' %}">Cancelar</a>
-            <button class="ui-button ui-button-filled ui-button-large" type="submit">{% ui_icon "send" %}Enviar consulta</button>
+    <div class="ui-layout ui-layout-context">
+        <a class="ui-back ui-layout-full" href="{% url 'audit_inquiries' %}">{% ui_icon "back" %}Consultas</a>
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                <h1 class="ui-page-title">Nueva consulta</h1>
+                <p class="ui-page-context">Elija el expediente y escriba su pregunta. Llegará a Auditoría.</p>
+            </header>
         </div>
-    </form>
+        <div class="ui-layout-main">
+            <form method="post" enctype="multipart/form-data" class="ui-card ui-form-grid">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                {% include "includes/ui/form_fields.html" with fields=form %}
+                <div class="ui-form-actions">
+                    <a class="ui-button ui-button-text" href="{% url 'audit_inquiries' %}">Cancelar</a>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit">{% ui_icon "send" %}Enviar consulta</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

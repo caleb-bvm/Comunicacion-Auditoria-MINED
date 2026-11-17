@@ -81,6 +81,8 @@
     --ui-page-gutter: clamp(1.5rem, 2.2vw, 2.5rem); /* margen lateral de la página en escritorio */
     --ui-aside-width: clamp(360px, 24vw, 440px); /* columna lateral en escritorio: crece con la pantalla */
     --ui-form-max: 800px;    /* línea cómoda para formularios */
+    --ui-form-wide: 960px;   /* formulario junto al contexto en escritorio (campos cortos en pares) */
+    --ui-context-max: calc(var(--ui-aside-width) + var(--ui-space-8) + var(--ui-form-wide)); /* contexto + formulario en escritorio */
 
     /* Tamaños táctiles */
     --ui-touch: 48px;

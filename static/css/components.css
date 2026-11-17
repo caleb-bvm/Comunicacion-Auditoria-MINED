@@ -128,7 +128,7 @@ body {
 @media (min-width: 1081px) {
     .ui-layout { grid-template-columns: minmax(0, 1fr) var(--ui-aside-width); gap: var(--ui-space-8); }
     .ui-layout-context {
-        max-width: calc(var(--ui-aside-width) + var(--ui-space-8) + var(--ui-form-max));
+        max-width: var(--ui-context-max);
         grid-template-columns: var(--ui-aside-width) minmax(0, 1fr);
     }
     .ui-layout-aside { position: sticky; top: var(--ui-space-8); }
@@ -619,7 +619,20 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-link-row:hover { text-decoration: underline; }
 
 /* ---------- Variantes ---------- */
+/* Página de formulario: una columna de 800 px en teléfono y tableta; en escritorio,
+ * encabezado y contexto a la izquierda (.ui-layout-context) y el formulario a la derecha. */
 .ui-page-form { max-width: var(--ui-form-max); }
+@media (min-width: 1081px) {
+    .ui-page-form { max-width: var(--ui-context-max); }
+}
+/* Formulario en dos columnas cuando hay espacio: dos campos cortos seguidos (fecha, lista,
+ * número, correo) comparten fila; un campo corto solo y los demás ocupan todo el ancho. */
+@container (min-width: 600px) {
+    .ui-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ui-form-grid > * { grid-column: 1 / -1; }
+    .ui-form-grid > .ui-field-short:has(+ .ui-field-short),
+    .ui-form-grid > .ui-field-short + .ui-field-short { grid-column: auto; }
+}
 .ui-stack-loose { gap: var(--ui-space-6); }
 .ui-field-wide { grid-column: 1 / -1; }
 .ui-card-compact { padding: var(--ui-space-5); gap: var(--ui-space-2); }

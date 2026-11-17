@@ -3,20 +3,26 @@
 {% block title %}{{ form_title }} | Auditoría Interna{% endblock %}
 {% block content %}
 <div class="ui-page ui-page-form">
-    <a class="ui-back" href="{% if case %}{% url 'case_builder' case.pk %}{% else %}{% url 'case_list' %}{% endif %}">{% ui_icon "back" %}{% if case %}{{ case.reference }}{% else %}Expedientes{% endif %}</a>
-    <header class="ui-page-header">
-        {% include "includes/ui/case_progress.html" with step=1 %}
-        <h1 class="ui-page-title">{{ form_title }}</h1>
-        <p class="ui-page-context">Se guarda como borrador; ningún centro lo ve hasta que Dirección lo apruebe.</p>
-    </header>
-    <form method="post" enctype="multipart/form-data" class="ui-card">
-        {% csrf_token %}
-        {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-        {% include "includes/ui/form_fields.html" with fields=form %}
-        <div class="ui-form-actions">
-            <a class="ui-button ui-button-text" href="{% if case %}{% url 'case_builder' case.pk %}{% else %}{% url 'case_list' %}{% endif %}">Cancelar</a>
-            <button class="ui-button ui-button-filled ui-button-large" type="submit">Guardar y continuar{% ui_icon "forward" %}</button>
+    <div class="ui-layout ui-layout-context">
+        <a class="ui-back ui-layout-full" href="{% if case %}{% url 'case_builder' case.pk %}{% else %}{% url 'case_list' %}{% endif %}">{% ui_icon "back" %}{% if case %}{{ case.reference }}{% else %}Expedientes{% endif %}</a>
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                {% include "includes/ui/case_progress.html" with step=1 %}
+                <h1 class="ui-page-title">{{ form_title }}</h1>
+                <p class="ui-page-context">Se guarda como borrador; ningún centro lo ve hasta que Dirección lo apruebe.</p>
+            </header>
         </div>
-    </form>
+        <div class="ui-layout-main">
+            <form method="post" enctype="multipart/form-data" class="ui-card ui-form-grid">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                {% include "includes/ui/form_fields.html" with fields=form %}
+                <div class="ui-form-actions">
+                    <a class="ui-button ui-button-text" href="{% if case %}{% url 'case_builder' case.pk %}{% else %}{% url 'case_list' %}{% endif %}">Cancelar</a>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit">Guardar y continuar{% ui_icon "forward" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}
