@@ -192,7 +192,7 @@
             <div class="ui-layout-main">
                 <h3 class="ui-label">Nunca auditados</h3>
                 {% if never_audited_centers %}
-                <div class="ui-list">
+                <div class="ui-list ui-list-columns">
                     {% for center in never_audited_centers %}
                     <a class="ui-list-row" href="{% url 'director_educational_center_detail' center.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ center.name }}</span><span class="ui-list-support">{{ center.code }} · {{ center.district|default:"Ubicación incompleta" }}{% if center.department %} · {{ center.department }}{% endif %}</span></span><span class="ui-chip">Sin auditorías</span></a>
                     {% endfor %}

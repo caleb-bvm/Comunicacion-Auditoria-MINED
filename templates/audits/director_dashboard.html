@@ -32,49 +32,50 @@
         <div class="ui-card"><div class="ui-empty"><span class="ui-empty-mark">{% ui_icon "check" %}</span><h2 class="ui-card-title">No hay publicaciones ni cierres esperando su decisión</h2></div></div>
         {% endif %}
 
-        {% if stalled_cases %}
-        <section class="ui-section" aria-labelledby="stalled-title">
-            <h2 class="ui-section-title" id="stalled-title">Expedientes sin movimiento</h2>
-            <div class="ui-list">
-                {% for case in stalled_cases %}
-                <a class="ui-list-row" href="{% url 'case_detail' case.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ case.audited_organization.name }}</span><span class="ui-list-support">{{ case.reference }} · {% if case.assigned_auditor %}{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}{% else %}sin auditor asignado{% endif %} · sin movimiento desde el {{ case.updated_at|date:"j b" }}</span></span>{% ui_icon "chevron" %}</a>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
+        <div class="ui-section-columns">
+            {% if stalled_cases %}
+            <section class="ui-section" aria-labelledby="stalled-title">
+                <h2 class="ui-section-title" id="stalled-title">Expedientes sin movimiento</h2>
+                <div class="ui-list">
+                    {% for case in stalled_cases %}
+                    <a class="ui-list-row" href="{% url 'case_detail' case.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ case.audited_organization.name }}</span><span class="ui-list-support">{{ case.reference }} · {% if case.assigned_auditor %}{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}{% else %}sin auditor asignado{% endif %} · sin movimiento desde el {{ case.updated_at|date:"j b" }}</span></span>{% ui_icon "chevron" %}</a>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
 
-        {% if pending_review_items %}
-        <section class="ui-section" aria-labelledby="reviews-title">
-            <h2 class="ui-section-title" id="reviews-title">Respuestas que esperan al auditor</h2>
-            <div class="ui-list">
-                {% for response in pending_review_items %}
-                <a class="ui-list-row" href="{% url 'case_detail' response.recommendation.finding.case.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ response.recommendation.finding.case.audited_organization.name }}</span><span class="ui-list-support">{{ response.recommendation.finding.case.reference }} · llegó hace {{ response.submitted_at|timesince }}</span></span>{% ui_icon "chevron" %}</a>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
+            {% if pending_review_items %}
+            <section class="ui-section" aria-labelledby="reviews-title">
+                <h2 class="ui-section-title" id="reviews-title">Respuestas que esperan al auditor</h2>
+                <div class="ui-list">
+                    {% for response in pending_review_items %}
+                    <a class="ui-list-row" href="{% url 'case_detail' response.recommendation.finding.case.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ response.recommendation.finding.case.audited_organization.name }}</span><span class="ui-list-support">{{ response.recommendation.finding.case.reference }} · llegó hace {{ response.submitted_at|timesince }}</span></span>{% ui_icon "chevron" %}</a>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
 
-        {% if expired_invitations %}
-        <section class="ui-section" aria-labelledby="invitations-title">
-            <h2 class="ui-section-title" id="invitations-title">Invitaciones de acceso vencidas</h2>
-            <div class="ui-list">
-                {% for account in expired_invitations %}
-                <div class="ui-list-row"><span class="ui-list-text"><span class="ui-list-title">{{ account.organization.name|title }}</span><span class="ui-list-support">El enlace venció; se envió el {{ account.activation_requested_at|date:"j b Y" }}</span></span><form method="post" action="{% url 'director_activate_educational_center' account.organization_id %}">{% csrf_token %}<button class="ui-button ui-button-tonal" type="submit">Reenviar</button></form></div>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
-
-        <section class="ui-section" aria-labelledby="priority-title">
-            <div class="ui-page-header-row"><h2 class="ui-section-title" id="priority-title">Centros que piden atención</h2><a class="ui-button ui-button-text" href="{% url 'director_educational_centers' %}?attention=immediate">Ver todos</a></div>
-            {% if priority_centers %}
-            <div class="ui-list">
-                {% for center in priority_centers %}
-                <a class="ui-list-row" href="{% url 'director_educational_center_detail' center.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ center.name|title }}</span><span class="ui-list-support">{{ center.code }}{% if center.department %} · {{ center.department|title }}{% endif %}{% if center.attention_reasons %} · {{ center.attention_reasons.0.label }}{% endif %}</span></span><span class="ui-chip {% if center.attention_level == 'immediate' %}ui-chip-danger{% elif center.attention_level == 'high' %}ui-chip-correction{% elif center.attention_level == 'followup' %}ui-chip-warning{% endif %}">{{ center.attention_label }}</span></a>
-                {% endfor %}
-            </div>
-            {% else %}<p class="ui-help">No hay centros que requieran atención.</p>{% endif %}
-        </section>
+            {% if expired_invitations %}
+            <section class="ui-section" aria-labelledby="invitations-title">
+                <h2 class="ui-section-title" id="invitations-title">Invitaciones de acceso vencidas</h2>
+                <div class="ui-list">
+                    {% for account in expired_invitations %}
+                    <div class="ui-list-row"><span class="ui-list-text"><span class="ui-list-title">{{ account.organization.name|title }}</span><span class="ui-list-support">El enlace venció; se envió el {{ account.activation_requested_at|date:"j b Y" }}</span></span><form method="post" action="{% url 'director_activate_educational_center' account.organization_id %}">{% csrf_token %}<button class="ui-button ui-button-tonal" type="submit">Reenviar</button></form></div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+            <section class="ui-section" aria-labelledby="priority-title">
+                <div class="ui-page-header-row"><h2 class="ui-section-title" id="priority-title">Centros que piden atención</h2><a class="ui-button ui-button-text" href="{% url 'director_educational_centers' %}?attention=immediate">Ver todos</a></div>
+                {% if priority_centers %}
+                <div class="ui-list">
+                    {% for center in priority_centers %}
+                    <a class="ui-list-row" href="{% url 'director_educational_center_detail' center.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ center.name|title }}</span><span class="ui-list-support">{{ center.code }}{% if center.department %} · {{ center.department|title }}{% endif %}{% if center.attention_reasons %} · {{ center.attention_reasons.0.label }}{% endif %}</span></span><span class="ui-chip {% if center.attention_level == 'immediate' %}ui-chip-danger{% elif center.attention_level == 'high' %}ui-chip-correction{% elif center.attention_level == 'followup' %}ui-chip-warning{% endif %}">{{ center.attention_label }}</span></a>
+                    {% endfor %}
+                </div>
+                {% else %}<p class="ui-help">No hay centros que requieran atención.</p>{% endif %}
+            </section>
+        </div>
     </div>
 
     <aside class="ui-layout-aside" aria-label="Seguimiento y accesos">

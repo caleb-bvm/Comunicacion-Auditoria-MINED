@@ -303,6 +303,23 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
     .ui-list-item { flex-direction: column; align-items: stretch; gap: var(--ui-space-3); }
 }
 
+/* Lista larga en dos columnas cuando la columna que la contiene es muy ancha. Se lee por
+ * filas (izquierda → derecha); la línea divisoria aparece desde la segunda fila. */
+@container (min-width: 960px) {
+    .ui-list-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--ui-space-12); }
+    .ui-list-columns > .ui-list-row + .ui-list-row { border-top: 0; }
+    .ui-list-columns > .ui-list-row:nth-child(n + 3) { border-top: 1px solid var(--ui-divider); }
+}
+
+/* Secciones de un tablero en dos columnas equilibradas cuando la columna que las contiene
+ * es muy ancha: cada columna apila sus secciones sin huecos (se leen de arriba abajo, en el
+ * orden del HTML). Una sección sola ocupa todo el ancho; en pantallas angostas se apilan. */
+.ui-section-columns { display: flex; flex-direction: column; gap: var(--ui-space-6); }
+@container (min-width: 960px) {
+    .ui-section-columns:has(> :nth-child(2)) { display: block; column-count: 2; column-gap: var(--ui-space-8); }
+    .ui-section-columns:has(> :nth-child(2)) > * { break-inside: avoid; margin-bottom: var(--ui-space-6); }
+}
+
 /* Barra de pestañas y filtros en una sola fila, alineados a la izquierda. */
 .ui-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--ui-space-3) var(--ui-space-6); }
 .ui-toolbar > .ui-filters { flex: 0 1 280px; }
