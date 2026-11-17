@@ -32,13 +32,13 @@
 
     {% if cases %}
     <div class="ui-table-wrap">
-        <table class="ui-table">
+        <table class="ui-table ui-table-fit">
             <caption class="ui-visually-hidden">Expedientes encontrados</caption>
             <thead><tr><th scope="col">Expediente</th><th scope="col">Estado</th><th scope="col">Plazo</th><th scope="col" class="ui-table-end">Qué sigue</th></tr></thead>
             <tbody>
                 {% for case in cases %}
                 <tr{% if case.next_step == 'review' or case.next_step == 'draft' %} class="is-highlighted"{% endif %}>
-                    <td><a class="ui-table-link" href="{% url 'case_detail' case.pk %}">{{ case.audited_organization.name }}</a><span class="ui-table-support">{{ case.reference }} · {{ case.audited_organization.code }} · {{ case.title|truncatechars:48 }}</span></td>
+                    <td><a class="ui-table-link" href="{% url 'case_detail' case.pk %}">{{ case.audited_organization.name }}</a><span class="ui-table-support ui-table-clamp">{{ case.reference }} · {{ case.audited_organization.code }} · {{ case.title }}</span></td>
                     <td>{% ui_case_status_chip case.status %}</td>
                     <td>{% if case.open_count and case.next_deadline %}{% ui_deadline_chip case.next_deadline %}{% else %}<span class="ui-table-support">—</span>{% endif %}</td>
                     <td class="ui-table-end">

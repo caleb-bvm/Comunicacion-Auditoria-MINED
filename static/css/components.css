@@ -393,6 +393,13 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-table-link:hover { color: var(--ui-primary); text-decoration: underline; }
 .ui-table-support { display: block; font-size: var(--ui-text-support); line-height: 24px; color: var(--ui-on-surface-variant); }
 .ui-table-end .ui-table-support { display: inline; }
+/* Apoyo largo (títulos de expediente): texto completo hasta dos líneas. */
+.ui-table-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+/* Tablas cuya primera columna lleva el texto: las demás (estado, plazo, cifras, acción)
+ * se ajustan a su contenido y la primera recibe todo el ancho sobrante. */
+@media (min-width: 721px) {
+    .ui-table-fit tr > :not(:first-child) { width: 1%; white-space: nowrap; }
+}
 
 /* ---------- Lista de verificación ---------- */
 .ui-checklist { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--ui-space-3); }
