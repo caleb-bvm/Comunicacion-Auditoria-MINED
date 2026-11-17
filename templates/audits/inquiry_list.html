@@ -16,13 +16,15 @@
         <button class="ui-button ui-button-tonal" type="submit">Aplicar</button>
     </form>
     {% if inquiries %}
-    <div class="ui-card-grid ui-card-grid-fill">
+    <div class="ui-list" aria-label="Lista de consultas">
         {% for inquiry in inquiries %}
-        <article class="ui-card" aria-labelledby="inquiry-{{ inquiry.pk }}">
-            <div class="ui-chips">{% ui_request_status_chip inquiry.status inquiry.get_status_display %}{% if inquiry.priority != 'normal' %}<span class="ui-chip ui-chip-warning">Prioridad {{ inquiry.get_priority_display|lower }}</span>{% endif %}</div>
-            <h2 class="ui-card-title" id="inquiry-{{ inquiry.pk }}">{{ inquiry.subject }}</h2>
-            <p class="ui-card-support">{{ inquiry.case.reference }}{% if user.role != 'institution' %} · {{ inquiry.organization.name }}{% endif %} · {{ inquiry.updated_at|date:"j b Y" }}</p>
-            <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'audit_inquiry_detail' inquiry.pk %}">Abrir conversación</a></div>
+        <article class="ui-list-row ui-list-item" aria-labelledby="inquiry-{{ inquiry.pk }}">
+            <div class="ui-list-text">
+                <div class="ui-chips">{% ui_request_status_chip inquiry.status inquiry.get_status_display %}{% if inquiry.priority != 'normal' %}<span class="ui-chip ui-chip-warning">Prioridad {{ inquiry.get_priority_display|lower }}</span>{% endif %}</div>
+                <h2 class="ui-list-title" id="inquiry-{{ inquiry.pk }}">{{ inquiry.subject }}</h2>
+                <p class="ui-list-support">{{ inquiry.case.reference }}{% if user.role != 'institution' %} · {{ inquiry.organization.name }}{% endif %} · {{ inquiry.updated_at|date:"j b Y" }}</p>
+            </div>
+            <a class="ui-button ui-button-tonal" href="{% url 'audit_inquiry_detail' inquiry.pk %}">Abrir conversación</a>
         </article>
         {% endfor %}
     </div>

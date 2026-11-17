@@ -8,7 +8,7 @@
         <p class="ui-page-context">Publicaciones y cierres que esperan la resolución de Dirección.</p>
     </header>
 
-    <div class="ui-page-header-row">
+    <div class="ui-toolbar">
         <nav class="ui-tabs" aria-label="Estado de las decisiones">
             <a href="{% querystring status='pending' %}" class="{% if selected_status == 'pending' %}is-active{% endif %}" {% if selected_status == 'pending' %}aria-current="page"{% endif %}>Pendientes<span class="ui-tab-count">{{ decision_counts.pending }}</span></a>
             <a href="{% querystring status='returned' %}" class="{% if selected_status == 'returned' %}is-active{% endif %}" {% if selected_status == 'returned' %}aria-current="page"{% endif %}>Devueltas<span class="ui-tab-count">{{ decision_counts.returned }}</span></a>
@@ -22,16 +22,18 @@
     </div>
 
     {% if decisions %}
-    <div class="ui-card-grid ui-card-grid-fill" aria-label="Lista de decisiones">
+    <div class="ui-list" aria-label="Lista de decisiones">
         {% for decision in decisions %}
-        <article class="ui-card" aria-labelledby="decision-{{ decision.pk }}">
-            <div class="ui-chips">
-                <span class="ui-chip {% if decision.kind == 'closure' %}ui-chip-success{% else %}ui-chip-info{% endif %}">{% if decision.kind == 'closure' %}{% ui_icon "check" %}{% else %}{% ui_icon "send" %}{% endif %}{{ decision.get_kind_display }}</span>
-                {% if selected_status == 'pending' %}<span class="ui-chip ui-chip-warning">{% ui_icon "clock" %}Espera desde hace {{ decision.requested_at|timesince }}</span>{% elif decision.decided_at %}<span class="ui-chip">Resuelta el {{ decision.decided_at|date:"j b Y" }}</span>{% endif %}
+        <article class="ui-list-row ui-list-item" aria-labelledby="decision-{{ decision.pk }}">
+            <div class="ui-list-text">
+                <div class="ui-chips">
+                    <span class="ui-chip {% if decision.kind == 'closure' %}ui-chip-success{% else %}ui-chip-info{% endif %}">{% if decision.kind == 'closure' %}{% ui_icon "check" %}{% else %}{% ui_icon "send" %}{% endif %}{{ decision.get_kind_display }}</span>
+                    {% if selected_status == 'pending' %}<span class="ui-chip ui-chip-warning">{% ui_icon "clock" %}Espera desde hace {{ decision.requested_at|timesince }}</span>{% elif decision.decided_at %}<span class="ui-chip">Resuelta el {{ decision.decided_at|date:"j b Y" }}</span>{% endif %}
+                </div>
+                <h2 class="ui-list-title" id="decision-{{ decision.pk }}">{{ decision.case.audited_organization.name }}</h2>
+                <p class="ui-list-support">{{ decision.case.reference }} · {{ decision.case.title|truncatechars:90 }} · {{ decision.case.assigned_auditor.get_full_name|default:decision.case.assigned_auditor.username }}</p>
             </div>
-            <h2 class="ui-card-title" id="decision-{{ decision.pk }}">{{ decision.case.audited_organization.name }}</h2>
-            <p class="ui-card-support">{{ decision.case.reference }} · {{ decision.case.title|truncatechars:90 }} · {{ decision.case.assigned_auditor.get_full_name|default:decision.case.assigned_auditor.username }}</p>
-            <div class="ui-card-actions"><a class="ui-button {% if selected_status == 'pending' and forloop.first %}ui-button-filled{% else %}ui-button-tonal{% endif %}" href="{% url 'director_decision_detail' decision.pk %}">{% if selected_status == 'pending' %}Revisar ahora{% else %}Ver resolución{% endif %}</a></div>
+            <a class="ui-button {% if selected_status == 'pending' and forloop.first %}ui-button-filled{% else %}ui-button-tonal{% endif %}" href="{% url 'director_decision_detail' decision.pk %}">{% if selected_status == 'pending' %}Revisar ahora{% else %}Ver resolución{% endif %}</a>
         </article>
         {% endfor %}
     </div>

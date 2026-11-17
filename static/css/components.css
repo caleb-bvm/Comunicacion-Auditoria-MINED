@@ -198,7 +198,8 @@ body {
 /* Los títulos nuevos ganan a las reglas genéricas de app.css (.content h1, .content h2). */
 .content :is(h1, h2, h3).ui-card-title,
 .content :is(h1, h2, h3).ui-section-title,
-.content :is(h1, h2, h3).ui-callout-title { font-weight: 600; letter-spacing: 0; }
+.content :is(h1, h2, h3).ui-callout-title,
+.content :is(h2, h3).ui-list-title { font-weight: 600; letter-spacing: 0; }
 .content :is(h1, h2).ui-page-title,
 .content :is(h1, h2).ui-step-title { font-weight: 500; letter-spacing: 0; }
 
@@ -288,6 +289,25 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-list-title { font-weight: 600; overflow-wrap: anywhere; }
 .ui-list-support { font-size: var(--ui-text-support); line-height: 24px; color: var(--ui-on-surface-variant); }
 .ui-list-row > .ui-icon { color: var(--ui-on-surface-variant); }
+
+/* Lista de trabajo: cada fila sigue la anatomía de la tarjeta (estado → título → apoyo →
+ * una acción) pero ocupa todo el ancho, así una bandeja con uno o dos elementos no deja
+ * media pantalla vacía. En teléfono la acción baja debajo del texto. */
+.ui-list-item { padding-block: var(--ui-space-4); gap: var(--ui-space-6); }
+.ui-list-item .ui-list-text { gap: var(--ui-space-2); }
+.ui-list-item .ui-list-title { margin: 0; font-size: var(--ui-text-title); line-height: 28px; }
+.ui-list-item .ui-list-support { margin: 0; }
+.ui-list-item > .ui-button { flex: 0 0 auto; }
+@media (max-width: 720px) {
+    .ui-list-item { flex-direction: column; align-items: stretch; gap: var(--ui-space-3); }
+}
+
+/* Barra de pestañas y filtros en una sola fila, alineados a la izquierda. */
+.ui-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--ui-space-3) var(--ui-space-6); }
+.ui-toolbar > .ui-filters { flex: 0 1 280px; }
+@media (max-width: 720px) {
+    .ui-toolbar > .ui-filters { flex-basis: 100%; }
+}
 
 /* ---------- Detalle plegable, recomendaciones y versiones ---------- */
 .ui-details { border-top: 1px solid var(--ui-divider); }
