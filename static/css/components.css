@@ -115,6 +115,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--ui-space-6);
+    container-type: inline-size; /* las piezas fuera de las columnas también responden a su ancho */
 }
 
 /* Principal + lateral. La lateral va después en el HTML y baja al final en pantallas angostas. */
@@ -667,6 +668,15 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-facts .ui-list-row { justify-content: space-between; flex-wrap: wrap; gap: var(--ui-space-1) var(--ui-space-4); }
 .ui-facts dt { color: var(--ui-on-surface-variant); font-size: var(--ui-text-support); }
 .ui-facts dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+/* En una columna ancha, etiqueta y valor quedan juntos (etiqueta arriba) y varios pares
+ * comparten fila, en lugar de separarse de un extremo al otro. */
+@container (min-width: 640px) {
+    .ui-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--ui-space-4) var(--ui-space-6); padding-block: var(--ui-space-5); }
+    .ui-facts .ui-list-row { min-height: 0; padding: 0; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: var(--ui-space-1); }
+    .ui-facts .ui-list-row + .ui-list-row { border-top: 0; }
+    .ui-facts dd { text-align: left; }
+    .ui-list-flat.ui-facts { padding-top: var(--ui-space-4); padding-bottom: 0; }
+}
 
 /* ---------- Tarjetas en columnas que se llenan solas ---------- */
 .ui-card-grid-fill { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
