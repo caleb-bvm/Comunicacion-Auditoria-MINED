@@ -77,8 +77,9 @@
     --ui-space-12: 48px;
 
     /* Anchos de página */
-    --ui-page-max: 1280px;   /* ancho máximo del contenido, centrado */
-    --ui-aside-width: 360px; /* columna lateral en escritorio */
+    --ui-page-max: 1600px;   /* ancho máximo del contenido, centrado */
+    --ui-page-gutter: clamp(1.5rem, 2.2vw, 2.5rem); /* margen lateral de la página en escritorio */
+    --ui-aside-width: clamp(360px, 24vw, 440px); /* columna lateral en escritorio: crece con la pantalla */
     --ui-form-max: 800px;    /* línea cómoda para formularios */
 
     /* Tamaños táctiles */

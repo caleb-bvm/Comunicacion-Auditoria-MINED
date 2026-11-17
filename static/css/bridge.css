@@ -5,8 +5,11 @@
  */
 
 /* ---------- Ancho de página: el mismo de .ui-page ---------- */
-.content {
-    max-width: calc(var(--ui-page-max) + 2 * clamp(1.5rem, 3.5vw, 3.5rem));
+@media (min-width: 1081px) {
+    .content {
+        max-width: calc(var(--ui-page-max) + 2 * var(--ui-page-gutter));
+        padding-inline: var(--ui-page-gutter);
+    }
 }
 
 /* ---------- Encabezados ---------- */
