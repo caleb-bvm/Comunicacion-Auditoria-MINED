@@ -1,0 +1,58 @@
+plugins {
+    id("com.android.application")
+}
+
+def baseUrl = (project.findProperty("sigaBaseUrl") ?: "https://auditoria.mined.gob.sv").toString().replaceAll("/+\$", "")
+if (!baseUrl.startsWith("https://")) {
+    throw new GradleException("sigaBaseUrl debe usar https://")
+}
+
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
+android {
+    namespace = "sv.gob.mined.siga"
+    compileSdk = 37
+
+    defaultConfig {
+        applicationId = "sv.gob.mined.siga"
+        minSdk = 26
+        targetSdk = 36
+        versionCode = 1
+        versionName = "1.0.0"
+        buildConfigField("String", "BASE_URL", "\"${baseUrl}\"")
+        buildConfigField("String", "BASE_HOST", "\"${new URI(baseUrl).host}\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    signingConfigs {
+        if (keystorePropsFile.exists()) {
+            release {
+                storeFile = rootProject.file(keystoreProps["storeFile"])
+                storePassword = keystoreProps["storePassword"]
+                keyAlias = keystoreProps["keyAlias"]
+                keyPassword = keystoreProps["keyPassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled = false
+            if (keystorePropsFile.exists()) {
+                signingConfig = signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}

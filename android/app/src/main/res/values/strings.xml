@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SIGA-MINEDUCYT</string>
+    <string name="error_title">No se pudo conectar</string>
+    <string name="error_body">Revise su conexión a internet e intente de nuevo.</string>
+    <string name="retry">Reintentar</string>
+    <string name="download_started">Descargando %1$s…</string>
+    <string name="download_failed">No se pudo iniciar la descarga.</string>
+    <string name="no_file_picker">No hay una aplicación para elegir archivos.</string>
+</resources>

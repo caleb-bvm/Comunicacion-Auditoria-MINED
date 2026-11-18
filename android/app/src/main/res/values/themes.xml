@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="siga_primary">#1A4D9C</color>
+    <color name="siga_surface">#F7F8FB</color>
+
+    <style name="Theme.Siga" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@color/siga_primary</item>
+        <item name="android:colorAccent">@color/siga_primary</item>
+        <item name="android:windowBackground">@color/siga_surface</item>
+        <item name="android:statusBarColor">@color/siga_primary</item>
+        <item name="android:navigationBarColor">@color/siga_surface</item>
+    </style>
+</resources>
