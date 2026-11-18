@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Biblioteca · {{ case.reference }} | Auditoría Interna{% endblock %}
+{% block content %}
+<div class="ui-page case-library-page">
+    <a class="ui-back" href="{% url 'case_builder' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+    <header class="ui-page-header">
+        {% include "includes/ui/case_progress.html" with step=2 %}
+        <h1 class="ui-page-title">Agregar desde la biblioteca</h1>
+        <p class="ui-page-context">Elija un hallazgo estándar. Se copia al expediente con sus recomendaciones y luego lo adapta al caso.</p>
+    </header>
+
+    <form method="get" class="ui-filters" role="search" data-auto-submit-filters>
+        <div class="ui-field ui-field-grow"><label for="q">Buscar</label><input id="q" name="q" type="search" value="{{ query }}" placeholder="Título, condición o recomendación"></div>
+        {% if categories %}<div class="ui-field"><label for="area">Área</label><select id="area" name="area"><option value="">Todas</option>{% for category in categories %}<option value="{{ category.pk }}" {% if selected_category == category.pk|stringformat:"d" %}selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></div>{% endif %}
+        <button class="ui-button ui-button-tonal" type="submit">Buscar</button>
+        {% if query or selected_category %}<a class="ui-button ui-button-text" href="{% url 'case_library' case.pk %}">Limpiar</a>{% endif %}
+    </form>
+
+    <section class="ui-section" aria-label="Plantillas disponibles">
+        {% for template in templates %}
+        <article class="ui-card" aria-labelledby="library-template-{{ template.pk }}">
+            <div class="ui-chips">{% if template.category %}<span class="ui-chip">{{ template.category.name }}</span>{% endif %}{% ui_risk_chip template %}</div>
+            <h2 class="ui-card-title" id="library-template-{{ template.pk }}">{{ template.title }}</h2>
+            {% if template.condition %}<p class="ui-card-support">{{ template.condition|truncatechars:240 }}</p>{% endif %}
+            <details class="ui-details">
+                <summary>{{ template.recommendations.all|length }} recomendaci{{ template.recommendations.all|length|pluralize:"ón,ones" }}</summary>
+                <ol class="ui-plain-list">
+                    {% for item in template.recommendations.all %}
+                    <li><p>{{ item.text|truncatechars:280 }}</p><p class="ui-help">{% if item.business_days %}Plazo sugerido: {{ item.business_days }} días hábiles{% else %}Plazo: fecha límite general del expediente{% endif %}</p></li>
+                    {% endfor %}
+                </ol>
+            </details>
+            <form method="post" action="{% url 'case_library_use' case.pk template.pk %}" class="ui-card-actions">{% csrf_token %}<button class="ui-button ui-button-filled" type="submit">{% ui_icon "plus" %}Usar en este expediente</button></form>
+        </article>
+        {% empty %}
+        <div class="ui-card">
+            <h2 class="ui-card-title">{% if query or selected_category %}Sin resultados{% else %}La biblioteca está vacía{% endif %}</h2>
+            <p class="ui-card-support">{% if query or selected_category %}Pruebe con otras palabras o con otra área.{% else %}Dirección todavía no ha publicado hallazgos estándar. Puede redactar el hallazgo desde cero.{% endif %}</p>
+            <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'finding_create' case.pk %}">{% ui_icon "plus" %}Redactar hallazgo</a></div>
+        </div>
+        {% endfor %}
+    </section>
+    {% with q=query|urlencode %}{% include "includes/ui/pagination.html" with query_prefix="q="|add:q|add:"&area="|add:selected_category|add:"&" %}{% endwith %}
+</div>
+{% endblock %}

@@ -455,10 +455,10 @@ document.querySelectorAll("[data-fill-date]").forEach((button) => {
 });
 
 // Frases frecuentes: "insert" agrega la frase en el cursor; "line" agrega o quita una línea propia.
+// Se usa delegación para que funcione también en filas agregadas después a un formset.
 (() => {
-    const lines = (field) => field.value.split(/\r?\n/).map((line) => line.trim());
     const refresh = (field) => {
-        const current = lines(field);
+        const current = field.value.split(/\r?\n/).map((line) => line.trim());
         document.querySelectorAll(`[data-insert-into="${field.id}"][data-insert-mode="line"]`).forEach((button) => {
             button.setAttribute("aria-pressed", String(current.includes(button.dataset.text)));
         });
@@ -485,24 +485,55 @@ document.querySelectorAll("[data-fill-date]").forEach((button) => {
             field.value = field.value.trim() ? `${field.value.replace(/\s+$/, "")}\n${text}` : text;
         }
     };
-    const fields = new Set();
-    document.querySelectorAll("[data-insert-into]").forEach((button) => {
-        const field = document.getElementById(button.dataset.insertInto);
+    // Conserva el cursor del campo: el clic en el chip no le quita el foco.
+    document.addEventListener("mousedown", (event) => {
+        if (event.target.closest("[data-insert-into]")) event.preventDefault();
+    });
+    document.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-insert-into]");
+        const field = button && document.getElementById(button.dataset.insertInto);
         if (!field) return;
-        fields.add(field);
-        // Conserva el cursor del campo: el clic en el chip no le quita el foco.
-        button.addEventListener("mousedown", (event) => event.preventDefault());
-        button.addEventListener("click", () => {
-            if (button.dataset.insertMode === "line") toggleLine(field, button.dataset.text);
-            else insertAtCursor(field, button.dataset.text);
-            field.dispatchEvent(new Event("input", { bubbles: true }));
-        });
+        if (button.dataset.insertMode === "line") toggleLine(field, button.dataset.text);
+        else insertAtCursor(field, button.dataset.text);
+        field.dispatchEvent(new Event("input", { bubbles: true }));
     });
-    fields.forEach((field) => {
-        field.addEventListener("input", () => refresh(field));
-        refresh(field);
+    document.addEventListener("input", (event) => {
+        if (event.target.id && document.querySelector(`[data-insert-into="${event.target.id}"]`)) refresh(event.target);
     });
+    new Set(Array.from(document.querySelectorAll("[data-insert-into]"), (button) => button.dataset.insertInto))
+        .forEach((id) => { const field = document.getElementById(id); if (field) refresh(field); });
 })();
+
+// Formsets con filas agregables: <section data-formset="prefijo"> con [data-formset-rows],
+// <template data-formset-template> (empty_form) y un botón [data-formset-add].
+document.querySelectorAll("[data-formset]").forEach((section) => {
+    const prefix = section.dataset.formset;
+    const total = section.querySelector(`[name="${prefix}-TOTAL_FORMS"]`);
+    const rows = section.querySelector("[data-formset-rows]");
+    const template = section.querySelector("[data-formset-template]");
+    const add = section.querySelector("[data-formset-add]");
+    if (!total || !rows || !template || !add) return;
+    const attributes = ["name", "id", "for", "aria-describedby", "aria-labelledby", "data-insert-into"];
+    add.addEventListener("click", () => {
+        const index = Number(total.value);
+        const fragment = template.content.cloneNode(true);
+        fragment.querySelectorAll("*").forEach((element) => {
+            attributes.forEach((attribute) => {
+                if (element.hasAttribute(attribute)) {
+                    element.setAttribute(attribute, element.getAttribute(attribute).replaceAll("__prefix__", String(index)));
+                }
+            });
+        });
+        fragment.querySelectorAll("[data-formset-number]").forEach((element) => {
+            element.textContent = String(index + 1);
+        });
+        const numberInput = fragment.querySelector(`[name="${prefix}-${index}-number"]`);
+        if (numberInput && !numberInput.value) numberInput.value = String(index + 1);
+        rows.append(fragment);
+        total.value = index + 1;
+        rows.lastElementChild?.querySelector("textarea")?.focus();
+    });
+});
 
 // Confirmaciones y alcance de envío sin manejadores en línea (la CSP los bloquea).
 document.querySelectorAll("form[data-confirm]").forEach((form) => {

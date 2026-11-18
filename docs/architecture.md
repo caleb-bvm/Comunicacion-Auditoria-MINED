@@ -120,6 +120,16 @@ La visibilidad se define para cada archivo, con «Solo Auditoría» como valor i
 - Los estados disponibles son abierta, en atención, pendiente de información, respondida, cerrada y reabierta. La organización confirma el cierre de una consulta respondida.
 - La creación, respuesta, reasignación, cierre y descarga de archivos se registran en la bitácora institucional.
 
+## Redacción de hallazgos y biblioteca estándar
+
+- Los borradores pueden guardarse incompletos, pero para solicitar la aprobación de Dirección cada hallazgo necesita condición, criterio, causa y efecto, y cada recomendación fecha límite y evidencias requeridas.
+- Dirección mantiene las áreas auditadas y la biblioteca de hallazgos estándar (plantillas con sus recomendaciones y plazos sugeridos en días hábiles). Áreas y plantillas no se eliminan: se desactivan.
+- Cuando existe al menos un área activa, cada hallazgo nuevo o editado debe clasificarse en un área.
+- Usar una plantilla copia el hallazgo y sus recomendaciones al borrador; el centro auditado queda como responsable y el plazo se cuenta desde la fecha del informe (o la fecha general si la plantilla no indica días). Cambios posteriores a la plantilla no alteran los hallazgos ya copiados.
+- Los datos entre [corchetes] que deja una plantilla deben reemplazarse antes de solicitar la aprobación.
+- Dirección puede guardar un hallazgo real como plantilla inactiva para depurarla antes de publicarla en la biblioteca.
+- Las frases frecuentes de los formularios están en `apps/audits/snippets.py`; el plazo sugerido por nivel de riesgo, en `RISK_DEADLINE_BUSINESS_DAYS` (`apps/audits/forms.py`).
+
 ## Decisiones pendientes de infraestructura
 
 - Integración con antivirus o sistema de análisis utilizado por el Ministerio.

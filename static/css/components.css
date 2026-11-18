@@ -888,3 +888,6 @@ form[data-analysis-mode].is-updating ~ * { opacity: .55; transition: opacity .15
 
 /* Destino de un ancla (#hallazgo-N): deja espacio para la barra superior fija. */
 .ui-anchor-target { scroll-margin-top: calc(96px + env(safe-area-inset-top)); }
+
+/* Formulario compuesto por varias tarjetas (plantilla con sus recomendaciones). */
+.ui-form-stack { display: flex; flex-direction: column; gap: var(--ui-space-4); }

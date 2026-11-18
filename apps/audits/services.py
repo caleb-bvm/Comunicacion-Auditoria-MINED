@@ -1,4 +1,5 @@
 import hashlib
+import re
 from datetime import timedelta
 
 from django.db import transaction
@@ -13,7 +14,9 @@ from .models import (
     BusinessDayHoliday,
     DeadlineExtension,
     Finding,
+    FindingTemplate,
     Recommendation,
+    RecommendationTemplate,
 )
 
 
@@ -68,7 +71,7 @@ def add_business_days(start_date, business_days, holidays=None):
     return current
 
 
-def recommendation_deadline_shortcuts(case, business_day_counts, today=None):
+def recommendation_deadline_shortcuts(case, business_day_counts, today=None, suggested_days=None):
     """Fechas sugeridas para la fecha límite de una recomendación.
 
     Se cuentan desde la fecha del informe (o desde hoy si aún no se ha indicado) e
@@ -85,7 +88,10 @@ def recommendation_deadline_shortcuts(case, business_day_counts, today=None):
             ).values_list("date", flat=True)
         )
         shortcuts = [
-            {"label": f"{count} días hábiles", "value": add_business_days(start, count, holidays)}
+            {
+                "label": f"{count} días hábiles{' (sugerido)' if count == suggested_days else ''}",
+                "value": add_business_days(start, count, holidays),
+            }
             for count in counts
         ]
     if case.response_deadline:
@@ -214,3 +220,77 @@ def mark_overdue_recommendations(today=None):
             },
         )
     return len(overdue)
+
+
+# Datos por completar que Dirección deja en las plantillas, por ejemplo "[período revisado]".
+PLACEHOLDER_PATTERN = re.compile(r"\[[^\[\]\n]{1,80}\]")
+FINDING_TEXT_FIELDS = ("title", "condition", "criteria", "cause", "effect")
+
+
+def has_placeholders(*texts):
+    return any(PLACEHOLDER_PATTERN.search(text or "") for text in texts)
+
+
+def _holidays_between(start, end):
+    return set(
+        BusinessDayHoliday.objects.filter(
+            is_active=True, date__gt=start, date__lte=end
+        ).values_list("date", flat=True)
+    )
+
+
+@transaction.atomic
+def create_finding_from_template(case, template, today=None):
+    """Copia una plantilla de la biblioteca al expediente como un hallazgo nuevo.
+
+    La copia es independiente: editar o desactivar la plantilla después no cambia el
+    hallazgo. Los plazos se cuentan desde la fecha del informe (o desde hoy)."""
+    case = type(case).objects.select_for_update().get(pk=case.pk)
+    next_number = (case.findings.aggregate(value=Max("number"))["value"] or 0) + 1
+    finding = Finding.objects.create(
+        case=case,
+        number=next_number,
+        category=template.category,
+        source_template=template,
+        risk_level=template.risk_level,
+        **{name: getattr(template, name) for name in FINDING_TEXT_FIELDS},
+    )
+    items = list(template.recommendations.order_by("number"))
+    start = case.report_date or today or timezone.localdate()
+    longest = max((item.business_days or 0 for item in items), default=0)
+    holidays = _holidays_between(start, start + timedelta(days=longest * 2 + 30)) if longest else set()
+    for number, item in enumerate(items, start=1):
+        deadline = (
+            add_business_days(start, item.business_days, holidays)
+            if item.business_days
+            else case.response_deadline
+        )
+        Recommendation.objects.create(
+            finding=finding,
+            number=number,
+            text=item.text,
+            responsible_organization=case.audited_organization,
+            deadline=deadline,
+            evidence_requirements=item.evidence_requirements,
+        )
+    return finding
+
+
+@transaction.atomic
+def create_template_from_finding(finding, user):
+    """Guarda un hallazgo real como plantilla inactiva para que Dirección la depure."""
+    template = FindingTemplate.objects.create(
+        category=finding.category,
+        risk_level=finding.risk_level,
+        is_active=False,
+        created_by=user,
+        **{name: getattr(finding, name) for name in FINDING_TEXT_FIELDS},
+    )
+    for number, recommendation in enumerate(finding.recommendations.order_by("number"), start=1):
+        RecommendationTemplate.objects.create(
+            finding_template=template,
+            number=number,
+            text=recommendation.text,
+            evidence_requirements=recommendation.evidence_requirements,
+        )
+    return template

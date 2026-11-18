@@ -12,6 +12,7 @@
         </header>
         <div class="ui-card-actions">
             <a class="ui-button ui-button-tonal" href="{% url 'finding_create' case.pk %}">{% ui_icon "plus" %}Agregar hallazgo</a>
+            <a class="ui-button ui-button-outlined" href="{% url 'case_library' case.pk %}">Desde la biblioteca</a>
             <a class="ui-button ui-button-text" href="{% url 'case_edit' case.pk %}">Editar datos generales</a>
             <a class="ui-button ui-button-text" href="{% url 'case_import_recommendations' case.pk %}">Importar anteriores</a>
         </div>
@@ -24,8 +25,9 @@
         <section class="ui-section" aria-label="Hallazgos">
             {% for finding in findings %}
             <article class="ui-card ui-anchor-target" id="hallazgo-{{ finding.pk }}" aria-labelledby="builder-finding-{{ finding.pk }}">
-                <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span>{% ui_risk_chip finding %}{% if finding.missing_fields %}<span class="ui-chip ui-chip-warning">{% ui_icon "alert" %}Falta redactar</span>{% endif %}</div>
+                <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span>{% ui_risk_chip finding %}{% if finding.category %}<span class="ui-chip">{{ finding.category.name }}</span>{% endif %}{% if finding.has_placeholders %}<span class="ui-chip ui-chip-warning">{% ui_icon "alert" %}Datos entre [corchetes]</span>{% endif %}{% if finding.missing_fields %}<span class="ui-chip ui-chip-warning">{% ui_icon "alert" %}Falta redactar</span>{% endif %}</div>
                 <h2 class="ui-card-title" id="builder-finding-{{ finding.pk }}">{{ finding.title }}</h2>
+                {% if finding.has_placeholders %}<p class="ui-help">Reemplace los datos entre [corchetes] que dejó la plantilla con los del caso.</p>{% endif %}
                 {% if finding.missing_fields %}<p class="ui-help">Antes de solicitar aprobación complete {{ finding.missing_fields }}.</p>{% endif %}
                 <div class="ui-row-actions ui-row-actions-start">
                     <a class="ui-button ui-button-text" href="{% url 'finding_edit' finding.pk %}">{% ui_icon "edit" %}Editar hallazgo</a>
@@ -53,8 +55,8 @@
             {% empty %}
             <div class="ui-card">
                 <h2 class="ui-card-title">No hay hallazgos</h2>
-                <p class="ui-card-support">Agregue el primer hallazgo y sus recomendaciones.</p>
-                <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'finding_create' case.pk %}">{% ui_icon "plus" %}Agregar hallazgo</a></div>
+                <p class="ui-card-support">Agregue el primer hallazgo y sus recomendaciones, o parta de uno estándar de la biblioteca.</p>
+                <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'finding_create' case.pk %}">{% ui_icon "plus" %}Agregar hallazgo</a><a class="ui-button ui-button-outlined" href="{% url 'case_library' case.pk %}">Desde la biblioteca</a></div>
             </div>
             {% endfor %}
         </section>

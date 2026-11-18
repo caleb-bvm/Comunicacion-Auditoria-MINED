@@ -258,6 +258,22 @@ class Finding(models.Model):
     criteria = models.TextField("criterio", blank=True)
     cause = models.TextField("causa", blank=True)
     effect = models.TextField("efecto", blank=True)
+    category = models.ForeignKey(
+        "FindingCategory",
+        verbose_name="área auditada",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="findings",
+    )
+    source_template = models.ForeignKey(
+        "FindingTemplate",
+        verbose_name="plantilla de origen",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="findings",
+    )
 
     class Meta:
         verbose_name = "hallazgo"
@@ -332,6 +348,97 @@ class Recommendation(models.Model):
     def effective_deadline(self):
         latest_extension = self.deadline_extensions.order_by("-granted_at", "-pk").first()
         return latest_extension.new_deadline if latest_extension else self.deadline
+
+
+class FindingCategory(models.Model):
+    """Área auditada que clasifica hallazgos y plantillas. No se elimina: se desactiva."""
+
+    name = models.CharField("nombre", max_length=120, unique=True)
+    description = models.CharField("descripción", max_length=300, blank=True)
+    is_active = models.BooleanField("activa", default=True)
+    created_at = models.DateTimeField("creada", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "área auditada"
+        verbose_name_plural = "áreas auditadas"
+        ordering = ("name",)
+
+    def __str__(self):
+        return self.name
+
+
+class FindingTemplate(models.Model):
+    """Hallazgo estándar de la biblioteca que Dirección mantiene para el personal auditor.
+
+    Al usarse se copia al expediente; los cambios posteriores a la plantilla no alteran
+    los hallazgos ya creados. No se elimina: se desactiva."""
+
+    category = models.ForeignKey(
+        FindingCategory,
+        verbose_name="área auditada",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="templates",
+    )
+    title = models.CharField("título", max_length=350)
+    risk_level = models.CharField("riesgo sugerido", max_length=10, choices=Finding.RiskLevel.choices)
+    condition = models.TextField("condición", blank=True)
+    criteria = models.TextField("criterio", blank=True)
+    cause = models.TextField("causa", blank=True)
+    effect = models.TextField("efecto", blank=True)
+    is_active = models.BooleanField("disponible para auditores", default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="creada por",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="finding_templates",
+    )
+    created_at = models.DateTimeField("creada", auto_now_add=True)
+    updated_at = models.DateTimeField("actualizada", auto_now=True)
+
+    class Meta:
+        verbose_name = "plantilla de hallazgo"
+        verbose_name_plural = "plantillas de hallazgos"
+        ordering = ("category__name", "title")
+
+    def __str__(self):
+        return self.title
+
+
+class RecommendationTemplate(models.Model):
+    finding_template = models.ForeignKey(
+        FindingTemplate,
+        verbose_name="plantilla de hallazgo",
+        on_delete=models.CASCADE,
+        related_name="recommendations",
+    )
+    number = models.PositiveSmallIntegerField("número", validators=[MinValueValidator(1)])
+    text = models.TextField("recomendación")
+    evidence_requirements = models.TextField("evidencias requeridas", blank=True)
+    business_days = models.PositiveSmallIntegerField(
+        "plazo sugerido (días hábiles)",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        help_text="Si se deja vacío se usa la fecha límite general del expediente.",
+    )
+
+    class Meta:
+        verbose_name = "plantilla de recomendación"
+        verbose_name_plural = "plantillas de recomendaciones"
+        ordering = ("number",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("finding_template", "number"),
+                name="unique_recommendation_template_number",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.finding_template.title} / R{self.number}"
 
 
 class BusinessDayHoliday(models.Model):

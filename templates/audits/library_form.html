@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ page_title }} | Dirección de Auditoría{% endblock %}
+{% block content %}
+<div class="ui-page ui-page-form">
+    <div class="ui-layout ui-layout-context">
+        <a class="ui-back ui-layout-full" href="{% url 'director_library' %}">{% ui_icon "back" %}Biblioteca de hallazgos</a>
+        <div class="ui-layout-aside">
+            <header class="ui-page-header">
+                <h1 class="ui-page-title">{{ page_title }}</h1>
+                <p class="ui-page-context">{{ page_context }}</p>
+            </header>
+            {% if template_obj %}
+            <section class="ui-card" aria-labelledby="template-usage-title">
+                <h2 class="ui-card-title" id="template-usage-title">Uso</h2>
+                <p class="ui-help">Usada en {{ template_obj.findings.count }} hallazgo{{ template_obj.findings.count|pluralize }}. Los cambios solo afectan a los hallazgos que se creen después.</p>
+            </section>
+            {% endif %}
+        </div>
+        <div class="ui-layout-main">
+            <form method="post" class="ui-form-stack" novalidate>
+                {% csrf_token %}
+                <div class="ui-card ui-form-grid">
+                    {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                    {% include "includes/ui/form_fields.html" with fields=form %}
+                </div>
+                {% if formset %}
+                <section class="ui-section" data-formset="{{ formset.prefix }}" aria-labelledby="template-recs-title">
+                    <div class="ui-section-head"><h2 class="ui-section-title" id="template-recs-title">Recomendaciones</h2></div>
+                    {{ formset.management_form }}
+                    {% if formset.non_form_errors %}<div class="ui-form-error" role="alert">{{ formset.non_form_errors }}</div>{% endif %}
+                    <div class="ui-form-stack" data-formset-rows>
+                        {% for item in formset %}
+                        <div class="ui-card ui-form-grid" role="group" aria-labelledby="rec-template-{{ forloop.counter0 }}">
+                            <h3 class="ui-card-title" id="rec-template-{{ forloop.counter0 }}">Recomendación <span data-formset-number>{{ forloop.counter }}</span></h3>
+                            {% if item.non_field_errors %}<div class="ui-form-error" role="alert">{{ item.non_field_errors }}</div>{% endif %}
+                            {% for hidden in item.hidden_fields %}{{ hidden }}{% endfor %}
+                            {% for field in item.visible_fields %}{% include "includes/ui/field.html" with field=field %}{% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <template data-formset-template>
+                        <div class="ui-card ui-form-grid" role="group" aria-labelledby="rec-template-__prefix__">
+                            <h3 class="ui-card-title" id="rec-template-__prefix__">Recomendación <span data-formset-number></span></h3>
+                            {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                            {% for field in formset.empty_form.visible_fields %}{% include "includes/ui/field.html" with field=field %}{% endfor %}
+                        </div>
+                    </template>
+                    <div><button class="ui-button ui-button-outlined" type="button" data-formset-add>{% ui_icon "plus" %}Agregar recomendación</button></div>
+                </section>
+                {% endif %}
+                <div class="ui-form-actions">
+                    <a class="ui-button ui-button-text" href="{% url 'director_library' %}">Cancelar</a>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit">{{ submit_label }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

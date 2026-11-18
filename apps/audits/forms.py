@@ -25,8 +25,11 @@ from .models import (
     DeadlineExtension,
     Evidence,
     Finding,
+    FindingCategory,
+    FindingTemplate,
     HistoricalRecommendation,
     Recommendation,
+    RecommendationTemplate,
     Response,
     Review,
 )
@@ -402,6 +405,17 @@ RECOMMENDATION_GUIDES = {
 
 DEADLINE_SHORTCUT_BUSINESS_DAYS = (10, 15, 30)
 
+# Plazo sugerido según el riesgo del hallazgo; debe estar entre los accesos rápidos.
+# Valores iniciales pendientes de confirmar con la Dirección de Auditoría Interna.
+RISK_DEADLINE_BUSINESS_DAYS = {
+    Finding.RiskLevel.CRITICAL: 10,
+    Finding.RiskLevel.HIGH: 15,
+    Finding.RiskLevel.MEDIUM: 30,
+    Finding.RiskLevel.LOW: 30,
+}
+
+PLACEHOLDER_HINT = "Escriba entre [corchetes] los datos que el auditor debe completar en cada caso."
+
 
 def apply_snippets(form, catalogs):
     for name, entries in catalogs.items():
@@ -418,11 +432,57 @@ def apply_guides(form, guides):
         field.example = example
 
 
+def category_queryset(current_id=None):
+    """Áreas activas, más la que ya tiene el registro aunque se haya desactivado."""
+    query = models.Q(is_active=True)
+    if current_id:
+        query |= models.Q(pk=current_id)
+    return FindingCategory.objects.filter(query).order_by("name")
+
+
 class FindingForm(forms.ModelForm):
     class Meta:
         model = Finding
-        fields = ("number", "title", "risk_level", "condition", "criteria", "cause", "effect")
+        fields = ("number", "title", "risk_level", "category", "condition", "criteria", "cause", "effect")
         widgets = {
+            "title": forms.Textarea(attrs={"rows": 2}),
+            "category": FastSelect,
+            "condition": forms.Textarea(attrs={"rows": 4}),
+            "criteria": forms.Textarea(attrs={"rows": 3}),
+            "cause": forms.Textarea(attrs={"rows": 3}),
+            "effect": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        apply_guides(self, FINDING_GUIDES)
+        apply_snippets(self, FINDING_SNIPPETS)
+        # El área se pide solo cuando Dirección ya definió el catálogo; mientras tanto no se muestra.
+        if not FindingCategory.objects.filter(is_active=True).exists():
+            del self.fields["category"]
+            return
+        category = self.fields["category"]
+        category.queryset = category_queryset(self.instance.category_id)
+        category.required = True
+        category.help_text = "Clasifica el hallazgo para el análisis y la búsqueda en la biblioteca."
+
+
+class FindingCategoryForm(forms.ModelForm):
+    class Meta:
+        model = FindingCategory
+        fields = ("name", "description", "is_active")
+        help_texts = {
+            "description": "Opcional. Ayuda a los auditores a elegir el área correcta.",
+            "is_active": "Las áreas inactivas no se ofrecen en hallazgos ni plantillas nuevas.",
+        }
+
+
+class FindingTemplateForm(forms.ModelForm):
+    class Meta:
+        model = FindingTemplate
+        fields = ("category", "title", "risk_level", "condition", "criteria", "cause", "effect", "is_active")
+        widgets = {
+            "category": FastSelect,
             "title": forms.Textarea(attrs={"rows": 2}),
             "condition": forms.Textarea(attrs={"rows": 4}),
             "criteria": forms.Textarea(attrs={"rows": 3}),
@@ -434,6 +494,48 @@ class FindingForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         apply_guides(self, FINDING_GUIDES)
         apply_snippets(self, FINDING_SNIPPETS)
+        for name in ("condition", "criteria", "cause", "effect"):
+            field = self.fields[name]
+            field.help_text = f"{field.help_text.replace(REQUIRED_TO_PUBLISH, '').strip()} {PLACEHOLDER_HINT}"
+        self.fields["category"].queryset = category_queryset(self.instance.category_id)
+        self.fields["category"].required = True
+        self.fields["is_active"].help_text = "Desmárquela para retirarla de la biblioteca sin perder el historial."
+
+
+class RecommendationTemplateForm(forms.ModelForm):
+    class Meta:
+        model = RecommendationTemplate
+        # El número se asigna según el orden de las tarjetas (ver library.save_recommendation_templates).
+        fields = ("text", "evidence_requirements", "business_days")
+        widgets = {
+            "text": forms.Textarea(attrs={"rows": 4}),
+            "evidence_requirements": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["evidence_requirements"].help_text = "Uno por línea."
+        self.fields["evidence_requirements"].snippets = build_snippets(EVIDENCE_SNIPPETS, mode=LINE)
+        self.fields["text"].snippets = build_snippets(RECOMMENDATION_SNIPPETS["text"])
+
+
+class BaseRecommendationTemplateFormSet(forms.BaseInlineFormSet):
+    def add_fields(self, form, index):
+        super().add_fields(form, index)
+        if "DELETE" in form.fields:
+            form.fields["DELETE"].label = "Quitar esta recomendación"
+
+
+RecommendationTemplateFormSet = forms.inlineformset_factory(
+    FindingTemplate,
+    RecommendationTemplate,
+    form=RecommendationTemplateForm,
+    formset=BaseRecommendationTemplateFormSet,
+    extra=0,
+    min_num=1,
+    validate_min=True,
+    can_delete=True,
+)
 
 
 class RecommendationForm(forms.ModelForm):

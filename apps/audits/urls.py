@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import library, views
 from . import historical_bulk
 
 
@@ -59,6 +59,12 @@ urlpatterns = [
         name="director_activate_educational_center",
     ),
     path("direccion/decisiones/", views.director_decision_list, name="director_decisions"),
+    path("direccion/biblioteca/", library.director_library, name="director_library"),
+    path("direccion/biblioteca/areas/nueva/", library.director_library_category_form, name="director_library_category_create"),
+    path("direccion/biblioteca/areas/<int:pk>/editar/", library.director_library_category_form, name="director_library_category_edit"),
+    path("direccion/biblioteca/plantillas/nueva/", library.director_library_template_form, name="director_library_template_create"),
+    path("direccion/biblioteca/plantillas/<int:pk>/editar/", library.director_library_template_form, name="director_library_template_edit"),
+    path("direccion/hallazgos/<int:pk>/guardar-en-biblioteca/", library.director_library_from_finding, name="director_library_from_finding"),
     path(
         "direccion/decisiones/<int:pk>/",
         views.director_decision_detail,
@@ -74,6 +80,8 @@ urlpatterns = [
     path("expedientes/<int:pk>/", views.case_detail, name="case_detail"),
     path("expedientes/<int:pk>/editar/", views.case_edit, name="case_edit"),
     path("expedientes/<int:pk>/contenido/", views.case_builder, name="case_builder"),
+    path("expedientes/<int:pk>/biblioteca/", library.case_library, name="case_library"),
+    path("expedientes/<int:pk>/biblioteca/<int:template_pk>/usar/", library.case_library_use, name="case_library_use"),
     path(
         "expedientes/<int:pk>/informe/cargar/",
         views.case_report_upload,

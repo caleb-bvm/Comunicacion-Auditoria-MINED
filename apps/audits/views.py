@@ -38,6 +38,7 @@ from .forms import (
     ClosureRequestForm,
     DeadlineExtensionForm,
     DEADLINE_SHORTCUT_BUSINESS_DAYS,
+    RISK_DEADLINE_BUSINESS_DAYS,
     DecisionResolutionForm,
     FindingForm,
     HistoricalDocumentForm,
@@ -76,7 +77,9 @@ from .historical_documents import save_historical_bundle
 from .snippets import learned_evidence_snippets
 from .services import (
     add_business_days,
+    FINDING_TEXT_FIELDS,
     copy_historical_recommendations,
+    has_placeholders,
     create_audit_document,
     next_document_version,
     recommendation_deadline_shortcuts,
@@ -225,6 +228,11 @@ def publication_issues(case):
         missing = finding_missing_fields(finding)
         if missing:
             issues.append(f"Complete {join_labels(missing)} del hallazgo {finding.number}.")
+        if finding_has_placeholders(finding):
+            issues.append(
+                f"Reemplace los datos entre [corchetes] del hallazgo {finding.number} "
+                "y sus recomendaciones."
+            )
         recommendations = list(finding.recommendations.all())
         if not recommendations:
             issues.append(f"El hallazgo {finding.number} necesita al menos una recomendación.")
@@ -270,6 +278,16 @@ def auditor_evidence_snippets(user):
     return learned_evidence_snippets(
         Recommendation.objects.filter(finding__case__assigned_auditor=user).order_by("-pk")
     )
+
+
+def finding_has_placeholders(finding):
+    """Datos por completar que dejó una plantilla de la biblioteca (solo en hallazgos copiados)."""
+    if not finding.source_template_id:
+        return False
+    texts = [getattr(finding, name) for name in FINDING_TEXT_FIELDS]
+    for recommendation in finding.recommendations.all():
+        texts += [recommendation.text, recommendation.evidence_requirements]
+    return has_placeholders(*texts)
 
 
 def redirect_to_finding(finding):
@@ -2084,9 +2102,14 @@ def case_builder(request, pk):
     if not request.user.is_authenticated:
         return redirect(f"/ingresar/?next={request.path}")
     case = get_editable_case(request.user, pk)
-    findings = list(case.findings.prefetch_related("recommendations__responsible_organization"))
+    findings = list(
+        case.findings.select_related("category").prefetch_related(
+            "recommendations__responsible_organization"
+        )
+    )
     for finding in findings:
         finding.missing_fields = join_labels(finding_missing_fields(finding))
+        finding.has_placeholders = finding_has_placeholders(finding)
         for recommendation in finding.recommendations.all():
             recommendation.missing_fields = join_labels(
                 recommendation_missing_fields(recommendation)
@@ -2500,7 +2523,9 @@ def recommendation_create(request, finding_pk):
             "deadline": case.response_deadline,
         },
         deadline_shortcuts=recommendation_deadline_shortcuts(
-            case, DEADLINE_SHORTCUT_BUSINESS_DAYS
+            case,
+            DEADLINE_SHORTCUT_BUSINESS_DAYS,
+            suggested_days=RISK_DEADLINE_BUSINESS_DAYS.get(finding.risk_level),
         ),
         learned_evidence=auditor_evidence_snippets(request.user),
     )
@@ -2541,7 +2566,9 @@ def recommendation_edit(request, pk):
         request.POST or None,
         instance=recommendation,
         deadline_shortcuts=recommendation_deadline_shortcuts(
-            case, DEADLINE_SHORTCUT_BUSINESS_DAYS
+            case,
+            DEADLINE_SHORTCUT_BUSINESS_DAYS,
+            suggested_days=RISK_DEADLINE_BUSINESS_DAYS.get(recommendation.finding.risk_level),
         ),
         learned_evidence=auditor_evidence_snippets(request.user),
     )

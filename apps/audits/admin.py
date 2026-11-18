@@ -12,8 +12,11 @@ from .models import (
     DeadlineExtension,
     Evidence,
     Finding,
+    FindingCategory,
+    FindingTemplate,
     HistoricalRecommendation,
     Recommendation,
+    RecommendationTemplate,
     Response,
     Review,
 )
@@ -207,3 +210,23 @@ class BusinessDayHolidayAdmin(admin.ModelAdmin):
     list_display = ("date", "name", "is_active")
     list_filter = ("is_active",)
     search_fields = ("name",)
+
+
+class RecommendationTemplateInline(admin.TabularInline):
+    model = RecommendationTemplate
+    extra = 0
+
+
+@admin.register(FindingCategory)
+class FindingCategoryAdmin(NoDeleteAdminMixin, admin.ModelAdmin):
+    list_display = ("name", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name",)
+
+
+@admin.register(FindingTemplate)
+class FindingTemplateAdmin(NoDeleteAdminMixin, admin.ModelAdmin):
+    list_display = ("title", "category", "risk_level", "is_active", "updated_at")
+    list_filter = ("is_active", "category", "risk_level")
+    search_fields = ("title",)
+    inlines = (RecommendationTemplateInline,)

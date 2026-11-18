@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Biblioteca de hallazgos | Dirección de Auditoría{% endblock %}
+{% block content %}
+<div class="ui-page library-page">
+    <div class="ui-page-header-row">
+        <header class="ui-page-header">
+            <h1 class="ui-page-title">Biblioteca de hallazgos</h1>
+            <p class="ui-page-context">Hallazgos y recomendaciones estándar que los auditores copian a sus borradores.</p>
+        </header>
+        <div class="ui-card-actions">
+            <a class="ui-button ui-button-tonal" href="{% url 'director_library_template_create' %}">{% ui_icon "plus" %}Nueva plantilla</a>
+            <a class="ui-button ui-button-text" href="{% url 'director_library_category_create' %}">Nueva área</a>
+        </div>
+    </div>
+
+    <div class="ui-layout">
+    <div class="ui-layout-main">
+        <form method="get" class="ui-filters" role="search" data-auto-submit-filters>
+            <div class="ui-field ui-field-grow"><label for="q">Buscar plantilla</label><input id="q" name="q" type="search" value="{{ query }}" placeholder="Título, condición o recomendación"></div>
+            <div class="ui-field"><label for="area">Área</label><select id="area" name="area"><option value="">Todas</option>{% for category in categories %}<option value="{{ category.pk }}" {% if selected_category == category.pk|stringformat:"d" %}selected{% endif %}>{{ category.name }}{% if not category.is_active %} (inactiva){% endif %}</option>{% endfor %}</select></div>
+            <div class="ui-field"><label for="estado">Estado</label><select id="estado" name="estado"><option value="active" {% if selected_status == 'active' %}selected{% endif %}>Disponibles</option><option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactivas</option><option value="all" {% if selected_status == 'all' %}selected{% endif %}>Todas</option></select></div>
+            <button class="ui-button ui-button-tonal" type="submit">Buscar</button>
+            {% if query or selected_category or selected_status != 'active' %}<a class="ui-button ui-button-text" href="{% url 'director_library' %}">Limpiar</a>{% endif %}
+        </form>
+
+        <div class="ui-table-wrap">
+            <table class="ui-table ui-table-fit" data-mobile-cards>
+                <caption class="ui-visually-hidden">Plantillas de hallazgos</caption>
+                <thead><tr><th scope="col">Plantilla</th><th scope="col">Recomendaciones</th><th scope="col">Usos</th><th scope="col">Estado</th><th scope="col" class="ui-table-end" data-card-action><span class="ui-visually-hidden">Acción</span></th></tr></thead>
+                <tbody>
+                    {% for template in templates %}
+                    <tr>
+                        <td><a class="ui-table-link" href="{% url 'director_library_template_edit' template.pk %}">{{ template.title }}</a><span class="ui-table-support">{{ template.category.name|default:"Sin área" }} · Riesgo {{ template.get_risk_level_display|lower }}</span></td>
+                        <td>{{ template.recommendation_count }}</td>
+                        <td>{{ template.use_count }}</td>
+                        <td>{% if template.is_active %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Disponible</span>{% else %}<span class="ui-chip ui-chip-neutral">{% ui_icon "lock" %}Inactiva</span>{% endif %}</td>
+                        <td class="ui-table-end"><a class="ui-button ui-button-tonal" href="{% url 'director_library_template_edit' template.pk %}">Editar</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5">{% if query or selected_category %}No hay plantillas que coincidan con la búsqueda.{% else %}Todavía no hay plantillas. Cree una o use «Guardar en biblioteca» en un hallazgo de un expediente.{% endif %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% with q=query|urlencode %}{% include "includes/ui/pagination.html" with query_prefix="q="|add:q|add:"&area="|add:selected_category|add:"&estado="|add:selected_status|add:"&" %}{% endwith %}
+    </div>
+
+    <aside class="ui-layout-aside" aria-labelledby="library-areas-title">
+        <section class="ui-section">
+            <div class="ui-section-head"><h2 class="ui-section-title" id="library-areas-title">Áreas auditadas</h2><a class="ui-button ui-button-text" href="{% url 'director_library_category_create' %}">{% ui_icon "plus" %}Nueva</a></div>
+            {% if categories %}
+            <div class="ui-list">
+                {% for category in categories %}
+                <a class="ui-list-row" href="{% url 'director_library_category_edit' category.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ category.name }}{% if not category.is_active %} · inactiva{% endif %}</span><span class="ui-list-support">{{ category.template_count }} plantilla{{ category.template_count|pluralize }} · {{ category.finding_count }} hallazgo{{ category.finding_count|pluralize }}</span></span>{% ui_icon "edit" %}</a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="ui-help">Defina las áreas (por ejemplo, gestión financiera o inventario). Cuando exista al menos una activa, los auditores deberán clasificar cada hallazgo.</p>
+            {% endif %}
+        </section>
+    </aside>
+    </div>
+</div>
+{% endblock %}

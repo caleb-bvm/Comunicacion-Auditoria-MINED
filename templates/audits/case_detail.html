@@ -45,6 +45,7 @@
         <article class="ui-card" aria-labelledby="case-finding-{{ finding.pk }}">
             <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span>{% ui_risk_chip finding %}</div>
             <h3 class="ui-card-title" id="case-finding-{{ finding.pk }}">{{ finding.title }}</h3>
+            {% if user.role == "audit_manager" %}<form method="post" action="{% url 'director_library_from_finding' finding.pk %}" class="ui-row-actions ui-row-actions-start">{% csrf_token %}<button class="ui-button ui-button-text" type="submit">{% ui_icon "plus" %}Guardar en biblioteca</button></form>{% endif %}
             {% if finding.condition %}<details class="ui-details"><summary>Condición</summary><p>{{ finding.condition|linebreaksbr }}</p></details>{% endif %}
             <div class="ui-divided">
                 {% for recommendation in finding.recommendations.all %}
