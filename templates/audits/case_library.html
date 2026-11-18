@@ -9,6 +9,7 @@
         <h1 class="ui-page-title">Agregar desde la biblioteca</h1>
         <p class="ui-page-context">Elija un hallazgo estándar. Se copia al expediente con sus recomendaciones y luego lo adapta al caso.</p>
     </header>
+    <nav class="ui-tabs" aria-label="Origen del hallazgo"><a href="{% url 'case_library' case.pk %}" aria-current="page">Biblioteca</a><a href="{% url 'case_copy_previous' case.pk %}">Mis expedientes</a></nav>
 
     <form method="get" class="ui-filters" role="search" data-auto-submit-filters>
         <div class="ui-field ui-field-grow"><label for="q">Buscar</label><input id="q" name="q" type="search" value="{{ query }}" placeholder="Título, condición o recomendación"></div>

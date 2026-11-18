@@ -21,7 +21,7 @@
     </aside>
 
     <div class="ui-layout-main">
-    <form method="post" enctype="multipart/form-data" class="ui-steps" data-response-form data-steps novalidate>
+    <form method="post" enctype="multipart/form-data" class="ui-steps" data-response-form data-steps novalidate data-autosave>
         {% csrf_token %}
         <div class="ui-steps-bar" aria-hidden="true"><span></span><span></span><span></span></div>
         <p class="ui-page-context" data-step-label aria-live="polite">3 pasos</p>
@@ -48,12 +48,14 @@
 
         <section class="ui-step" data-step aria-labelledby="step-2-title">
             <h2 class="ui-step-title" id="step-2-title" tabindex="-1">Documentos de respaldo</h2>
-            {% with requirements=recommendation.evidence_requirements|ui_lines %}{% if requirements %}
-            <div class="ui-card">
-                <h3 class="ui-card-title">Auditoría pide estos documentos</h3>
-                <ul class="ui-checklist">{% for item in requirements %}<li>{% ui_icon "file" %}<span>{{ item }}</span></li>{% endfor %}</ul>
-            </div>
-            {% endif %}{% endwith %}
+            {% if form.covered_requirements %}
+            <fieldset class="ui-card ui-requirements{% if form.covered_requirements.errors %} ui-field-error{% endif %}" aria-describedby="covered-requirements-help">
+                <legend class="ui-card-title">Auditoría pide estos documentos</legend>
+                <p class="ui-help" id="covered-requirements-help">{{ form.covered_requirements.help_text }}</p>
+                <div class="ui-requirement-list">{% for choice in form.covered_requirements %}<label class="ui-check" for="{{ choice.id_for_label }}">{{ choice.tag }}<span>{{ choice.choice_label }}</span></label>{% endfor %}</div>
+                {{ form.covered_requirements.errors }}
+            </fieldset>
+            {% endif %}
             <div class="ui-field{% if form.files.errors %} ui-field-error{% endif %}">
                 <label class="ui-label" for="{{ form.files.id_for_label }}">Sus archivos</label>
                 <div class="ui-file">

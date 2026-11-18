@@ -891,3 +891,15 @@ form[data-analysis-mode].is-updating ~ * { opacity: .55; transition: opacity .15
 
 /* Formulario compuesto por varias tarjetas (plantilla con sus recomendaciones). */
 .ui-form-stack { display: flex; flex-direction: column; gap: var(--ui-space-4); }
+
+/* Lista de documentos pedidos: el centro marca los que incluye y Auditoría ve el resultado. */
+.ui-requirements { margin: 0; border: 0; min-width: 0; }
+.ui-requirements > legend { float: left; width: 100%; padding: 0; }
+.ui-requirements > legend + * { clear: both; }
+.ui-requirement-list { display: flex; flex-direction: column; gap: var(--ui-space-2); }
+.ui-requirement-review li.is-covered .ui-icon { color: var(--ui-success, var(--ui-primary)); }
+.ui-requirement-review li.is-missing .ui-icon { color: var(--ui-on-warning-container); }
+
+/* Aviso de texto recuperable en formularios largos. */
+.ui-autosave { flex-wrap: wrap; align-items: center; }
+.ui-autosave > span { flex: 1 1 240px; }

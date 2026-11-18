@@ -21,7 +21,7 @@
             {% endif %}
         </div>
         <div class="ui-layout-main">
-            <form method="post" class="ui-card ui-form-grid">
+            <form method="post" class="ui-card ui-form-grid" data-autosave>
                 {% csrf_token %}
                 {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
                 {% include "includes/ui/form_fields.html" with fields=form %}

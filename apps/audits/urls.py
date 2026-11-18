@@ -82,6 +82,8 @@ urlpatterns = [
     path("expedientes/<int:pk>/contenido/", views.case_builder, name="case_builder"),
     path("expedientes/<int:pk>/biblioteca/", library.case_library, name="case_library"),
     path("expedientes/<int:pk>/biblioteca/<int:template_pk>/usar/", library.case_library_use, name="case_library_use"),
+    path("expedientes/<int:pk>/copiar-hallazgo/", library.case_copy_previous, name="case_copy_previous"),
+    path("expedientes/<int:pk>/copiar-hallazgo/<int:finding_pk>/", library.case_copy_previous_use, name="case_copy_previous_use"),
     path(
         "expedientes/<int:pk>/informe/cargar/",
         views.case_report_upload,

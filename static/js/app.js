@@ -535,6 +535,105 @@ document.querySelectorAll("[data-formset]").forEach((section) => {
     });
 });
 
+// Borrador local de los textos largos de un formulario ([data-autosave]). Solo es una ayuda para
+// no perder lo escrito si se cierra la página: vive en este navegador, vence a los 7 días y se
+// borra al enviar el formulario o al cerrar sesión.
+(() => {
+    const PREFIX = "siga-borrador:";
+    const MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+    const storage = (() => {
+        try {
+            const probe = `${PREFIX}prueba`;
+            window.localStorage.setItem(probe, "1");
+            window.localStorage.removeItem(probe);
+            return window.localStorage;
+        } catch (error) {
+            return null;
+        }
+    })();
+    if (!storage) return;
+    const clearAll = () => {
+        try {
+            Object.keys(storage).filter((key) => key.startsWith(PREFIX)).forEach((key) => storage.removeItem(key));
+        } catch (error) { /* El navegador bloqueó el almacenamiento: no hay nada que limpiar. */ }
+    };
+    document.querySelectorAll("form[data-clear-drafts]").forEach((form) => form.addEventListener("submit", clearAll));
+
+    document.querySelectorAll("form[data-autosave]").forEach((form, index) => {
+        const key = `${PREFIX}${window.location.pathname}#${index}`;
+        const fields = () => Array.from(form.querySelectorAll("textarea[name]"));
+        const read = () => {
+            try {
+                const saved = JSON.parse(storage.getItem(key) || "null");
+                if (!saved || Date.now() - saved.savedAt > MAX_AGE) {
+                    storage.removeItem(key);
+                    return null;
+                }
+                return saved;
+            } catch (error) {
+                return null;
+            }
+        };
+        let timer;
+        let banner = null;
+        form.addEventListener("input", (event) => {
+            if (event.target.tagName !== "TEXTAREA") return;
+            // Si la persona empieza a escribir sin recuperar, el borrador anterior se reemplaza.
+            if (banner && event.isTrusted) {
+                banner.remove();
+                banner = null;
+            }
+            window.clearTimeout(timer);
+            timer = window.setTimeout(() => {
+                const values = {};
+                fields().forEach((field) => { if (field.value.trim()) values[field.name] = field.value; });
+                try {
+                    if (Object.keys(values).length) storage.setItem(key, JSON.stringify({ savedAt: Date.now(), values }));
+                    else storage.removeItem(key);
+                } catch (error) { /* Sin espacio o bloqueado: el formulario sigue funcionando. */ }
+            }, 600);
+        });
+        form.addEventListener("submit", () => {
+            window.clearTimeout(timer);
+            try { storage.removeItem(key); } catch (error) { /* Nada que limpiar. */ }
+        });
+
+        const saved = read();
+        if (!saved) return;
+        const pending = fields().filter((field) => saved.values[field.name] && saved.values[field.name] !== field.value);
+        if (!pending.length) return;
+        const minutes = Math.max(1, Math.round((Date.now() - saved.savedAt) / 60000));
+        const age = minutes < 60 ? `hace ${minutes} min` : minutes < 1440 ? `hace ${Math.round(minutes / 60)} h` : `hace ${Math.round(minutes / 1440)} d`;
+        banner = document.createElement("div");
+        banner.className = "ui-callout ui-callout-inline ui-autosave";
+        banner.setAttribute("role", "status");
+        const text = document.createElement("span");
+        text.textContent = `Hay texto que no se guardó en este formulario (${age}).`;
+        const restore = document.createElement("button");
+        restore.type = "button";
+        restore.className = "ui-button ui-button-tonal";
+        restore.textContent = "Recuperar texto";
+        const discard = document.createElement("button");
+        discard.type = "button";
+        discard.className = "ui-button ui-button-text";
+        discard.textContent = "Descartar";
+        banner.append(text, restore, discard);
+        form.prepend(banner);
+        restore.addEventListener("click", () => {
+            pending.forEach((field) => {
+                field.value = saved.values[field.name];
+                field.dispatchEvent(new Event("input", { bubbles: true }));
+            });
+            banner.remove();
+            pending[0].focus();
+        });
+        discard.addEventListener("click", () => {
+            try { storage.removeItem(key); } catch (error) { /* Nada que limpiar. */ }
+            banner.remove();
+        });
+    });
+})();
+
 // Confirmaciones y alcance de envío sin manejadores en línea (la CSP los bloquea).
 document.querySelectorAll("form[data-confirm]").forEach((form) => {
     form.addEventListener("submit", (event) => {

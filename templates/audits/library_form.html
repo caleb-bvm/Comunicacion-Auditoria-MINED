@@ -18,7 +18,7 @@
             {% endif %}
         </div>
         <div class="ui-layout-main">
-            <form method="post" class="ui-form-stack" novalidate>
+            <form method="post" class="ui-form-stack" novalidate data-autosave>
                 {% csrf_token %}
                 <div class="ui-card ui-form-grid">
                     {% if form.non_field_errors %}<div class="ui-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}

@@ -129,6 +129,9 @@ La visibilidad se define para cada archivo, con «Solo Auditoría» como valor i
 - Los datos entre [corchetes] que deja una plantilla deben reemplazarse antes de solicitar la aprobación.
 - Dirección puede guardar un hallazgo real como plantilla inactiva para depurarla antes de publicarla en la biblioteca.
 - Las frases frecuentes de los formularios están en `apps/audits/snippets.py`; el plazo sugerido por nivel de riesgo, en `RISK_DEADLINE_BUSINESS_DAYS` (`apps/audits/forms.py`).
+- Un auditor puede copiar a su borrador un hallazgo de otro de sus expedientes (nunca de expedientes de otros auditores). La copia toma el centro auditado y la fecha límite general del expediente actual.
+- Al responder, el centro marca cuáles de las evidencias pedidas incluye (`Response.covered_requirements`); la revisión muestra cada documento como indicado o no. Las respuestas anteriores a esta función conservan `None` y se muestran como lista simple.
+- Los textos largos de los formularios de hallazgos, plantillas y respuestas se guardan como borrador en el navegador de quien escribe; vencen a los 7 días y se borran al enviar o al cerrar sesión.
 
 ## Decisiones pendientes de infraestructura
 

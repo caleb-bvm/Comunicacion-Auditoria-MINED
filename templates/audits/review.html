@@ -13,13 +13,15 @@
     <div class="ui-layout">
     <div class="ui-layout-main">
     {% with requirements=recommendation.evidence_requirements|ui_lines %}
-    <div class="ui-callout ui-callout-inline ui-callout-summary" role="status">{% ui_icon "file" %}<strong>El centro dice «{{ response.get_declared_status_display }}» y envió {{ evidence|length }} documento{{ evidence|length|pluralize }}{% if requirements %}; se pidieron {{ requirements|length }}{% endif %}.</strong></div>
+    <div class="ui-callout ui-callout-inline ui-callout-summary" role="status">{% ui_icon "file" %}<strong>El centro dice «{{ response.get_declared_status_display }}» y envió {{ evidence|length }} archivo{{ evidence|length|pluralize }}{% if requirements %}; se pidieron {{ requirements|length }} documento{{ requirements|length|pluralize }}{% if checklist_recorded %} y marcó {{ covered_count }} como incluido{{ covered_count|pluralize }}{% endif %}{% endif %}.</strong></div>
 
     <div class="ui-compare">
         <section class="ui-compare-side" aria-labelledby="review-asked">
             <h2 class="ui-section-title" id="review-asked">Se pidió</h2>
             <p>{{ recommendation.text|linebreaksbr }}</p>
-            {% if requirements %}<ul class="ui-plain-list">{% for item in requirements %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+            {% if checklist_recorded %}
+            <ul class="ui-checklist ui-requirement-review" aria-label="Documentos pedidos">{% for row in requirement_rows %}<li class="{% if row.covered %}is-covered{% else %}is-missing{% endif %}">{% if row.covered %}{% ui_icon "check" %}{% else %}{% ui_icon "alert" %}{% endif %}<span>{{ row.text }}<span class="ui-help"> · {% if row.covered %}el centro indica que lo incluyó{% else %}no lo marcó como incluido{% endif %}</span></span></li>{% endfor %}</ul>
+            {% elif requirements %}<ul class="ui-plain-list">{% for item in requirements %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
             {% if previous_review %}<div class="ui-version"><p class="ui-version-title">Su revisión de la versión {{ previous_review.response.version }}: {{ previous_review.get_outcome_display|lower }}</p><p class="ui-help">{{ previous_review.comments|linebreaksbr }}</p></div>{% endif %}
         </section>
         <section class="ui-compare-side" aria-labelledby="review-answered">

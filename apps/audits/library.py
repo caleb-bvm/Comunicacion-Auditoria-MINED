@@ -12,7 +12,11 @@ from django.views.decorators.http import require_POST
 
 from .forms import FindingCategoryForm, FindingTemplateForm, RecommendationTemplateFormSet
 from .models import Finding, FindingCategory, FindingTemplate
-from .services import create_finding_from_template, create_template_from_finding
+from .services import (
+    create_finding_from_finding,
+    create_finding_from_template,
+    create_template_from_finding,
+)
 from .views import get_editable_case, log_activity, require_director
 
 TEMPLATE_PAGE_SIZE = 25
@@ -235,5 +239,60 @@ def case_library_use(request, pk, template_pk):
         f"Se agregó el hallazgo {finding.number} con {count} "
         f"recomendaci{'ón' if count == 1 else 'ones'}. Adapte el texto al caso y complete "
         "los datos entre [corchetes].",
+    )
+    return redirect("finding_edit", pk=finding.pk)
+
+
+def own_previous_findings(user, case):
+    """Hallazgos de otros expedientes asignados al mismo auditor (nunca de otros auditores)."""
+    return (
+        Finding.objects.filter(case__assigned_auditor=user)
+        .exclude(case=case)
+        .select_related("case__audited_organization", "category")
+        .prefetch_related("recommendations")
+    )
+
+
+def case_copy_previous(request, pk):
+    if not request.user.is_authenticated:
+        return login_redirect(request)
+    case = get_editable_case(request.user, pk)
+    findings = own_previous_findings(request.user, case)
+    query = request.GET.get("q", "").strip()
+    if query:
+        findings = findings.filter(
+            Q(title__icontains=query)
+            | Q(condition__icontains=query)
+            | Q(case__reference__icontains=query)
+            | Q(case__audited_organization__name__icontains=query)
+        )
+    page = Paginator(findings.order_by("-case__created_at", "number"), TEMPLATE_PAGE_SIZE).get_page(
+        request.GET.get("page")
+    )
+    return render(
+        request,
+        "audits/case_copy_finding.html",
+        {"case": case, "page_obj": page, "findings": page.object_list, "query": query},
+    )
+
+
+@require_POST
+def case_copy_previous_use(request, pk, finding_pk):
+    if not request.user.is_authenticated:
+        return login_redirect(request)
+    case = get_editable_case(request.user, pk)
+    source = get_object_or_404(own_previous_findings(request.user, case), pk=finding_pk)
+    finding = create_finding_from_finding(case, source)
+    log_activity(
+        request,
+        "finding_copied_from_case",
+        case=case,
+        target=finding,
+        details={"source_case": source.case.reference, "source_finding": source.number},
+    )
+    messages.success(
+        request,
+        f"Se copió el hallazgo {source.number} de {source.case.reference} como hallazgo "
+        f"{finding.number}. Actualice los hechos, cifras y fechas para este expediente.",
     )
     return redirect("finding_edit", pk=finding.pk)

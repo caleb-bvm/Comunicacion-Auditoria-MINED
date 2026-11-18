@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Copiar hallazgo · {{ case.reference }} | Auditoría Interna{% endblock %}
+{% block content %}
+<div class="ui-page case-library-page">
+    <a class="ui-back" href="{% url 'case_builder' case.pk %}">{% ui_icon "back" %}{{ case.reference }}</a>
+    <header class="ui-page-header">
+        {% include "includes/ui/case_progress.html" with step=2 %}
+        <h1 class="ui-page-title">Copiar de mis expedientes</h1>
+        <p class="ui-page-context">Reutilice un hallazgo que ya redactó en otro expediente. Se copia con sus recomendaciones; luego actualice hechos, cifras y fechas.</p>
+    </header>
+    <nav class="ui-tabs" aria-label="Origen del hallazgo"><a href="{% url 'case_library' case.pk %}">Biblioteca</a><a href="{% url 'case_copy_previous' case.pk %}" aria-current="page">Mis expedientes</a></nav>
+
+    <form method="get" class="ui-filters" role="search">
+        <div class="ui-field ui-field-grow"><label for="q">Buscar</label><input id="q" name="q" type="search" value="{{ query }}" placeholder="Título, condición, referencia o centro"></div>
+        <button class="ui-button ui-button-tonal" type="submit">Buscar</button>
+        {% if query %}<a class="ui-button ui-button-text" href="{% url 'case_copy_previous' case.pk %}">Limpiar</a>{% endif %}
+    </form>
+
+    <section class="ui-section" aria-label="Hallazgos de sus expedientes">
+        {% for finding in findings %}
+        <article class="ui-card" aria-labelledby="previous-finding-{{ finding.pk }}">
+            <div class="ui-chips"><span class="ui-chip">{{ finding.case.reference }} · Hallazgo {{ finding.number }}</span>{% ui_risk_chip finding %}{% if finding.category %}<span class="ui-chip">{{ finding.category.name }}</span>{% endif %}</div>
+            <h2 class="ui-card-title" id="previous-finding-{{ finding.pk }}">{{ finding.title }}</h2>
+            <p class="ui-help">{{ finding.case.audited_organization.name }} · {{ finding.case.get_status_display }}</p>
+            {% if finding.condition %}<p class="ui-card-support">{{ finding.condition|truncatechars:240 }}</p>{% endif %}
+            {% with total=finding.recommendations.all|length %}{% if total %}
+            <details class="ui-details">
+                <summary>{{ total }} recomendaci{{ total|pluralize:"ón,ones" }}</summary>
+                <ol class="ui-plain-list">{% for item in finding.recommendations.all %}<li>{{ item.text|truncatechars:280 }}</li>{% endfor %}</ol>
+            </details>
+            {% endif %}{% endwith %}
+            <form method="post" action="{% url 'case_copy_previous_use' case.pk finding.pk %}" class="ui-card-actions">{% csrf_token %}<button class="ui-button ui-button-filled" type="submit">{% ui_icon "plus" %}Copiar a este expediente</button></form>
+        </article>
+        {% empty %}
+        <div class="ui-card">
+            <h2 class="ui-card-title">{% if query %}Sin resultados{% else %}Aún no tiene otros hallazgos{% endif %}</h2>
+            <p class="ui-card-support">{% if query %}Pruebe con otras palabras.{% else %}Aquí aparecerán los hallazgos de sus otros expedientes.{% endif %}</p>
+            <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'finding_create' case.pk %}">{% ui_icon "plus" %}Redactar hallazgo</a></div>
+        </div>
+        {% endfor %}
+    </section>
+    {% with q=query|urlencode %}{% include "includes/ui/pagination.html" with query_prefix="q="|add:q|add:"&" %}{% endwith %}
+</div>
+{% endblock %}

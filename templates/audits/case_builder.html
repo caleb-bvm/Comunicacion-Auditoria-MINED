@@ -12,7 +12,7 @@
         </header>
         <div class="ui-card-actions">
             <a class="ui-button ui-button-tonal" href="{% url 'finding_create' case.pk %}">{% ui_icon "plus" %}Agregar hallazgo</a>
-            <a class="ui-button ui-button-outlined" href="{% url 'case_library' case.pk %}">Desde la biblioteca</a>
+            <a class="ui-button ui-button-outlined" href="{% url 'case_library' case.pk %}">Reutilizar hallazgo</a>
             <a class="ui-button ui-button-text" href="{% url 'case_edit' case.pk %}">Editar datos generales</a>
             <a class="ui-button ui-button-text" href="{% url 'case_import_recommendations' case.pk %}">Importar anteriores</a>
         </div>
@@ -56,7 +56,7 @@
             <div class="ui-card">
                 <h2 class="ui-card-title">No hay hallazgos</h2>
                 <p class="ui-card-support">Agregue el primer hallazgo y sus recomendaciones, o parta de uno estándar de la biblioteca.</p>
-                <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'finding_create' case.pk %}">{% ui_icon "plus" %}Agregar hallazgo</a><a class="ui-button ui-button-outlined" href="{% url 'case_library' case.pk %}">Desde la biblioteca</a></div>
+                <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'finding_create' case.pk %}">{% ui_icon "plus" %}Agregar hallazgo</a><a class="ui-button ui-button-outlined" href="{% url 'case_library' case.pk %}">Reutilizar hallazgo</a></div>
             </div>
             {% endfor %}
         </section>

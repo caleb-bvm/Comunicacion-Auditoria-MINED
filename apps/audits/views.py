@@ -24,6 +24,7 @@ from apps.accounts.models import TechnicalSupportRequest
 from apps.accounts.forms import TechnicalSupportRequestForm
 from apps.accounts.activation import invite_center
 from apps.core.scanning import protected_file_response
+from apps.core.templatetags.ui import ui_lines
 from apps.institutions.models import Organization, SchoolBoardPeriod
 
 from .forms import (
@@ -2999,8 +3000,9 @@ def respond_recommendation(request, pk):
         messages.info(request, "Esta recomendación no admite una respuesta nueva en su estado actual.")
         return redirect("case_detail", pk=case.pk)
 
+    requirements = ui_lines(recommendation.evidence_requirements)
     if request.method == "POST":
-        form = ResponseForm(request.POST, request.FILES)
+        form = ResponseForm(request.POST, request.FILES, requirements=requirements)
         if form.is_valid():
             latest_version = recommendation.responses.aggregate(value=Max("version"))["value"] or 0
             response = form.save(commit=False)
@@ -3051,6 +3053,7 @@ def respond_recommendation(request, pk):
             return redirect("case_detail", pk=case.pk)
     else:
         form = ResponseForm(
+            requirements=requirements,
             initial={
                 "responsible_name": request.user.get_full_name(),
                 "responsible_job_title": request.user.job_title,
@@ -3126,6 +3129,12 @@ def review_response(request, pk):
         .first()
     )
     deadline = recommendation.deadline
+    requirements = ui_lines(recommendation.evidence_requirements)
+    covered = response.covered_requirements
+    requirement_rows = [
+        {"text": item, "covered": None if covered is None else item in covered}
+        for item in requirements
+    ]
     return render(
         request,
         "audits/review.html",
@@ -3135,6 +3144,9 @@ def review_response(request, pk):
             "recommendation": recommendation,
             "case": recommendation.finding.case,
             "evidence": evidence,
+            "requirement_rows": requirement_rows,
+            "covered_count": sum(1 for row in requirement_rows if row["covered"]),
+            "checklist_recorded": covered is not None,
             "previous_review": previous_request,
             "submitted_on_time": deadline is None
             or timezone.localtime(response.submitted_at).date() <= deadline,

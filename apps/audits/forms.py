@@ -674,8 +674,20 @@ class ResponseForm(forms.ModelForm):
             "accuracy_declaration": "Declaro que la información y los archivos presentados son correctos.",
         }
 
-    def __init__(self, *args, **kwargs):
+    covered_requirements = forms.MultipleChoiceField(
+        label="Documentos que incluye",
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Marque cada documento pedido que va en sus archivos. Auditoría lo verá al revisar.",
+    )
+
+    def __init__(self, *args, requirements=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.requirements = list(requirements or [])
+        if self.requirements:
+            self.fields["covered_requirements"].choices = [(item, item) for item in self.requirements]
+        else:
+            del self.fields["covered_requirements"]
         # Opciones visibles como tarjetas, sin la opción vacía «---------».
         status_field = self.fields["declared_status"]
         status_field.choices = Response.DeclaredStatus.choices
@@ -702,6 +714,16 @@ class ResponseForm(forms.ModelForm):
                 "Debe aceptar la declaración de veracidad antes de enviar la respuesta.",
             )
         return cleaned
+
+    def save(self, commit=True):
+        response = super().save(commit=False)
+        if self.requirements:
+            # Se conserva el orden en que Auditoría pidió los documentos.
+            marked = set(self.cleaned_data.get("covered_requirements") or [])
+            response.covered_requirements = [item for item in self.requirements if item in marked]
+        if commit:
+            response.save()
+        return response
 
 
 class ReviewForm(forms.ModelForm):

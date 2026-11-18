@@ -294,3 +294,30 @@ def create_template_from_finding(finding, user):
             evidence_requirements=recommendation.evidence_requirements,
         )
     return template
+
+
+@transaction.atomic
+def create_finding_from_finding(case, source):
+    """Copia un hallazgo de otro expediente del mismo auditor como punto de partida.
+
+    El centro auditado del expediente actual queda como responsable y las fechas límite
+    toman la fecha general; el texto debe adaptarse porque describe otro caso."""
+    case = type(case).objects.select_for_update().get(pk=case.pk)
+    next_number = (case.findings.aggregate(value=Max("number"))["value"] or 0) + 1
+    finding = Finding.objects.create(
+        case=case,
+        number=next_number,
+        category=source.category,
+        risk_level=source.risk_level,
+        **{name: getattr(source, name) for name in FINDING_TEXT_FIELDS},
+    )
+    for number, recommendation in enumerate(source.recommendations.order_by("number"), start=1):
+        Recommendation.objects.create(
+            finding=finding,
+            number=number,
+            text=recommendation.text,
+            responsible_organization=case.audited_organization,
+            deadline=case.response_deadline,
+            evidence_requirements=recommendation.evidence_requirements,
+        )
+    return finding

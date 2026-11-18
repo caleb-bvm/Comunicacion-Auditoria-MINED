@@ -120,7 +120,7 @@
                     <strong>{{ sidebar_context.value }}</strong>
                 </div>
                 {% endif %}
-                <form class="sidebar-logout-form" method="post" action="{% url 'logout' %}">
+                <form class="sidebar-logout-form" method="post" action="{% url 'logout' %}" data-clear-drafts>
                     {% csrf_token %}
                     <button class="nav-item sidebar-logout" type="submit">
                         <span class="nav-icon" aria-hidden="true"><svg><use href="#nav-logout"></use></svg></span><span>Cerrar sesión</span>
@@ -180,7 +180,7 @@
             {% if user.role == 'auditor' %}<a href="{% url 'case_create' %}"><svg aria-hidden="true"><use href="#nav-new-file"></use></svg>Nuevo expediente</a>{% endif %}
             {% if user.role == 'technical_admin' %}<a href="{% url 'technical_user_create' %}"><svg aria-hidden="true"><use href="#nav-new-file"></use></svg>Nueva cuenta interna</a>{% endif %}
             {% if user.role == 'technical_admin' %}<a href="{% url 'technical_support_requests' %}"><svg aria-hidden="true"><use href="#nav-support"></use></svg>Solicitudes</a><a href="{% url 'technical_activity_log' %}"><svg aria-hidden="true"><use href="#nav-log"></use></svg>Logs</a>{% elif user.is_superuser %}<a href="/administracion/"><svg aria-hidden="true"><use href="#nav-admin"></use></svg>Administración avanzada</a>{% endif %}
-            <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit"><svg aria-hidden="true"><use href="#nav-logout"></use></svg>Cerrar sesión</button></form>
+            <form method="post" action="{% url 'logout' %}" data-clear-drafts>{% csrf_token %}<button type="submit"><svg aria-hidden="true"><use href="#nav-logout"></use></svg>Cerrar sesión</button></form>
         </aside>
     </div>
     {% endif %}

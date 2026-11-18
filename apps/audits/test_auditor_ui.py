@@ -103,7 +103,7 @@ class AuditorScreensTests(TestCase):
 
     def test_review_page_compares_request_and_answer(self):
         page = self.client.get(reverse("review_response", args=[self.response.pk]))
-        self.assertContains(page, "El centro dice «Completada» y envió 1 documento; se pidieron 3.")
+        self.assertContains(page, "El centro dice «Completada» y envió 1 archivo; se pidieron 3 documentos.")
         self.assertContains(page, "Se pidió")
         self.assertContains(page, "Respondió")
         self.assertContains(page, "Conciliación firmada")

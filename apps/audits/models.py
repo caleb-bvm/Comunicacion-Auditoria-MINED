@@ -506,6 +506,11 @@ class Response(models.Model):
     action_plan = models.TextField("plan de acción pendiente", blank=True)
     expected_completion_date = models.DateField("fecha estimada de cumplimiento", null=True, blank=True)
     accuracy_declaration = models.BooleanField("declaración de veracidad", default=False)
+    # Documentos pedidos que el centro marcó como incluidos. None: la recomendación no
+    # tenía lista de evidencias o la respuesta es anterior a esta función.
+    covered_requirements = models.JSONField(
+        "documentos marcados como incluidos", null=True, blank=True, default=None
+    )
     submitted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name="enviada por",
