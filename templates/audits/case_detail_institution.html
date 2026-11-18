@@ -38,7 +38,7 @@
         <h2 class="ui-section-title" id="case-findings-title">Hallazgos y recomendaciones</h2>
         {% for finding in findings %}
         <article class="ui-card" aria-labelledby="case-finding-{{ finding.pk }}">
-            <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span><span class="ui-chip">Riesgo {{ finding.get_risk_level_display|lower }}</span></div>
+            <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span>{% ui_risk_chip finding True %}</div>
             <h3 class="ui-card-title" id="case-finding-{{ finding.pk }}">{{ finding.title }}</h3>
             {% if finding.condition %}<details class="ui-details"><summary>Qué encontró Auditoría</summary><p>{{ finding.condition|linebreaksbr }}</p></details>{% endif %}
             <div class="ui-divided">
@@ -62,7 +62,7 @@
                                 <p class="ui-help">El centro declaró: {{ response.get_declared_status_display|lower }}</p>
                                 <p>{{ response.action_description|linebreaksbr }}</p>
                                 {% if response.evidence.all %}<ul class="ui-plain-list">{% for item in response.evidence.all %}<li><a href="{% url 'download_evidence' item.pk %}">{{ item.original_filename }}</a></li>{% endfor %}</ul>{% endif %}
-                                {% if response.review %}<div class="ui-callout ui-callout-inline{% if response.review.outcome == 'correction_required' %} ui-callout-correction{% endif %}"><span><strong>Auditoría: {{ response.review.get_outcome_display|lower }}.</strong> {{ response.review.comments|linebreaksbr }}</span></div>{% endif %}
+                                {% if response.review %}<div class="ui-callout ui-callout-inline ui-callout-{{ response.review.outcome|ui_tone:"review_outcome" }}"><span><strong>Auditoría: {{ response.review.get_outcome_display|lower }}.</strong> {{ response.review.comments|linebreaksbr }}</span></div>{% endif %}
                                 <a class="ui-button ui-button-text" href="{% url 'response_receipt' response.pk %}">{% ui_icon "download" %}Descargar constancia</a>
                             </div>
                             {% endfor %}

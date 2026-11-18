@@ -6,7 +6,7 @@
     <a class="ui-back" href="{% url 'director_educational_centers' %}">{% ui_icon "back" %}Centros educativos</a>
     <div class="ui-page-header-row">
         <header class="ui-page-header">
-            <div class="ui-chips">{% include "includes/ui/attention_chip.html" with level=center.attention_level label=center.attention_label %}<span class="ui-chip">{{ center.display_center_type }}</span></div>
+            <div class="ui-chips">{% ui_attention_chip center.attention_level center.attention_label %}<span class="ui-chip">{{ center.display_center_type }}</span></div>
             <h1 class="ui-page-title">{{ center.name }}</h1>
             <p class="ui-page-context">Código {{ center.code }} · {{ center.display_address }}</p>
         </header>
@@ -17,13 +17,13 @@
     </div>
 
     {% if center.attention_reasons %}
-    <section class="ui-callout ui-callout-warning" aria-labelledby="attention-title"><h2 class="ui-callout-title" id="attention-title">Requiere atención</h2><ul>{% for reason in center.attention_reasons %}<li>{{ reason.label }}</li>{% endfor %}</ul></section>
+    <section class="ui-callout {% if center.attention_level == 'immediate' %}ui-callout-danger{% else %}ui-callout-warning{% endif %}" aria-labelledby="attention-title"><h2 class="ui-callout-title" id="attention-title">Requiere atención</h2><ul>{% for reason in center.attention_reasons %}<li>{{ reason.label }}</li>{% endfor %}</ul></section>
     {% endif %}
 
     <div class="ui-figures" aria-label="Indicadores del centro">
         <div class="ui-figure"><strong>{{ center.case_count }}</strong><span>Expedientes</span><small>{{ center.active_case_count }} activos · {{ center.closed_case_count }} cerrados</small></div>
         <div class="ui-figure{% if center.critical_active_count %} ui-figure-danger{% endif %}"><strong>{{ center.finding_count }}</strong><span>Hallazgos</span><small>{{ center.critical_active_count }} críticos y {{ center.high_active_count }} altos activos</small></div>
-        <div class="ui-figure{% if center.overdue_count %} ui-figure-warning{% endif %}"><strong>{{ center.obligation_count }}</strong><span>Obligaciones</span><small>{{ center.overdue_count }} vencidas · {{ center.due_soon_count }} próximas</small></div>
+        <div class="ui-figure{% if center.overdue_count %} ui-figure-danger{% endif %}"><strong>{{ center.obligation_count }}</strong><span>Obligaciones</span><small>{{ center.overdue_count }} vencidas · {{ center.due_soon_count }} próximas</small></div>
         <div class="ui-figure"><strong>{% if center.compliance_rate is not None %}{{ center.compliance_rate }}%{% else %}N/D{% endif %}</strong><span>Cumplimiento</span><small>{% if center.terminal_count %}{{ center.complied_count }} cumplidas de {{ center.terminal_count }} definitivas{% else %}sin resultados definitivos{% endif %}</small></div>
     </div>
 
@@ -36,7 +36,7 @@
             {% if high_risk_findings %}
             <div class="ui-list">
                 {% for finding in high_risk_findings %}
-                <a class="ui-list-row" href="{% url 'case_detail' finding.case.pk %}"><span class="risk risk-{{ finding.risk_level }}">{{ finding.get_risk_level_display }}</span><span class="ui-list-text"><span class="ui-list-title">Hallazgo {{ finding.number }}: {{ finding.title }}</span><span class="ui-list-support">{{ finding.case.reference }}</span></span>{% ui_icon "chevron" %}</a>
+                <a class="ui-list-row" href="{% url 'case_detail' finding.case.pk %}">{% ui_risk_chip finding %}<span class="ui-list-text"><span class="ui-list-title">Hallazgo {{ finding.number }}: {{ finding.title }}</span><span class="ui-list-support">{{ finding.case.reference }}</span></span>{% ui_icon "chevron" %}</a>
                 {% endfor %}
             </div>
             {% else %}
@@ -61,9 +61,9 @@
         <section id="obligaciones" class="ui-section" aria-labelledby="obligations-title">
             <div class="ui-section-head"><div><h2 class="ui-section-title" id="obligations-title">Obligaciones y cumplimiento</h2><p class="ui-help">Recomendaciones asignadas a este centro, aunque la institución auditada sea otra.</p></div></div>
             <div class="ui-chips">
-                <span class="ui-chip">{% ui_icon "pending" %}{{ center.pending_count }} pendientes</span>
-                <span class="ui-chip ui-chip-correction">{% ui_icon "edit" %}{{ center.correction_count }} por corregir</span>
-                <span class="ui-chip ui-chip-success">{% ui_icon "half" %}{{ center.partial_count }} parciales</span>
+                <span class="ui-chip ui-chip-neutral">{% ui_icon "pending" %}{{ center.pending_count }} pendientes</span>
+                <span class="ui-chip ui-chip-warning">{% ui_icon "edit" %}{{ center.correction_count }} por corregir</span>
+                <span class="ui-chip ui-chip-warning">{% ui_icon "half" %}{{ center.partial_count }} parciales</span>
                 <span class="ui-chip ui-chip-danger">{% ui_icon "close" %}{{ center.not_complied_count }} no cumplidas</span>
                 <span class="ui-chip ui-chip-danger">{% ui_icon "alert" %}{{ center.automatic_no_response_count }} incumplimientos automáticos</span>
             </div>

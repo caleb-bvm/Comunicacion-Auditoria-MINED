@@ -20,7 +20,7 @@
         <div class="ui-card-grid">
             {% for decision in pending_decisions %}
             <article class="ui-card" aria-labelledby="decision-{{ decision.pk }}">
-                <div class="ui-chips"><span class="ui-chip {% if decision.kind == 'closure' %}ui-chip-success{% else %}ui-chip-info{% endif %}">{% if decision.kind == 'closure' %}{% ui_icon "check" %}Piden cerrarlo{% else %}{% ui_icon "send" %}Piden publicarlo{% endif %}</span><span class="ui-chip ui-chip-warning">{% ui_icon "clock" %}Espera desde hace {{ decision.requested_at|timesince }}</span></div>
+                <div class="ui-chips"><span class="ui-chip">{% if decision.kind == 'closure' %}Piden cerrarlo{% else %}Piden publicarlo{% endif %}</span>{% ui_wait_chip decision.requested_at %}</div>
                 <h2 class="ui-card-title" id="decision-{{ decision.pk }}">{{ decision.case.audited_organization.name }}</h2>
                 <p class="ui-card-support">{{ decision.case.reference }} · {{ decision.case.title|truncatechars:90 }}</p>
                 <div class="ui-card-actions"><a class="ui-button {% if forloop.first %}ui-button-filled ui-button-large{% else %}ui-button-tonal{% endif %}" href="{% url 'director_decision_detail' decision.pk %}">{% if decision.kind == 'closure' %}Decidir el cierre{% else %}Decidir la publicación{% endif %}</a></div>
@@ -70,7 +70,7 @@
                 {% if priority_centers %}
                 <div class="ui-list">
                     {% for center in priority_centers %}
-                    <a class="ui-list-row" href="{% url 'director_educational_center_detail' center.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ center.name|title }}</span><span class="ui-list-support">{{ center.code }}{% if center.department %} · {{ center.department|title }}{% endif %}{% if center.attention_reasons %} · {{ center.attention_reasons.0.label }}{% endif %}</span></span><span class="ui-chip {% if center.attention_level == 'immediate' %}ui-chip-danger{% elif center.attention_level == 'high' %}ui-chip-correction{% elif center.attention_level == 'followup' %}ui-chip-warning{% endif %}">{{ center.attention_label }}</span></a>
+                    <a class="ui-list-row" href="{% url 'director_educational_center_detail' center.pk %}"><span class="ui-list-text"><span class="ui-list-title">{{ center.name|title }}</span><span class="ui-list-support">{{ center.code }}{% if center.department %} · {{ center.department|title }}{% endif %}{% if center.attention_reasons %} · {{ center.attention_reasons.0.label }}{% endif %}</span></span>{% ui_attention_chip center.attention_level center.attention_label %}</a>
                     {% endfor %}
                 </div>
                 {% else %}<p class="ui-help">No hay centros que requieran atención.</p>{% endif %}

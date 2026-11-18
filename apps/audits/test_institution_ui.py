@@ -72,7 +72,7 @@ class InstitutionTaskScreensTests(TestCase):
     def test_home_shows_task_with_status_deadline_and_audit_request(self):
         page = self.client.get(reverse("dashboard"))
         self.assertContains(page, "Para hacer · 1")
-        self.assertContains(page, "ui-chip-correction")
+        self.assertContains(page, "ui-chip-warning")
         self.assertContains(page, "Venció el")
         self.assertContains(page, "Auditoría pide: Adjunte las cinco actas firmadas.")
         self.assertContains(page, "Corregir respuesta")

@@ -22,7 +22,7 @@
                 <h2 class="ui-section-title" id="support-mine">Mis solicitudes</h2>
                 {% for item in support_requests %}
                 <article class="ui-card ui-card-compact">
-                    <div class="ui-chips">{% ui_request_status_chip item.status item.get_status_display %}</div>
+                    <div class="ui-chips">{% ui_state_chip "support" item.status %}</div>
                     <h3 class="ui-card-title">{{ item.subject }}</h3>
                     <p class="ui-card-support">{{ item.get_category_display }} · {{ item.created_at|date:"j b Y" }}</p>
                     <p class="ui-card-support">{{ item.description }}</p>

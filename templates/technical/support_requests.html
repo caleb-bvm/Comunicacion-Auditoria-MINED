@@ -30,7 +30,7 @@
             <div class="ui-section-head"><h2 class="ui-section-title" id="support-queue-title">Bandeja</h2><span class="ui-help">{{ support_requests|length }} {% if support_requests|length == 1 %}solicitud{% else %}solicitudes{% endif %} en esta vista</span></div>
             <div class="ui-list">
                 {% for item in support_requests %}
-                <a class="ui-list-row{% if selected.pk == item.pk %} is-selected{% endif %}" href="{% url 'technical_support_request_detail' item.pk %}?status={{ status_filter|urlencode }}&amp;category={{ category_filter|urlencode }}#support-resolution"{% if selected.pk == item.pk %} aria-current="true"{% endif %}><span class="ui-list-text"><span class="ui-list-title">{{ item.subject }}</span><span class="ui-list-support">{{ item.get_category_display }} · {% if item.requested_by %}{{ item.requested_by.get_full_name|default:item.requested_by.username }}{% else %}{{ item.requester_name|default:"Cuenta no identificada" }}{% endif %} · hace {{ item.created_at|timesince }}</span></span><span class="ui-chip {% if item.status == 'open' %}ui-chip-info{% elif item.status == 'in_progress' %}ui-chip-review{% elif item.status == 'resolved' or item.status == 'closed' %}ui-chip-success{% endif %}">{{ item.get_status_display }}</span></a>
+                <a class="ui-list-row{% if selected.pk == item.pk %} is-selected{% endif %}" href="{% url 'technical_support_request_detail' item.pk %}?status={{ status_filter|urlencode }}&amp;category={{ category_filter|urlencode }}#support-resolution"{% if selected.pk == item.pk %} aria-current="true"{% endif %}><span class="ui-list-text"><span class="ui-list-title">{{ item.subject }}</span><span class="ui-list-support">{{ item.get_category_display }} · {% if item.requested_by %}{{ item.requested_by.get_full_name|default:item.requested_by.username }}{% else %}{{ item.requester_name|default:"Cuenta no identificada" }}{% endif %} · hace {{ item.created_at|timesince }}</span></span>{% ui_state_chip "support" item.status %}</a>
                 {% empty %}
                 <div class="ui-list-row"><span class="ui-list-support">No hay solicitudes en esta vista. Pruebe con otro estado o categoría.</span></div>
                 {% endfor %}
@@ -39,7 +39,7 @@
         <section id="support-resolution" class="ui-layout-aside" aria-label="Solicitud seleccionada">
             {% if selected %}
             <div class="ui-card">
-                <div class="ui-chips"><span class="ui-chip {% if selected.status == 'open' %}ui-chip-info{% elif selected.status == 'in_progress' %}ui-chip-review{% elif selected.status == 'resolved' or selected.status == 'closed' %}ui-chip-success{% endif %}">{{ selected.get_status_display }}</span><span class="ui-chip">Solicitud #{{ selected.pk }}</span></div>
+                <div class="ui-chips">{% ui_state_chip "support" selected.status %}<span class="ui-chip">Solicitud #{{ selected.pk }}</span></div>
                 <h2 class="ui-card-title">{{ selected.subject }}</h2>
                 <p>{{ selected.description|linebreaksbr }}</p>
                 <dl class="ui-list ui-list-flat ui-facts">

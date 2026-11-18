@@ -10,7 +10,10 @@
 
     <section class="ui-section" aria-labelledby="ui-ref-chips">
         <h2 class="ui-section-title" id="ui-ref-chips">Estados</h2>
-        <div class="ui-chips">{% for status in statuses %}{% ui_status_chip status %}{% endfor %}</div>
+        <p class="ui-help">Rojo: problema (falló o venció). Ámbar: requiere atención. Azul: en curso. Verde: terminado bien. Contorno: sin iniciar o sin nada que reportar.</p>
+        {% for family, values in status_families %}<p class="ui-label">{{ family }}</p><div class="ui-chips">{% for status in values %}{% ui_state_chip family status %}{% endfor %}</div>{% endfor %}
+        <h2 class="ui-section-title">Gravedad</h2>
+        <div class="ui-chips">{% for kind, value in severity_examples %}{% if kind == 'attention' %}{% ui_attention_chip value value %}{% endif %}{% endfor %}</div>
         <h2 class="ui-section-title">Plazos</h2>
         <div class="ui-chips">{% for deadline in deadlines %}{% ui_deadline_chip deadline %}{% endfor %}{% ui_deadline_chip None %}</div>
     </section>
@@ -44,7 +47,7 @@
 
     <section class="ui-section" aria-labelledby="ui-ref-callouts">
         <h2 class="ui-section-title" id="ui-ref-callouts">Avisos</h2>
-        <div class="ui-callout ui-callout-correction"><h3 class="ui-callout-title">Lo que pide Auditoría</h3><p>Adjunte las cinco actas firmadas con inventario, ubicación y custodio.</p></div>
+        <div class="ui-callout ui-callout-warning"><h3 class="ui-callout-title">Lo que pide Auditoría</h3><p>Adjunte las cinco actas firmadas con inventario, ubicación y custodio.</p></div>
         <div class="ui-callout ui-callout-inline">{% ui_icon "info" %}<span>Después de enviar no podrá editar.</span></div>
     </section>
 

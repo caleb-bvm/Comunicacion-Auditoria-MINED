@@ -138,7 +138,7 @@
         {% if messages %}
         <div class="messages" aria-live="polite">
             {% for message in messages %}
-            <div class="message message-{{ message.tags|default:'info' }}"><span aria-hidden="true">●</span>{{ message }}</div>
+            <div class="message message-{{ message.tags|default:'info' }}"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-{% if message.level_tag == 'success' %}check{% elif message.level_tag == 'error' or message.level_tag == 'warning' %}alert{% else %}info{% endif %}"></use></svg>{{ message }}</div>
             {% endfor %}
         </div>
         {% endif %}

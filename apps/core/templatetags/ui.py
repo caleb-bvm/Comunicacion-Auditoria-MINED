@@ -5,31 +5,107 @@ from datetime import date, timedelta
 from django import template
 from django.utils import timezone
 from django.utils.dateformat import format as format_date
+from django.utils.timesince import timesince
 
 register = template.Library()
 
-# Estado de una recomendación → (tono del chip, ícono, texto corto).
-RECOMMENDATION_STATUS = {
-    "pending": ("neutral", "pending", "Pendiente"),
-    "submitted": ("info", "send", "Enviada"),
-    "under_review": ("review", "search", "En revisión"),
-    "correction_required": ("correction", "edit", "Corregir"),
-    "complied": ("success", "check", "Cumplida"),
-    "partial": ("success", "half", "Parcialmente cumplida"),
-    "not_complied": ("danger", "close", "No cumplida"),
+# Sistema de estados de SIGA-MINEDUCYT: cuatro colores y un neutro, cada uno con un solo significado.
+#   danger  → problema: falló o venció. Actuar ahora. (relleno fuerte)
+#   warning → requiere atención: todavía no falla, pero no está bien.
+#   info    → en curso: alguien trabaja en ello y nadie está atrasado.
+#   success → terminado con resultado positivo o verificado.
+#   neutral → sin iniciar, inactivo, archivado o sin nada que reportar. (contorno)
+# El color lo deciden el tiempo y el resultado; el paso del flujo se lee en el ícono y la palabra.
+TONES = ("danger", "warning", "info", "success", "neutral")
+
+# Familia de estados → valor → (tono, ícono). Las etiquetas salen siempre del modelo.
+STATUS_STYLES = {
+    "case": {
+        "draft": ("neutral", "edit"),
+        "pending_publication": ("info", "decision"),
+        "published": ("info", "send"),
+        "in_response": ("info", "pending"),
+        "under_review": ("info", "search"),
+        "correction_required": ("warning", "edit"),
+        "pending_closure": ("info", "decision"),
+        "closed": ("success", "check"),
+    },
+    "recommendation": {
+        "pending": ("neutral", "pending"),
+        "submitted": ("info", "send"),
+        "under_review": ("info", "search"),
+        "correction_required": ("warning", "edit"),
+        "complied": ("success", "check"),
+        "partial": ("warning", "half"),
+        "not_complied": ("danger", "close"),
+    },
+    "inquiry": {
+        "open": ("info", "message"),
+        "in_progress": ("info", "user"),
+        "waiting_institution": ("warning", "message"),
+        "answered": ("success", "message"),
+        "reopened": ("info", "back"),
+        "closed": ("neutral", "check"),
+    },
+    "support": {
+        "open": ("info", "message"),
+        "in_progress": ("info", "user"),
+        "resolved": ("success", "check"),
+        "closed": ("neutral", "check"),
+    },
+    "decision": {
+        "pending": ("info", "clock"),
+        "approved": ("success", "check"),
+        "returned": ("warning", "back"),
+    },
+    "document": {
+        "historical": ("neutral", "history"),
+        "draft": ("neutral", "edit"),
+        "pending_approval": ("info", "decision"),
+        "approved": ("success", "check"),
+        "returned": ("warning", "back"),
+    },
+    "review_outcome": {
+        "correction_required": ("warning", "edit"),
+        "complied": ("success", "check"),
+        "partial": ("warning", "half"),
+        "not_complied": ("danger", "close"),
+    },
 }
 
-# Estado de un expediente → (tono del chip, ícono, texto corto).
-CASE_STATUS = {
-    "draft": ("neutral", "edit", "Borrador"),
-    "pending_publication": ("info", "send", "Por publicar"),
-    "published": ("info", "send", "Enviado"),
-    "in_response": ("neutral", "pending", "Sin respuesta"),
-    "under_review": ("review", "search", "En revisión"),
-    "correction_required": ("correction", "edit", "Corregir"),
-    "pending_closure": ("success", "check", "Cierre pedido"),
-    "closed": ("success", "check", "Cerrado"),
+# Gravedad (riesgo de hallazgos y nivel de atención de centros): otra forma (píldora con barras) y una escala de 4.
+SEVERITY_LEVELS = {
+    "risk": {"critical": 4, "high": 3, "medium": 2, "low": 1},
+    "attention": {"immediate": 4, "high": 3, "followup": 2, "stable": 1},
 }
+SEVERITY_TONES = {4: "danger", 3: "danger-soft", 2: "warning", 1: "neutral"}
+
+# Una decisión de Dirección pendiente pasa a «requiere atención» después de estos días.
+DECISION_WAIT_WARNING_DAYS = 7
+
+
+def _status_labels(family):
+    from apps.accounts.models import TechnicalSupportRequest
+    from apps.audits.models import AuditCase, AuditDocument, AuditInquiry, CaseDecision, Recommendation, Review
+
+    choices = {
+        "case": AuditCase.Status,
+        "recommendation": Recommendation.Status,
+        "inquiry": AuditInquiry.Status,
+        "support": TechnicalSupportRequest.Status,
+        "decision": CaseDecision.Status,
+        "document": AuditDocument.Status,
+        "review_outcome": Review.Outcome,
+    }[family]
+    return dict(choices.choices)
+
+
+def status_style(family, status):
+    """Devuelve el tono, el ícono y la etiqueta oficial de un estado."""
+    tone, icon = STATUS_STYLES[family].get(status, ("neutral", "pending"))
+    label = _status_labels(family).get(status, status)
+    return {"tone": tone, "icon": icon, "label": label}
+
 
 DUE_SOON_DAYS = 7
 
@@ -47,7 +123,7 @@ def deadline_state(deadline, today=None):
     if deadline < today:
         return {"tone": "danger", "icon": "alert", "label": f"Venció el {short_date(deadline, today)}"}
     if deadline == today:
-        return {"tone": "danger", "icon": "alert", "label": "Vence hoy"}
+        return {"tone": "warning", "icon": "alert", "label": "Vence hoy"}
     tone = "warning" if deadline <= today + timedelta(days=DUE_SOON_DAYS) else "neutral"
     return {"tone": tone, "icon": "clock", "label": f"Vence el {short_date(deadline, today)}"}
 
@@ -58,15 +134,64 @@ def ui_icon(name):
 
 
 @register.inclusion_tag("includes/ui/chip.html")
+def ui_chip(tone, icon, label):
+    """Chip de estado ad hoc (cuentas, CDE, verificaciones): siempre color, ícono y palabra."""
+    return {"tone": tone if tone in TONES else "neutral", "icon": icon, "label": label}
+
+
+@register.inclusion_tag("includes/ui/chip.html")
+def ui_state_chip(family, status):
+    return status_style(family, status)
+
+
+@register.filter
+def ui_tone(status, family):
+    """Tono de un estado para avisos y barras: {{ review.outcome|ui_tone:"review_outcome" }}."""
+    return STATUS_STYLES[family].get(status, ("neutral", "pending"))[0]
+
+
+@register.inclusion_tag("includes/ui/chip.html")
 def ui_status_chip(status, label=None):
-    tone, icon, short_label = RECOMMENDATION_STATUS.get(status, ("neutral", "pending", status))
-    return {"tone": tone, "icon": icon, "label": label or short_label}
+    style = status_style("recommendation", status)
+    if label:
+        style["label"] = label
+    return style
 
 
 @register.inclusion_tag("includes/ui/chip.html")
 def ui_case_status_chip(status):
-    tone, icon, label = CASE_STATUS.get(status, ("neutral", "pending", status))
-    return {"tone": tone, "icon": icon, "label": label}
+    return status_style("case", status)
+
+
+def severity_style(kind, value, label, muted=False):
+    level = SEVERITY_LEVELS[kind].get(value, 1)
+    tone = "neutral" if muted else SEVERITY_TONES[level]
+    return {"level": level, "tone": tone, "label": label}
+
+
+@register.filter
+def ui_severity_tone(value, kind):
+    """Tono de un nivel de gravedad para barras: {{ row.value|ui_severity_tone:"risk" }}."""
+    return SEVERITY_TONES[SEVERITY_LEVELS[kind].get(value, 1)]
+
+
+@register.inclusion_tag("includes/ui/severity_chip.html")
+def ui_risk_chip(finding, muted=False):
+    label = f"Riesgo {finding.get_risk_level_display().lower()}"
+    return severity_style("risk", finding.risk_level, label, muted)
+
+
+@register.inclusion_tag("includes/ui/severity_chip.html")
+def ui_attention_chip(level, label):
+    return severity_style("attention", level, label)
+
+
+@register.inclusion_tag("includes/ui/chip.html")
+def ui_wait_chip(since, now=None):
+    """Tiempo de espera de una decisión de Dirección: en curso, o requiere atención si se alarga."""
+    now = now or timezone.now()
+    tone = "warning" if since and now - since > timedelta(days=DECISION_WAIT_WARNING_DAYS) else "info"
+    return {"tone": tone, "icon": "clock", "label": f"Espera desde hace {timesince(since, now).split(',')[0]}"}
 
 
 @register.inclusion_tag("includes/ui/chip.html")
@@ -88,20 +213,3 @@ def ui_lines(value):
         if cleaned:
             lines.append(cleaned)
     return lines
-
-
-# Estados de consultas y solicitudes de soporte → (tono del chip, ícono).
-REQUEST_STATUS = {
-    "open": ("info", "alert"),
-    "in_progress": ("review", "clock"),
-    "waiting_institution": ("warning", "message"),
-    "answered": ("success", "message"),
-    "resolved": ("success", "check"),
-    "closed": ("neutral", "check"),
-}
-
-
-@register.inclusion_tag("includes/ui/chip.html")
-def ui_request_status_chip(status, label):
-    tone, icon = REQUEST_STATUS.get(status, ("neutral", "pending"))
-    return {"tone": tone, "icon": icon, "label": label}

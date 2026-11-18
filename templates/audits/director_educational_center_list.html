@@ -21,14 +21,14 @@
         {% if query or selected_department or selected_district or selected_attention or selected_risk or selected_audits or selected_cde or selected_access %}
         <div class="ui-filter-chips" aria-label="Filtros aplicados">
             <span>Filtros:</span>
-            {% if query %}<a class="ui-chip ui-chip-info" href="{% querystring q=None %}">“{{ query }}”{% ui_icon "close" %}</a>{% endif %}
-            {% if selected_department %}<a class="ui-chip ui-chip-info" href="{% querystring department=None district=None %}">{{ selected_department }}{% ui_icon "close" %}</a>{% endif %}
-            {% if selected_district %}<a class="ui-chip ui-chip-info" href="{% querystring district=None %}">{{ selected_district }}{% ui_icon "close" %}</a>{% endif %}
-            {% if selected_attention %}<a class="ui-chip ui-chip-info" href="{% querystring attention=None %}">{% if selected_attention == 'immediate' %}Atención inmediata{% elif selected_attention == 'due_soon' %}Próximos a vencer{% else %}Prioridad{% endif %}{% ui_icon "close" %}</a>{% endif %}
-            {% if selected_risk %}<a class="ui-chip ui-chip-info" href="{% querystring risk=None %}">Riesgo{% ui_icon "close" %}</a>{% endif %}
-            {% if selected_audits %}<a class="ui-chip ui-chip-info" href="{% querystring audits=None %}">Cobertura{% ui_icon "close" %}</a>{% endif %}
-            {% if selected_access %}<a class="ui-chip ui-chip-info" href="{% querystring access=None %}">Sin acceso{% ui_icon "close" %}</a>{% endif %}
-            {% if selected_cde %}<a class="ui-chip ui-chip-info" href="{% querystring cde=None %}">Sin CDE vigente{% ui_icon "close" %}</a>{% endif %}
+            {% if query %}<a class="ui-chip ui-chip-filter" href="{% querystring q=None %}">“{{ query }}”{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_department %}<a class="ui-chip ui-chip-filter" href="{% querystring department=None district=None %}">{{ selected_department }}{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_district %}<a class="ui-chip ui-chip-filter" href="{% querystring district=None %}">{{ selected_district }}{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_attention %}<a class="ui-chip ui-chip-filter" href="{% querystring attention=None %}">{% if selected_attention == 'immediate' %}Atención inmediata{% elif selected_attention == 'due_soon' %}Próximos a vencer{% else %}Prioridad{% endif %}{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_risk %}<a class="ui-chip ui-chip-filter" href="{% querystring risk=None %}">Riesgo{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_audits %}<a class="ui-chip ui-chip-filter" href="{% querystring audits=None %}">Cobertura{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_access %}<a class="ui-chip ui-chip-filter" href="{% querystring access=None %}">Sin acceso{% ui_icon "close" %}</a>{% endif %}
+            {% if selected_cde %}<a class="ui-chip ui-chip-filter" href="{% querystring cde=None %}">Sin CDE vigente{% ui_icon "close" %}</a>{% endif %}
             <a class="ui-button ui-button-text" href="{% url 'director_educational_centers' %}">Quitar todos</a>
         </div>
         {% endif %}
@@ -53,7 +53,7 @@
                 {% for center in centers %}
                 <tr{% if center.attention_level == 'immediate' %} class="is-highlighted"{% endif %}>
                     <td><a class="ui-table-link" href="{% url 'director_educational_center_detail' center.pk %}">{{ center.name }}</a><span class="ui-table-support">{{ center.code }} · {% if center.district %}{{ center.district }}{% else %}{{ center.municipality|default:"Municipio no registrado" }}{% endif %}{% if center.department %} · {{ center.department }}{% endif %}</span><span class="ui-table-support">{% if center.attention_reasons %}{{ center.attention_reasons.0.label }} · {% endif %}{{ center.access_label }} · {{ center.cde_state_label }}</span></td>
-                    <td>{% include "includes/ui/attention_chip.html" with level=center.attention_level label=center.attention_label %}</td>
+                    <td>{% ui_attention_chip center.attention_level center.attention_label %}</td>
                     <td><a class="ui-table-link" href="{% url 'case_list' %}?organization={{ center.pk }}" aria-label="Ver los {{ center.case_count }} expedientes de {{ center.name }}">{{ center.active_case_count }}</a><span class="ui-table-support">de {{ center.case_count }}</span></td>
                     <td>{{ center.overdue_count }}<span class="ui-table-support">de {{ center.obligation_count }}</span></td>
                     <td>{% if center.compliance_rate is not None %}{{ center.compliance_rate }}%{% else %}N/D{% endif %}</td>

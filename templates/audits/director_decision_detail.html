@@ -6,7 +6,7 @@
     <a class="ui-back" href="{% url 'director_decisions' %}">{% ui_icon "back" %}Decisiones</a>
     <div class="ui-page-header-row">
         <header class="ui-page-header">
-            <div class="ui-chips"><span class="ui-chip {% if decision.status == 'approved' %}ui-chip-success{% elif decision.status == 'returned' %}ui-chip-correction{% else %}ui-chip-warning{% endif %}">{% if decision.status == 'approved' %}{% ui_icon "check" %}{% elif decision.status == 'returned' %}{% ui_icon "back" %}{% else %}{% ui_icon "clock" %}{% endif %}{{ decision.get_status_display }}</span></div>
+            <div class="ui-chips">{% ui_state_chip "decision" decision.status %}</div>
             <h1 class="ui-page-title">Solicitud de {{ decision.get_kind_display|lower }}</h1>
             <p class="ui-page-context">{{ case.reference }} · {{ case.audited_organization.name }} · {{ case.title }}</p>
         </header>
@@ -23,7 +23,7 @@
             <h2 class="ui-section-title" id="decision-findings-title">Hallazgos y recomendaciones</h2>
             {% for finding in findings %}
             <article class="ui-card" aria-labelledby="decision-finding-{{ finding.pk }}">
-                <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span><span class="risk risk-{{ finding.risk_level }}">Riesgo {{ finding.get_risk_level_display|lower }}</span></div>
+                <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span>{% ui_risk_chip finding %}</div>
                 <h3 class="ui-card-title" id="decision-finding-{{ finding.pk }}">{{ finding.title }}</h3>
                 <div class="ui-divided">
                     {% for recommendation in finding.recommendations.all %}

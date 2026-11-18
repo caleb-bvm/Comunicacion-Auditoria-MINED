@@ -15,7 +15,7 @@
         <div class="ui-field"><label for="role">Rol</label><select id="role" name="role"><option value="">Todos</option>{% for value,label in roles %}<option value="{{ value }}" {% if role_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
         <div class="ui-field"><label for="status">Estado</label><select id="status" name="status"><option value="">Todos</option><option value="active" {% if status_filter == 'active' %}selected{% endif %}>Activos</option><option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Suspendidos</option></select></div>
         <button class="ui-button ui-button-tonal" type="submit">Aplicar</button>
-        {% if query or role_filter or status_filter %}<div class="ui-filter-chips"><span>Filtros:</span>{% if query %}<span class="ui-chip ui-chip-info">Búsqueda: {{ query }}</span>{% endif %}{% if role_filter %}<span class="ui-chip ui-chip-info">Rol seleccionado</span>{% endif %}{% if status_filter %}<span class="ui-chip ui-chip-info">{% if status_filter == 'active' %}Activos{% else %}Suspendidos{% endif %}</span>{% endif %}<a class="ui-button ui-button-text" href="{% url 'technical_users' %}">Limpiar todo</a></div>{% endif %}
+        {% if query or role_filter or status_filter %}<div class="ui-filter-chips"><span>Filtros:</span>{% if query %}<span class="ui-chip ui-chip-filter">Búsqueda: {{ query }}</span>{% endif %}{% if role_filter %}<span class="ui-chip ui-chip-filter">Rol seleccionado</span>{% endif %}{% if status_filter %}<span class="ui-chip ui-chip-filter">{% if status_filter == 'active' %}Activos{% else %}Suspendidos{% endif %}</span>{% endif %}<a class="ui-button ui-button-text" href="{% url 'technical_users' %}">Limpiar todo</a></div>{% endif %}
     </form>
     <div class="ui-table-wrap">
         <table class="ui-table" data-mobile-cards>
@@ -27,7 +27,7 @@
                     <td><a class="ui-table-link" href="{% url 'technical_user_detail' item.pk %}">{{ item.get_full_name|default:item.username }}</a><span class="ui-table-support">{{ item.username }}{% if item.email %} · {{ item.email }}{% endif %}</span></td>
                     <td>{{ item.get_role_display }}</td>
                     <td>{{ item.organization.name|default:"Sin institución" }}</td>
-                    <td>{% if item.is_active %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Activa</span>{% else %}<span class="ui-chip ui-chip-danger">{% ui_icon "lock" %}Suspendida</span>{% endif %}{% if item.must_change_password %}<span class="ui-table-support">Cambio de contraseña pendiente</span>{% endif %}</td>
+                    <td>{% if item.is_active %}<span class="ui-chip ui-chip-neutral">{% ui_icon "check" %}Activa</span>{% else %}<span class="ui-chip ui-chip-danger">{% ui_icon "lock" %}Suspendida</span>{% endif %}{% if item.must_change_password %}<span class="ui-table-support">Cambio de contraseña pendiente</span>{% endif %}</td>
                     <td class="ui-table-end"><a class="ui-button ui-button-tonal" href="{% url 'technical_user_detail' item.pk %}">Administrar</a></td>
                 </tr>
                 {% empty %}

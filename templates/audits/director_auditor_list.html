@@ -29,7 +29,7 @@
                     <td>{{ auditor.email|default:"—" }}</td>
                     <td>{{ auditor.organization_count }}</td>
                     <td>{{ auditor.open_case_count }}</td>
-                    <td>{% if auditor.is_active %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Activo</span>{% else %}<span class="ui-chip">{% ui_icon "folder" %}Archivado</span>{% endif %}</td>
+                    <td>{% if auditor.is_active %}<span class="ui-chip ui-chip-neutral">{% ui_icon "check" %}Activo</span>{% else %}<span class="ui-chip ui-chip-neutral">{% ui_icon "folder" %}Archivado</span>{% endif %}</td>
                     <td class="ui-table-end"><a class="ui-button ui-button-tonal" href="{% url 'director_auditor_detail' auditor.pk %}">Administrar</a></td>
                 </tr>
                 {% empty %}

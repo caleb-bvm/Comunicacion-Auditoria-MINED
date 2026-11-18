@@ -24,7 +24,7 @@
         <section class="ui-section" aria-label="Hallazgos">
             {% for finding in findings %}
             <article class="ui-card" aria-labelledby="builder-finding-{{ finding.pk }}">
-                <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span><span class="risk risk-{{ finding.risk_level }}">Riesgo {{ finding.get_risk_level_display|lower }}</span></div>
+                <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span>{% ui_risk_chip finding %}</div>
                 <h2 class="ui-card-title" id="builder-finding-{{ finding.pk }}">{{ finding.title }}</h2>
                 <div class="ui-row-actions ui-row-actions-start">
                     <a class="ui-button ui-button-text" href="{% url 'finding_edit' finding.pk %}">{% ui_icon "edit" %}Editar hallazgo</a>

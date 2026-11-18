@@ -193,8 +193,8 @@ body {
 .ui-card-support { margin: 0; font-size: var(--ui-text-support); line-height: 24px; color: var(--ui-on-surface-variant); }
 .ui-card-actions { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); }
 .ui-card-actions > .ui-button { flex: 0 0 auto; }
-.ui-card-tone-correction { background: var(--ui-correction-container); color: var(--ui-on-correction-container); }
-.ui-card-tone-correction .ui-card-support { color: inherit; }
+.ui-card-tone-warning { background: var(--ui-warning-container); color: var(--ui-on-warning-container); }
+.ui-card-tone-warning .ui-card-support { color: inherit; }
 
 /* Los títulos nuevos ganan a las reglas genéricas de app.css (.content h1, .content h2). */
 .content :is(h1, h2, h3).ui-card-title,
@@ -204,7 +204,10 @@ body {
 .content :is(h1, h2).ui-page-title,
 .content :is(h1, h2).ui-step-title { font-weight: 500; letter-spacing: 0; }
 
-/* ---------- Chips de estado y plazo ---------- */
+/* ---------- Chips de estado y plazo ----------
+ * Cuatro colores y un neutro: danger (problema, relleno fuerte), warning (requiere atención),
+ * info (en curso), success (terminado bien), neutral (contorno: sin iniciar o sin nada que reportar).
+ * Siempre color + ícono + palabra; las etiquetas salen de apps/core/templatetags/ui.py. */
 .ui-chips { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); }
 .ui-chip {
     min-height: 36px;
@@ -221,12 +224,19 @@ body {
     color: var(--ui-on-neutral-container);
 }
 .ui-chip .ui-icon { width: 20px; height: 20px; stroke-width: 2.2; }
-.ui-chip-danger { background: var(--ui-danger-container); color: var(--ui-on-danger-container); }
-.ui-chip-correction { background: var(--ui-correction-container); color: var(--ui-on-correction-container); }
+.ui-chip-danger { background: var(--ui-danger); color: var(--ui-on-danger); }
 .ui-chip-warning { background: var(--ui-warning-container); color: var(--ui-on-warning-container); }
-.ui-chip-review { background: var(--ui-review-container); color: var(--ui-on-review-container); }
+.ui-chip-info { background: var(--ui-info-container); color: var(--ui-on-info-container); }
 .ui-chip-success { background: var(--ui-success-container); color: var(--ui-on-success-container); }
-.ui-chip-info { background: var(--ui-primary-container); color: var(--ui-on-primary-container); }
+.ui-chip-neutral { background: var(--ui-surface-card); color: var(--ui-on-surface-variant); box-shadow: inset 0 0 0 1px var(--ui-neutral-outline); }
+/* Etiquetas descriptivas sin estado (número de hallazgo, tipo de centro): gris plano, sin ícono. */
+.ui-chip:not([class*="ui-chip-"]) { padding-left: 14px; }
+/* Gravedad (riesgo y nivel de atención): píldora con barras de nivel, para no confundirse con un estado. */
+.ui-severity { border-radius: var(--ui-radius-full); }
+.ui-severity .ui-icon { stroke-width: 3; }
+.ui-chip-danger-soft { background: var(--ui-danger-container); color: var(--ui-on-danger-container); }
+/* Filtros activos: contorno azul con ×, nunca con el aspecto de un estado. */
+.ui-chip-filter { background: transparent; color: var(--ui-primary); box-shadow: inset 0 0 0 1px var(--ui-primary); padding: 0 10px 0 14px; }
 
 /* ---------- Botones ---------- */
 .ui-button {
@@ -269,8 +279,9 @@ body {
 }
 .ui-callout-title { margin: 0; font-size: var(--ui-text-title); line-height: 28px; font-weight: 600; }
 .ui-callout p { margin: 0; }
-.ui-callout-correction { background: var(--ui-correction-container); color: var(--ui-on-correction-container); }
 .ui-callout-warning { background: var(--ui-warning-container); color: var(--ui-on-warning-container); }
+.ui-callout-danger { background: var(--ui-danger-container); color: var(--ui-on-danger-container); }
+.ui-callout-success { background: var(--ui-success-container); color: var(--ui-on-success-container); }
 .ui-callout-inline { flex-direction: row; align-items: flex-start; gap: var(--ui-space-3); font-size: var(--ui-text-support); line-height: 24px; border-radius: var(--ui-radius-tile); padding: var(--ui-space-4) var(--ui-space-5); }
 
 /* ---------- Listas de filas ---------- */
@@ -562,7 +573,7 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-steps { display: flex; flex-direction: column; gap: var(--ui-space-3); }
 .ui-steps-bar { display: grid; grid-template-columns: repeat(var(--ui-step-count, 3), minmax(0, 1fr)); gap: 6px; }
 .ui-steps-bar span { height: 8px; border-radius: 4px; background: var(--ui-surface-high); }
-.ui-steps-bar span.is-done { background: var(--ui-success); }
+.ui-steps-bar span.is-done { background: var(--ui-primary); opacity: .45; }
 .ui-steps-bar span.is-current { background: var(--ui-primary); }
 .ui-step { display: flex; flex-direction: column; gap: var(--ui-space-5); border: 0; margin: 0; padding: 0; min-width: 0; }
 .ui-step-title { margin: 0; padding: 0; font-size: var(--ui-text-page-mobile); line-height: 36px; font-weight: 500; }
@@ -762,7 +773,7 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-filters > .ui-button { min-height: var(--ui-touch-large); }
 .ui-filter-chips { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-space-2); font-size: var(--ui-text-support); color: var(--ui-on-surface-variant); }
 a.ui-chip { text-decoration: none; }
-a.ui-chip:hover { box-shadow: inset 0 0 0 999px rgb(21 28 42 / 8%); }
+a.ui-chip:hover { background: rgb(26 77 156 / 8%); }
 .ui-tab-count { margin-left: var(--ui-space-2); font-variant-numeric: tabular-nums; }
 
 /* ---------- Paginación ---------- */
@@ -799,15 +810,11 @@ a.ui-bar-row:hover > span:first-child { color: var(--ui-primary); text-decoratio
 .ui-bar-row progress::-webkit-progress-value { background: currentColor; border-radius: 4px; }
 .ui-bar-row progress::-moz-progress-bar { background: currentColor; border-radius: 4px; }
 .ui-bar-danger progress { color: var(--ui-danger); }
-.ui-bar-warning progress { color: var(--ui-warning); }
-.ui-bar-correction progress { color: var(--ui-correction); }
+.ui-bar-danger-soft progress { color: var(--ui-danger-mark); }
+.ui-bar-warning progress { color: var(--ui-warning-mark); }
+.ui-bar-info progress { color: var(--ui-primary); }
 .ui-bar-success progress { color: var(--ui-success); }
-.ui-bar-review progress { color: var(--ui-review); }
 .ui-bar-neutral progress { color: var(--ui-outline); }
-.ui-legend { display: flex; flex-wrap: wrap; gap: var(--ui-space-2) var(--ui-space-4); font-size: var(--ui-text-support); color: var(--ui-on-surface-variant); }
-.ui-legend span { display: inline-flex; align-items: center; gap: var(--ui-space-2); }
-.ui-legend span::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: currentColor; }
-.ui-legend .ui-bar-row { display: inline-flex; }
 
 /* ---------- Tablas que pasan a tarjetas en el teléfono ---------- */
 .ui-table tbody tr > :first-child { min-width: 240px; }
@@ -855,9 +862,16 @@ form[data-analysis-mode].is-updating ~ * { opacity: .55; transition: opacity .15
 .ui-analysis-filters > .ui-details > .ui-filters { padding-top: var(--ui-space-2); }
 .ui-month { padding: var(--ui-space-4) 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ui-space-2); }
 @container (min-width: 640px) { .ui-month { grid-template-columns: 160px minmax(0, 1fr); align-items: start; } }
-.ui-legend-primary { color: var(--ui-primary); }
-.ui-legend-review { color: var(--ui-review); }
-.ui-legend-success { color: var(--ui-success); }
-.ui-legend span > * { color: var(--ui-on-surface-variant); }
 .ui-list-row.is-selected .ui-list-title { color: var(--ui-primary); }
 .ui-list-row.is-selected { box-shadow: inset 4px 0 0 var(--ui-primary); padding-left: var(--ui-space-3); }
+
+/* ---------- Mensajes del sistema: mismo código de color que los estados ---------- */
+.message { border-radius: var(--ui-radius-tile); background: var(--ui-info-container); color: var(--ui-on-info-container); font-size: var(--ui-text-support); line-height: 24px; font-weight: 600; }
+.message .ui-icon { width: 22px; height: 22px; flex: 0 0 22px; }
+.message-success { background: var(--ui-success-container); color: var(--ui-on-success-container); }
+.message-warning { background: var(--ui-warning-container); color: var(--ui-on-warning-container); }
+.message-error { background: var(--ui-danger-container); color: var(--ui-on-danger-container); }
+
+/* ---------- Carga masiva: filas con resultado ---------- */
+.bulk-table tr[data-status="error"] { background: var(--ui-danger-container); }
+.bulk-table tr[data-status="saved"], .bulk-table tr[data-status="duplicate"] { background: var(--ui-success-container); }

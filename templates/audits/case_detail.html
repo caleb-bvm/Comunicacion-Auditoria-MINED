@@ -43,7 +43,7 @@
         <h2 class="ui-section-title" id="case-findings-title">Hallazgos y recomendaciones</h2>
         {% for finding in findings %}
         <article class="ui-card" aria-labelledby="case-finding-{{ finding.pk }}">
-            <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span><span class="risk risk-{{ finding.risk_level }}">Riesgo {{ finding.get_risk_level_display|lower }}</span></div>
+            <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span>{% ui_risk_chip finding %}</div>
             <h3 class="ui-card-title" id="case-finding-{{ finding.pk }}">{{ finding.title }}</h3>
             {% if finding.condition %}<details class="ui-details"><summary>Condición</summary><p>{{ finding.condition|linebreaksbr }}</p></details>{% endif %}
             <div class="ui-divided">
@@ -67,7 +67,7 @@
                                 <p class="ui-help">El centro declaró: {{ response.get_declared_status_display|lower }}{% if response.school_board_period %} · <a href="{% url 'cde_detail' response.school_board_period.organization_id %}">CDE {{ response.school_board_period.school_year_start }}–{{ response.school_board_period.school_year_end }}</a>{% endif %}</p>
                                 <p>{{ response.action_description|linebreaksbr }}</p>
                                 {% if response.evidence.all %}<ul class="ui-plain-list">{% for item in response.evidence.all %}<li><a href="{% url 'download_evidence' item.pk %}">{{ item.original_filename }}</a> · {{ item.get_category_display }} · {{ item.get_scan_status_display|lower }}</li>{% endfor %}</ul>{% endif %}
-                                {% if response.review %}<div class="ui-callout ui-callout-inline{% if response.review.outcome == 'correction_required' %} ui-callout-correction{% endif %}"><span><strong>Resultado: {{ response.review.get_outcome_display|lower }}.</strong> {{ response.review.comments|linebreaksbr }}</span></div>{% endif %}
+                                {% if response.review %}<div class="ui-callout ui-callout-inline ui-callout-{{ response.review.outcome|ui_tone:"review_outcome" }}"><span><strong>Resultado: {{ response.review.get_outcome_display|lower }}.</strong> {{ response.review.comments|linebreaksbr }}</span></div>{% endif %}
                                 <div class="ui-row-actions ui-row-actions-start">
                                     {% if not response.review %}<a class="ui-button ui-button-tonal" href="{% url 'review_response' response.pk %}">Revisar respuesta</a>{% endif %}
                                     <a class="ui-button ui-button-text" href="{% url 'response_receipt' response.pk %}">{% ui_icon "download" %}Descargar constancia</a>

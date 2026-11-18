@@ -17,9 +17,9 @@ from reportlab.platypus import (
 from xml.sax.saxutils import escape
 
 
-NAVY = colors.HexColor("#102A43")
-BLUE = colors.HexColor("#145DA0")
-LIGHT_BLUE = colors.HexColor("#EAF3FB")
+NAVY = colors.HexColor("#0E3A7D")  # tokens.css --ui-primary-hover
+BLUE = colors.HexColor("#1A4D9C")  # --ui-primary
+LIGHT_BLUE = colors.HexColor("#D7E3FF")  # --ui-primary-container
 LIGHT_GRAY = colors.HexColor("#F4F7F9")
 MID_GRAY = colors.HexColor("#5F6B76")
 LINE = colors.HexColor("#D7E0E8")

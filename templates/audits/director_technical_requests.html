@@ -13,7 +13,7 @@
                 <h2 class="ui-section-title" id="requests-history-title">Historial</h2>
                 {% for item in support_requests %}
                 <article class="ui-card">
-                    <div class="ui-chips"><span class="ui-chip {% if item.status == 'resolved' or item.status == 'closed' %}ui-chip-success{% elif item.status == 'in_progress' %}ui-chip-review{% else %}ui-chip-info{% endif %}">{{ item.get_status_display }}</span></div>
+                    <div class="ui-chips">{% ui_state_chip "support" item.status %}</div>
                     <h3 class="ui-card-title">{{ item.subject }}</h3>
                     <p class="ui-card-support">{{ item.get_category_display }} · {{ item.created_at|date:"j b Y, H:i" }}</p>
                     <p>{{ item.description }}</p>

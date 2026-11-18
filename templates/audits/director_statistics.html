@@ -97,15 +97,14 @@
         <article class="ui-card" aria-labelledby="monthly-title">
             <div class="ui-section-head"><h3 class="ui-card-title" id="monthly-title">Actividad mensual</h3><span class="ui-help">Hasta 12 meses</span></div>
             {% if monthly_activity %}
-            <div class="ui-legend"><span class="ui-legend-primary">Expedientes</span><span class="ui-legend-review">Respuestas</span><span class="ui-legend-success">Dictámenes</span></div>
             <div class="ui-divided">
                 {% for row in monthly_activity %}
                 <div class="ui-month">
                     <time class="ui-label" datetime="{{ row.month|date:'Y-m' }}">{{ row.month|date:"F Y"|capfirst }}</time>
                     <div class="ui-bars">
                         <div class="ui-bar-row"><span>Expedientes</span><strong>{{ row.cases }}</strong><progress max="{{ monthly_activity_max }}" value="{{ row.cases }}">{{ row.cases }}</progress></div>
-                        <div class="ui-bar-row ui-bar-review"><span>Respuestas</span><strong>{{ row.responses }}</strong><progress max="{{ monthly_activity_max }}" value="{{ row.responses }}">{{ row.responses }}</progress></div>
-                        <div class="ui-bar-row ui-bar-success"><span>Dictámenes</span><strong>{{ row.reviews }}</strong><progress max="{{ monthly_activity_max }}" value="{{ row.reviews }}">{{ row.reviews }}</progress></div>
+                        <div class="ui-bar-row"><span>Respuestas</span><strong>{{ row.responses }}</strong><progress max="{{ monthly_activity_max }}" value="{{ row.responses }}">{{ row.responses }}</progress></div>
+                        <div class="ui-bar-row"><span>Dictámenes</span><strong>{{ row.reviews }}</strong><progress max="{{ monthly_activity_max }}" value="{{ row.reviews }}">{{ row.reviews }}</progress></div>
                     </div>
                 </div>
                 {% endfor %}
@@ -124,7 +123,7 @@
             <div class="ui-figure"><strong>{{ center_count }}</strong><span>Centros incluidos</span></div>
             <div class="ui-figure"><strong>{{ coverage_rate }}%</strong><span>Cobertura de auditoría</span><small>{{ audited_center_count }} auditados · {{ not_audited_center_count }} sin auditorías</small></div>
             <div class="ui-figure{% if immediate_center_count %} ui-figure-danger{% endif %}"><strong>{{ immediate_center_count }}</strong><span>Atención inmediata</span><small>vencimientos o riesgo crítico</small></div>
-            <div class="ui-figure{% if overdue_center_count %} ui-figure-warning{% endif %}"><strong>{{ overdue_center_count }}</strong><span>Con plazos vencidos</span><small>{{ overdue_obligations }} obligaciones abiertas</small></div>
+            <div class="ui-figure{% if overdue_center_count %} ui-figure-danger{% endif %}"><strong>{{ overdue_center_count }}</strong><span>Con plazos vencidos</span><small>{{ overdue_obligations }} obligaciones abiertas</small></div>
         </div>
         <dl class="ui-list ui-facts" aria-label="Otros indicadores actuales">
             <div class="ui-list-row"><dt>Riesgo crítico</dt><dd>{{ critical_center_count }}</dd></div>
@@ -146,7 +145,7 @@
                         <th scope="row"><span class="ui-table-link">{{ row.name }}</span><small>{{ row.case_count }} expediente{{ row.case_count|pluralize }} · {{ row.obligation_count }} obligaci{{ row.obligation_count|pluralize:"ón,ones" }}</small></th>
                         <td>{{ row.center_count }}</td>
                         <td>{{ row.coverage_rate }}%<small>{{ row.audited_count }} auditado{{ row.audited_count|pluralize }}</small></td>
-                        <td>{% if row.immediate_count %}<span class="ui-chip ui-chip-danger">{{ row.immediate_count }}</span>{% else %}0{% endif %}<small>{{ row.immediate_rate }}% de los centros</small></td>
+                        <td>{% if row.immediate_count %}<span class="ui-chip ui-chip-danger">{% ui_icon "alert" %}{{ row.immediate_count }}</span>{% else %}0{% endif %}<small>{{ row.immediate_rate }}% de los centros</small></td>
                         <td>{{ row.overdue_center_count }}<small>{{ row.overdue_count }} obligaci{{ row.overdue_count|pluralize:"ón,ones" }}</small></td>
                         <td>{% if row.compliance_rate is not None %}{{ row.compliance_rate }}%<small>{{ row.complied_count }} de {{ row.terminal_count }} cumplidas</small>{% else %}N/D<small>sin resultados</small>{% endif %}</td>
                         <td class="ui-table-end">{% if row.value %}{% if selected_group_by == 'department' %}<a class="ui-button ui-button-text" href="{% querystring department=row.value district=None group_by='district' %}">Ver distritos</a>{% else %}<a class="ui-button ui-button-text" href="{% url 'director_educational_centers' %}?department={{ selected_department|urlencode }}&amp;district={{ row.value|urlencode }}">Ver centros</a>{% endif %}{% endif %}</td>
@@ -165,7 +164,7 @@
         <div class="ui-card-grid ui-card-grid-fill">
             {% for center in priority_centers %}
             <article class="ui-card">
-                <div class="ui-chips">{% include "includes/ui/attention_chip.html" with level=center.attention_level label=center.attention_label %}</div>
+                <div class="ui-chips">{% ui_attention_chip center.attention_level center.attention_label %}</div>
                 <h3 class="ui-card-title">{{ center.name }}</h3>
                 <p class="ui-card-support">{{ center.code }} · {{ center.district|default:center.municipality }}{% if center.department %} · {{ center.department }}{% endif %}{% for reason in center.attention_reasons|slice:":2" %} · {{ reason.label }}{% endfor %}</p>
                 <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'director_educational_center_detail' center.pk %}">Ver detalle</a></div>
@@ -178,10 +177,10 @@
     </section>
 
     <section class="ui-card-grid ui-card-grid-fill" aria-label="Distribuciones institucionales">
-        <article class="ui-card"><h3 class="ui-card-title">Nivel de atención</h3><div class="ui-bars">{% for row in attention_distribution %}<a class="ui-bar-row{% if row.value == 'immediate' %} ui-bar-danger{% elif row.value == 'high' %} ui-bar-correction{% elif row.value == 'followup' %} ui-bar-warning{% elif row.value == 'stable' %} ui-bar-success{% endif %}" href="{% querystring mode='current' attention=row.value quick=None %}"><span>{{ row.label }}</span><strong>{{ row.count }} · {{ row.percentage }}%</strong><progress max="{{ center_count|default:1 }}" value="{{ row.count }}" aria-label="{{ row.label }}: {{ row.percentage }} %">{{ row.percentage }}%</progress></a>{% endfor %}</div></article>
+        <article class="ui-card"><h3 class="ui-card-title">Nivel de atención</h3><div class="ui-bars">{% for row in attention_distribution %}<a class="ui-bar-row ui-bar-{{ row.value|ui_severity_tone:'attention' }}" href="{% querystring mode='current' attention=row.value quick=None %}"><span>{{ row.label }}</span><strong>{{ row.count }} · {{ row.percentage }}%</strong><progress max="{{ center_count|default:1 }}" value="{{ row.count }}" aria-label="{{ row.label }}: {{ row.percentage }} %">{{ row.percentage }}%</progress></a>{% endfor %}</div></article>
         <article class="ui-card"><h3 class="ui-card-title">Cobertura de auditoría</h3><div class="ui-bars">{% for row in coverage_distribution %}<a class="ui-bar-row{% if row.value == 'not_audited' %} ui-bar-neutral{% endif %}" href="{% querystring mode='current' coverage=row.value quick=None %}"><span>{{ row.label }}</span><strong>{{ row.count }} · {{ row.percentage }}%</strong><progress max="{{ center_count|default:1 }}" value="{{ row.count }}" aria-label="{{ row.label }}: {{ row.percentage }} %">{{ row.percentage }}%</progress></a>{% endfor %}</div></article>
-        <article class="ui-card"><h3 class="ui-card-title">Riesgo activo</h3><div class="ui-bars">{% for row in risk_distribution %}<div class="ui-bar-row{% if row.value == 'critical' %} ui-bar-danger{% elif row.value == 'high' %} ui-bar-correction{% elif row.value == 'none' %} ui-bar-neutral{% endif %}"><span>{{ row.label }}</span><strong>{{ row.count }} · {{ row.percentage }}%</strong><progress max="{{ center_count|default:1 }}" value="{{ row.count }}" aria-label="{{ row.label }}: {{ row.percentage }} %">{{ row.percentage }}%</progress></div>{% endfor %}</div></article>
-        <article class="ui-card"><h3 class="ui-card-title">Estado de obligaciones</h3><div class="ui-bars">{% for row in obligation_distribution %}<div class="ui-bar-row{% if row.value == 'complied' or row.value == 'partial' %} ui-bar-success{% elif row.value == 'not_complied' %} ui-bar-danger{% elif row.value == 'correction_required' %} ui-bar-correction{% elif row.value == 'under_review' %} ui-bar-review{% elif row.value == 'pending' %} ui-bar-neutral{% endif %}"><span>{{ row.label }}</span><strong>{{ row.count }} · {{ row.percentage }}%</strong><progress max="{{ total_obligations|default:1 }}" value="{{ row.count }}" aria-label="{{ row.label }}: {{ row.percentage }} %">{{ row.percentage }}%</progress></div>{% endfor %}</div></article>
+        <article class="ui-card"><h3 class="ui-card-title">Riesgo activo</h3><div class="ui-bars">{% for row in risk_distribution %}<div class="ui-bar-row ui-bar-{{ row.value|ui_severity_tone:'risk' }}"><span>{{ row.label }}</span><strong>{{ row.count }} · {{ row.percentage }}%</strong><progress max="{{ center_count|default:1 }}" value="{{ row.count }}" aria-label="{{ row.label }}: {{ row.percentage }} %">{{ row.percentage }}%</progress></div>{% endfor %}</div></article>
+        <article class="ui-card"><h3 class="ui-card-title">Estado de obligaciones</h3><div class="ui-bars">{% for row in obligation_distribution %}<div class="ui-bar-row ui-bar-{{ row.value|ui_tone:'recommendation' }}"><span>{{ row.label }}</span><strong>{{ row.count }} · {{ row.percentage }}%</strong><progress max="{{ total_obligations|default:1 }}" value="{{ row.count }}" aria-label="{{ row.label }}: {{ row.percentage }} %">{{ row.percentage }}%</progress></div>{% endfor %}</div></article>
         <article class="ui-card"><h3 class="ui-card-title">Cumplimiento por centro</h3><div class="ui-bars">{% for row in compliance_distribution %}<div class="ui-bar-row{% if row.value == 'low' %} ui-bar-danger{% elif row.value == 'medium' %} ui-bar-warning{% elif row.value == 'high' or row.value == 'complete' %} ui-bar-success{% elif row.value == 'not_available' %} ui-bar-neutral{% endif %}"><span>{{ row.label }}</span><strong>{{ row.count }} · {{ row.percentage }}%</strong><progress max="{{ center_count|default:1 }}" value="{{ row.count }}" aria-label="{{ row.label }}: {{ row.percentage }} %">{{ row.percentage }}%</progress></div>{% endfor %}</div></article>
         <article class="ui-card"><h3 class="ui-card-title">Consejo Directivo Escolar</h3><div class="ui-bars">{% for row in cde_distribution %}<div class="ui-bar-row{% if row.value == 'current' %} ui-bar-success{% elif row.value == 'expired' %} ui-bar-danger{% else %} ui-bar-neutral{% endif %}"><span>{{ row.label }}</span><strong>{{ row.count }} · {{ row.percentage }}%</strong><progress max="{{ center_count|default:1 }}" value="{{ row.count }}" aria-label="{{ row.label }}: {{ row.percentage }} %">{{ row.percentage }}%</progress></div>{% endfor %}</div></article>
     </section>

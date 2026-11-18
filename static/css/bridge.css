@@ -1,6 +1,6 @@
 /*
  * Puente: da la apariencia de Claro y directo a los componentes heredados de app.css
- * (.button, .card, .status, .field, tablas, encabezados). Se carga después de app.css y
+ * (.button, .card, .field, tablas, encabezados). Se carga después de app.css y
  * antes de components.css. Cuando una plantilla pasa a las clases ui-, deja de necesitarlo.
  */
 
@@ -58,40 +58,6 @@
 .icon-button { width: var(--ui-touch); height: var(--ui-touch); }
 .pagination { gap: var(--ui-space-4); font-size: var(--ui-text-support); }
 .pagination a { min-height: var(--ui-touch); padding: 0 var(--ui-space-5); color: var(--ui-on-secondary-container); background: var(--ui-secondary-container); font-weight: 600; }
-
-/* ---------- Estados: color, ícono y palabra ---------- */
-.status, .risk, .decision-kind {
-    min-height: 32px;
-    padding: 0 var(--ui-space-3) 0 10px;
-    gap: 6px;
-    border-radius: var(--ui-radius-chip);
-    box-shadow: none;
-    font-size: var(--ui-text-support);
-    line-height: 24px;
-    font-weight: 600;
-    letter-spacing: 0;
-    text-transform: none;
-}
-.status, .risk { color: var(--ui-on-neutral-container); background: var(--ui-neutral-container); }
-.risk, .decision-kind { padding-left: var(--ui-space-3); display: inline-flex; align-items: center; }
-
-.status::before {
-    --status-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3C/svg%3E");
-    width: 18px;
-    height: 18px;
-    flex: 0 0 18px;
-    border-radius: 0;
-    background: currentColor;
-    -webkit-mask: var(--status-icon) center / contain no-repeat;
-    mask: var(--status-icon) center / contain no-repeat;
-}
-
-/* No cumplida, rechazada: equis */
-
-.risk-low { color: var(--ui-on-success-container); background: var(--ui-success-container); }
-.risk-medium { color: var(--ui-on-warning-container); background: var(--ui-warning-container); }
-.risk-high { color: var(--ui-on-correction-container); background: var(--ui-correction-container); }
-.risk-critical { color: var(--ui-on-danger-container); background: var(--ui-danger-container); }
 
 /* ---------- Formularios ---------- */
 .field { gap: 6px; }

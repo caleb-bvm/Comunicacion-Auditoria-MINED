@@ -20,7 +20,7 @@
             <thead><tr><th scope="col">Organización</th><th scope="col">Resultado previsto</th><th scope="col">Detalle</th></tr></thead>
             <tbody>
                 {% for row in plan %}
-                <tr><td><span class="ui-table-link">{{ row.organization.name }}</span><span class="ui-table-support">{{ row.organization.code }}</span></td><td>{% if row.outcome == 'applied' %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Se aplicará</span>{% elif row.outcome == 'skipped' %}<span class="ui-chip">Se omitirá</span>{% else %}<span class="ui-chip ui-chip-warning">{% ui_icon "alert" %}Bloqueada</span>{% endif %}</td><td>{{ row.detail }}</td></tr>
+                <tr><td><span class="ui-table-link">{{ row.organization.name }}</span><span class="ui-table-support">{{ row.organization.code }}</span></td><td>{% if row.outcome == 'applied' %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Se aplicará</span>{% elif row.outcome == 'skipped' %}<span class="ui-chip ui-chip-neutral">{% ui_icon "forward" %}Se omitirá</span>{% else %}<span class="ui-chip ui-chip-warning">{% ui_icon "alert" %}Bloqueada</span>{% endif %}</td><td>{{ row.detail }}</td></tr>
                 {% endfor %}
             </tbody>
         </table>

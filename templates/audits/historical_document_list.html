@@ -33,7 +33,7 @@
                     <td><span class="ui-table-link">{{ document.reference|default:"Sin referencia" }}</span><span class="ui-table-support">{{ document.get_document_type_display }} · {{ document.title }}{% if document.document_type == 'report' %} · versión {{ document.version }}{% endif %}</span></td>
                     <td>{{ document.organization.name }}</td>
                     <td>{{ document.document_date|date:"j b Y"|default:"Sin fecha" }}</td>
-                    <td><span class="ui-chip">{{ document.get_status_display }}</span></td>
+                    <td>{% ui_state_chip "document" document.status %}</td>
                     <td>{% if document.document_type == 'historical_report' %}{{ document.previous_recommendation_count }}{% else %}{{ document.case_recommendation_count }}{% endif %}</td>
                     <td class="ui-table-end">
                         {% if document.document_type == 'historical_report' %}<a class="ui-button ui-button-tonal" href="{% url 'historical_document_detail' document.pk %}" aria-label="Abrir informe {{ document.reference|default:document.title }}">Abrir informe</a>

@@ -11,15 +11,15 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
 
-NAVY = "102A43"
-BLUE = "145DA0"
-LIGHT_BLUE = "EAF3FB"
+NAVY = "0E3A7D"  # tokens.css --ui-primary-hover
+BLUE = "1A4D9C"  # --ui-primary
+LIGHT_BLUE = "D7E3FF"  # --ui-primary-container
 LIGHT_GRAY = "F4F7F9"
 MID_GRAY = "5F6B76"
 LINE = "D7E0E8"
 WHITE = "FFFFFF"
-RED = "B42318"
-LIGHT_RED = "FDECEC"
+RED = "B3261E"  # --ui-danger: mismo rojo de «problema» que la web
+LIGHT_RED = "FFDAD6"  # --ui-danger-container
 
 SECTION_BORDER = Border(bottom=Side(style="medium", color=BLUE))
 
