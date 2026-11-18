@@ -74,3 +74,18 @@ class OrganizationSearchSelect(FastSelect):
             (None, [self.create_option(name, option_value, label, option_value in selected, index, attrs=attrs)], index)
             for index, (option_value, label) in enumerate(choices)
         ]
+
+
+class DateInput(forms.DateInput):
+    """Campo de fecha nativo del navegador.
+
+    ``<input type="date">`` solo acepta valores ISO (AAAA-MM-DD). Con el formato
+    regional de es-sv (30/11/2026) el navegador mostraba el campo vacío al editar,
+    y al guardar sin volver a elegir la fecha esta se perdía. Conserva el nombre
+    ``DateInput`` para que ``field.widget_type`` siga siendo "date" en las plantillas.
+    """
+
+    input_type = "date"
+
+    def __init__(self, attrs=None):
+        super().__init__(attrs=attrs, format="%Y-%m-%d")

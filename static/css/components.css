@@ -396,6 +396,9 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-callout-summary { font-size: var(--ui-text-title); line-height: 28px; }
 .ui-callout-summary strong { font-weight: 600; }
 .ui-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--ui-space-2); }
+/* El envío principal va primero en el DOM (Enter lo activa) y se muestra al final. */
+.ui-form-actions:has([data-secondary-submit]) > a { order: -2; }
+.ui-form-actions > [data-secondary-submit] { order: -1; }
 
 /* ---------- Tabla ---------- */
 .ui-table-wrap { background: var(--ui-surface-card); border-radius: var(--ui-radius-card); overflow-x: auto; }
@@ -468,6 +471,12 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 }
 .ui-field-error > label, .ui-field-error .ui-label { color: var(--ui-danger); }
 .ui-field-error input, .ui-field-error select, .ui-field-error textarea { border-color: var(--ui-danger); box-shadow: inset 0 0 0 1px var(--ui-danger); }
+.ui-field-shortcuts { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); }
+.ui-field-shortcuts .ui-button { padding: 0 var(--ui-space-4); font-size: var(--ui-text-support); }
+.ui-field-shortcuts .ui-button[aria-pressed="true"] { background: var(--ui-secondary-container); color: var(--ui-on-secondary-container); box-shadow: none; }
+/* Ejemplo de redacción plegable bajo un campo del formulario. */
+.ui-field-example > summary { width: fit-content; min-height: var(--ui-touch); display: inline-flex; align-items: center; color: var(--ui-primary); font-size: var(--ui-text-support); font-weight: 600; cursor: pointer; }
+.ui-field-example > p { margin: 0; padding: var(--ui-space-3) var(--ui-space-4); border-left: 3px solid var(--ui-outline-variant); background: var(--ui-surface-container); border-radius: 0 var(--ui-radius-card) var(--ui-radius-card) 0; font-size: var(--ui-text-support); line-height: 24px; color: var(--ui-on-surface-variant); }
 .ui-field .errorlist { margin: 0; padding: 0; list-style: none; color: var(--ui-danger); font-size: var(--ui-text-support); line-height: 24px; font-weight: 600; }
 .ui-field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-space-4); }
 .ui-form-error { border-radius: var(--ui-radius-tile); padding: var(--ui-space-4) var(--ui-space-5); background: var(--ui-danger-container); color: var(--ui-on-danger-container); font-size: var(--ui-text-support); font-weight: 600; }
@@ -875,3 +884,6 @@ form[data-analysis-mode].is-updating ~ * { opacity: .55; transition: opacity .15
 /* ---------- Carga masiva: filas con resultado ---------- */
 .bulk-table tr[data-status="error"] { background: var(--ui-danger-container); }
 .bulk-table tr[data-status="saved"], .bulk-table tr[data-status="duplicate"] { background: var(--ui-success-container); }
+
+/* Destino de un ancla (#hallazgo-N): deja espacio para la barra superior fija. */
+.ui-anchor-target { scroll-margin-top: calc(96px + env(safe-area-inset-top)); }

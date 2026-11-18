@@ -14,6 +14,7 @@ from django.db.models import Count, Exists, Max, Min, OuterRef, Prefetch, Q
 from django.core.paginator import Paginator
 from django.http import FileResponse, Http404, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import ListView, TemplateView
@@ -36,6 +37,7 @@ from .forms import (
     CaseReportDocumentForm,
     ClosureRequestForm,
     DeadlineExtensionForm,
+    DEADLINE_SHORTCUT_BUSINESS_DAYS,
     DecisionResolutionForm,
     FindingForm,
     HistoricalDocumentForm,
@@ -76,6 +78,7 @@ from .services import (
     copy_historical_recommendations,
     create_audit_document,
     next_document_version,
+    recommendation_deadline_shortcuts,
     with_effective_deadline,
 )
 from .statistics import (
@@ -218,15 +221,58 @@ def publication_issues(case):
     if not findings:
         issues.append("Registre al menos un hallazgo.")
     for finding in findings:
+        missing = finding_missing_fields(finding)
+        if missing:
+            issues.append(f"Complete {join_labels(missing)} del hallazgo {finding.number}.")
         recommendations = list(finding.recommendations.all())
         if not recommendations:
             issues.append(f"El hallazgo {finding.number} necesita al menos una recomendación.")
         for recommendation in recommendations:
-            if not recommendation.deadline:
+            missing = recommendation_missing_fields(recommendation)
+            if missing:
                 issues.append(
-                    f"La recomendación {finding.number}.{recommendation.number} necesita fecha límite."
+                    f"Complete {join_labels(missing)} de la recomendación "
+                    f"{finding.number}.{recommendation.number}."
                 )
     return issues
+
+
+# Atributos que deben estar redactados antes de solicitar la aprobación de Dirección.
+# Los borradores pueden guardarse incompletos.
+FINDING_FIELDS_REQUIRED_TO_PUBLISH = (
+    ("condition", "la condición"),
+    ("criteria", "el criterio"),
+    ("cause", "la causa"),
+    ("effect", "el efecto"),
+)
+
+
+def finding_missing_fields(finding):
+    return [
+        label
+        for name, label in FINDING_FIELDS_REQUIRED_TO_PUBLISH
+        if not (getattr(finding, name) or "").strip()
+    ]
+
+
+def recommendation_missing_fields(recommendation):
+    missing = []
+    if not recommendation.deadline:
+        missing.append("la fecha límite")
+    if not (recommendation.evidence_requirements or "").strip():
+        missing.append("las evidencias requeridas")
+    return missing
+
+
+def redirect_to_finding(finding):
+    """Vuelve al constructor del expediente, posicionado en el hallazgo editado."""
+    return redirect(f"{reverse('case_builder', args=[finding.case_id])}#hallazgo-{finding.pk}")
+
+
+def join_labels(labels):
+    if len(labels) <= 1:
+        return "".join(labels)
+    return f"{', '.join(labels[:-1])} y {labels[-1]}"
 
 
 def closure_issues(case):
@@ -2030,7 +2076,13 @@ def case_builder(request, pk):
     if not request.user.is_authenticated:
         return redirect(f"/ingresar/?next={request.path}")
     case = get_editable_case(request.user, pk)
-    findings = case.findings.prefetch_related("recommendations__responsible_organization")
+    findings = list(case.findings.prefetch_related("recommendations__responsible_organization"))
+    for finding in findings:
+        finding.missing_fields = join_labels(finding_missing_fields(finding))
+        for recommendation in finding.recommendations.all():
+            recommendation.missing_fields = join_labels(
+                recommendation_missing_fields(recommendation)
+            )
     return render(
         request,
         "audits/case_builder.html",
@@ -2368,7 +2420,9 @@ def finding_create(request, case_pk):
         finding.save()
         log_activity(request, "finding_created", case=case, target=finding)
         messages.success(request, f"El hallazgo {finding.number} fue agregado.")
-        return redirect("case_builder", pk=case.pk)
+        if request.POST.get("next") == "recommendation":
+            return redirect("recommendation_create", finding_pk=finding.pk)
+        return redirect_to_finding(finding)
     return render(
         request,
         "audits/editor_form.html",
@@ -2377,7 +2431,9 @@ def finding_create(request, case_pk):
             "case": case,
             "form_title": "Agregar hallazgo",
             "form_intro": "Registre la información que fundamenta el hallazgo.",
-            "submit_label": "Guardar hallazgo",
+            "submit_label": "Guardar y agregar recomendación",
+            "submit_next": "recommendation",
+            "secondary_submit_label": "Guardar hallazgo",
         },
     )
 
@@ -2393,7 +2449,7 @@ def finding_edit(request, pk):
         finding = form.save()
         log_activity(request, "finding_updated", case=case, target=finding)
         messages.success(request, f"El hallazgo {finding.number} fue actualizado.")
-        return redirect("case_builder", pk=case.pk)
+        return redirect_to_finding(finding)
     return render(
         request,
         "audits/editor_form.html",
@@ -2435,6 +2491,9 @@ def recommendation_create(request, finding_pk):
             "responsible_organization": case.audited_organization_id,
             "deadline": case.response_deadline,
         },
+        deadline_shortcuts=recommendation_deadline_shortcuts(
+            case, DEADLINE_SHORTCUT_BUSINESS_DAYS
+        ),
     )
     if request.method == "POST" and form.is_valid():
         recommendation = form.save(commit=False)
@@ -2442,16 +2501,21 @@ def recommendation_create(request, finding_pk):
         recommendation.save()
         log_activity(request, "recommendation_created", case=case, target=recommendation)
         messages.success(request, f"La recomendación {finding.number}.{recommendation.number} fue agregada.")
-        return redirect("case_builder", pk=case.pk)
+        if request.POST.get("next") == "another":
+            return redirect("recommendation_create", finding_pk=finding.pk)
+        return redirect_to_finding(finding)
     return render(
         request,
         "audits/editor_form.html",
         {
             "form": form,
             "case": case,
+            "finding": finding,
             "form_title": f"Agregar recomendación al hallazgo {finding.number}",
             "form_intro": "Asigne un responsable, una fecha límite y la evidencia esperada.",
             "submit_label": "Guardar recomendación",
+            "secondary_submit_label": "Guardar y agregar otra",
+            "secondary_submit_next": "another",
         },
     )
 
@@ -2464,7 +2528,13 @@ def recommendation_edit(request, pk):
         Recommendation.objects.select_related("finding__case"), pk=pk
     )
     case = get_editable_case(request.user, recommendation.finding.case_id)
-    form = RecommendationForm(request.POST or None, instance=recommendation)
+    form = RecommendationForm(
+        request.POST or None,
+        instance=recommendation,
+        deadline_shortcuts=recommendation_deadline_shortcuts(
+            case, DEADLINE_SHORTCUT_BUSINESS_DAYS
+        ),
+    )
     if request.method == "POST" and form.is_valid():
         recommendation = form.save()
         log_activity(request, "recommendation_updated", case=case, target=recommendation)
@@ -2472,13 +2542,14 @@ def recommendation_edit(request, pk):
             request,
             f"La recomendación {recommendation.finding.number}.{recommendation.number} fue actualizada.",
         )
-        return redirect("case_builder", pk=case.pk)
+        return redirect_to_finding(recommendation.finding)
     return render(
         request,
         "audits/editor_form.html",
         {
             "form": form,
             "case": case,
+            "finding": recommendation.finding,
             "form_title": (
                 f"Editar recomendación {recommendation.finding.number}.{recommendation.number}"
             ),
@@ -2486,6 +2557,38 @@ def recommendation_edit(request, pk):
             "submit_label": "Guardar cambios",
         },
     )
+
+
+@require_POST
+@transaction.atomic
+def recommendation_duplicate(request, pk):
+    if not request.user.is_authenticated:
+        return redirect(f"/ingresar/?next={request.path}")
+    source = get_object_or_404(Recommendation.objects.select_related("finding__case"), pk=pk)
+    case = get_editable_case(request.user, source.finding.case_id)
+    finding = Finding.objects.select_for_update().get(pk=source.finding_id)
+    next_number = (finding.recommendations.aggregate(value=Max("number"))["value"] or 0) + 1
+    copy = Recommendation.objects.create(
+        finding=finding,
+        number=next_number,
+        text=source.text,
+        responsible_organization=source.responsible_organization,
+        deadline=source.deadline,
+        evidence_requirements=source.evidence_requirements,
+    )
+    log_activity(
+        request,
+        "recommendation_duplicated",
+        case=case,
+        target=copy,
+        details={"source": f"{finding.number}.{source.number}"},
+    )
+    messages.success(
+        request,
+        f"Se creó la recomendación {finding.number}.{copy.number} como copia de la "
+        f"{finding.number}.{source.number}. Ajuste el responsable u otros datos y guarde.",
+    )
+    return redirect("recommendation_edit", pk=copy.pk)
 
 
 @require_POST

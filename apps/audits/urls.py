@@ -131,6 +131,11 @@ urlpatterns = [
     ),
     path("recomendaciones/<int:pk>/editar/", views.recommendation_edit, name="recommendation_edit"),
     path(
+        "recomendaciones/<int:pk>/duplicar/",
+        views.recommendation_duplicate,
+        name="recommendation_duplicate",
+    ),
+    path(
         "recomendaciones/<int:pk>/eliminar/",
         views.recommendation_delete,
         name="recommendation_delete",

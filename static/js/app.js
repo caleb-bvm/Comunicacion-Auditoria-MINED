@@ -437,6 +437,23 @@
     restoreAnalysisState();
 })();
 
+// Accesos rápidos de fecha (plazos en días hábiles calculados en el servidor).
+document.querySelectorAll("[data-fill-date]").forEach((button) => {
+    const input = document.getElementById(button.dataset.fillDate);
+    if (!input) return;
+    const group = Array.from(document.querySelectorAll(`[data-fill-date="${button.dataset.fillDate}"]`));
+    const refresh = () => group.forEach((item) => {
+        item.setAttribute("aria-pressed", String(item.dataset.value === input.value));
+    });
+    button.addEventListener("click", () => {
+        input.value = button.dataset.value;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        refresh();
+    });
+    input.addEventListener("change", refresh);
+    refresh();
+});
+
 // Confirmaciones y alcance de envío sin manejadores en línea (la CSP los bloquea).
 document.querySelectorAll("form[data-confirm]").forEach((form) => {
     form.addEventListener("submit", (event) => {

@@ -5,6 +5,8 @@
 </div>{% else %}<div class="ui-field{% if field.widget_type in 'date select number email time' and 'organization' not in field.name %} ui-field-short{% endif %}{% if field.errors %} ui-field-error{% endif %}">
     <label for="{{ field.id_for_label }}">{{ label|default:field.label }}</label>
     {{ field }}
+    {% if field.field.shortcuts %}<div class="ui-field-shortcuts" role="group" aria-label="Accesos rápidos para {{ field.label|lower }}">{% for shortcut in field.field.shortcuts %}<button class="ui-button ui-button-outlined" type="button" aria-pressed="false" data-fill-date="{{ field.id_for_label }}" data-value="{{ shortcut.value|date:'Y-m-d' }}">{{ shortcut.label }} · {{ shortcut.value|date:"D j b Y" }}</button>{% endfor %}</div>{% endif %}
     {% if help %}<p class="ui-help">{{ help }}</p>{% elif field.help_text %}<p class="ui-help">{{ field.help_text|safe }}</p>{% endif %}
+    {% if field.field.example %}<details class="ui-field-example"><summary>Ver ejemplo</summary><p>{{ field.field.example|linebreaksbr }}</p></details>{% endif %}
     {{ field.errors }}
 </div>{% endif %}

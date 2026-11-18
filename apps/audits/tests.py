@@ -34,6 +34,7 @@ from .models import (
     Review,
 )
 from .services import add_business_days, mark_overdue_recommendations
+from .views import publication_issues
 
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp(prefix="auditoria-test-")
@@ -865,10 +866,16 @@ class AccessAndWorkflowTests(TestCase):
                 "title": "Falta de conciliaciones",
                 "risk_level": Finding.RiskLevel.HIGH,
                 "condition": "No se prepararon conciliaciones mensuales.",
+                "criteria": "El instructivo exige conciliaciones mensuales firmadas.",
+                "cause": "El tesorero desconocía el procedimiento.",
+                "effect": "No se detectan oportunamente cargos no autorizados.",
             },
         )
-        self.assertRedirects(finding_response, reverse("case_builder", args=[created_case.pk]))
         created_finding = created_case.findings.get(number=1)
+        self.assertRedirects(
+            finding_response,
+            reverse("case_builder", args=[created_case.pk]) + f"#hallazgo-{created_finding.pk}",
+        )
 
         recommendation_response = self.client.post(
             reverse("recommendation_create", args=[created_finding.pk]),
@@ -882,7 +889,7 @@ class AccessAndWorkflowTests(TestCase):
         )
         self.assertRedirects(
             recommendation_response,
-            reverse("case_builder", args=[created_case.pk]),
+            reverse("case_builder", args=[created_case.pk]) + f"#hallazgo-{created_finding.pk}",
         )
 
         publish_response = self.client.post(reverse("case_publish", args=[created_case.pk]))
@@ -1444,6 +1451,13 @@ class AccessAndWorkflowTests(TestCase):
         self.assertEqual(imported.text, historical_recommendation.text)
         self.assertEqual(imported.status, Recommendation.Status.PENDING)
         self.assertEqual(imported.deadline, draft_case.response_deadline)
+        # El hallazgo de seguimiento se crea con los cuatro atributos y la evidencia, por lo
+        # que no bloquea la solicitud de aprobación.
+        follow_up_issues = [
+            issue for issue in publication_issues(draft_case)
+            if "Complete" in issue
+        ]
+        self.assertEqual(follow_up_issues, [])
 
         duplicate_attempt = self.client.post(
             reverse("case_import_recommendations", args=[draft_case.pk]),
@@ -1660,6 +1674,10 @@ class AccessAndWorkflowTests(TestCase):
             number=1,
             title="Seguimiento requerido",
             risk_level=Finding.RiskLevel.HIGH,
+            condition="Condición documentada.",
+            criteria="Criterio aplicable.",
+            cause="Causa identificada.",
+            effect="Efecto estimado.",
         )
         Recommendation.objects.create(
             finding=finding,
@@ -1667,6 +1685,7 @@ class AccessAndWorkflowTests(TestCase):
             text="Presente la documentación de seguimiento.",
             responsible_organization=self.center,
             deadline=draft_case.response_deadline,
+            evidence_requirements="Documentación de seguimiento firmada.",
         )
         publication = self.client.post(reverse("case_publish", args=[draft_case.pk]))
         self.assertRedirects(publication, reverse("case_detail", args=[draft_case.pk]))

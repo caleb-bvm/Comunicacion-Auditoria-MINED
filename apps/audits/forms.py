@@ -9,7 +9,7 @@ from apps.accounts.models import User
 from apps.institutions.models import Organization
 
 from apps.core.validators import EVIDENCE_ACCEPT, validate_evidence_file
-from apps.core.widgets import FastSelect, OrganizationSearchSelect
+from apps.core.widgets import FastSelect, DateInput, OrganizationSearchSelect
 
 from .models import (
     AuditCase,
@@ -137,10 +137,10 @@ class AuditCaseForm(forms.ModelForm):
         widgets = {
             "title": forms.Textarea(attrs={"rows": 2}),
             "audited_organization": OrganizationSearchSelect,
-            "report_date": forms.DateInput(attrs={"type": "date"}),
-            "period_start": forms.DateInput(attrs={"type": "date"}),
-            "period_end": forms.DateInput(attrs={"type": "date"}),
-            "response_deadline": forms.DateInput(attrs={"type": "date"}),
+            "report_date": DateInput(),
+            "period_start": DateInput(),
+            "period_end": DateInput(),
+            "response_deadline": DateInput(),
         }
         help_texts = {
             "reference": "Use la referencia oficial y única del expediente.",
@@ -191,7 +191,7 @@ class CaseReportDocumentForm(forms.ModelForm):
         model = AuditDocument
         fields = ("reference", "title", "document_date", "file")
         widgets = {
-            "document_date": forms.DateInput(attrs={"type": "date"}),
+            "document_date": DateInput(),
             "file": forms.ClearableFileInput(attrs={"accept": ".docx"}),
         }
         help_texts = {
@@ -219,7 +219,7 @@ class HistoricalDocumentForm(forms.ModelForm):
         )
         widgets = {
             "organization": OrganizationSearchSelect,
-            "document_date": forms.DateInput(attrs={"type": "date"}),
+            "document_date": DateInput(),
             "file": forms.ClearableFileInput(attrs={"accept": ".pdf,.docx"}),
         }
         help_texts = {
@@ -259,7 +259,7 @@ class HistoricalAttachmentForm(forms.Form):
                            help_text="Si queda vacía, se utilizará el nombre del archivo.")
     reference = forms.CharField(label="Referencia del documento", max_length=80, required=False)
     document_date = forms.DateField(label="Fecha original", required=False,
-                                   widget=forms.DateInput(attrs={"type": "date"}))
+                                   widget=DateInput())
     visibility = forms.ChoiceField(label="Visibilidad", choices=AuditDocument.Visibility.choices,
                                   initial=AuditDocument.Visibility.AUDIT_ONLY)
     file = forms.FileField(label="Archivo", validators=[validate_evidence_file],
@@ -302,7 +302,7 @@ class HistoricalRecommendationForm(forms.ModelForm):
             "text": forms.Textarea(attrs={"rows": 6}),
             "responsible_organization": OrganizationSearchSelect,
             "comments": forms.Textarea(attrs={"rows": 4}),
-            "original_deadline": forms.DateInput(attrs={"type": "date"}),
+            "original_deadline": DateInput(),
         }
 
     def __init__(self, *args, **kwargs):
@@ -336,6 +336,75 @@ class DeadlineExtensionForm(forms.ModelForm):
         }
 
 
+REQUIRED_TO_PUBLISH = "Obligatorio antes de solicitar la aprobación."
+
+# Guía de redacción de los atributos del hallazgo y de la recomendación: una pregunta breve
+# como ayuda y un ejemplo plegable que el auditor puede consultar sin salir del formulario.
+FINDING_GUIDES = {
+    "title": (
+        "Resuma en una frase qué se incumple y dónde.",
+        "Falta de conciliaciones bancarias mensuales de la cuenta de fondos de funcionamiento.",
+    ),
+    "risk_level": (
+        "Valore el impacto del hallazgo si no se corrige.",
+        None,
+    ),
+    "condition": (
+        f"¿Qué se encontró? Hechos verificados, cifras, período y documentos revisados. {REQUIRED_TO_PUBLISH}",
+        "Durante el período de enero a junio de 2026 el CDE no elaboró las conciliaciones "
+        "bancarias de la cuenta de fondos de funcionamiento; en el expediente contable solo "
+        "constan los estados de cuenta del banco.",
+    ),
+    "criteria": (
+        f"¿Qué norma, disposición o procedimiento establece lo que debía hacerse? {REQUIRED_TO_PUBLISH}",
+        "El instructivo para la administración de fondos transferidos a los centros educativos "
+        "establece que el tesorero del CDE debe elaborar mensualmente la conciliación bancaria, "
+        "firmada por el presidente y el tesorero.",
+    ),
+    "cause": (
+        f"¿Por qué ocurrió? El origen del incumplimiento, no su consecuencia. {REQUIRED_TO_PUBLISH}",
+        "El tesorero del CDE desconocía el procedimiento y no recibió inducción al asumir el cargo.",
+    ),
+    "effect": (
+        f"¿Qué consecuencia o riesgo genera? Cuantifique cuando sea posible. {REQUIRED_TO_PUBLISH}",
+        "No es posible verificar oportunamente la disponibilidad de fondos ni detectar cargos "
+        "bancarios no autorizados por $1,250.00 registrados en el período.",
+    ),
+}
+
+RECOMMENDATION_GUIDES = {
+    "text": (
+        "Indique quién debe hacer qué y cómo se corrige la causa. Empiece con un verbo en infinitivo o imperativo.",
+        "Que el presidente del CDE gire instrucciones al tesorero para que elabore y firme "
+        "mensualmente las conciliaciones bancarias, y que estas se archiven con los estados de cuenta.",
+    ),
+    "responsible_organization": (
+        "Puede ser el centro auditado u otra dependencia responsable.",
+        None,
+    ),
+    "deadline": (
+        "Use un acceso rápido o elija la fecha en el calendario.",
+        None,
+    ),
+    "evidence_requirements": (
+        f"Liste los documentos que permitirán comprobar el cumplimiento, uno por línea. {REQUIRED_TO_PUBLISH}",
+        "Conciliaciones bancarias de los últimos tres meses, firmadas.\n"
+        "Acta del CDE donde se instruye al tesorero.",
+    ),
+}
+
+DEADLINE_SHORTCUT_BUSINESS_DAYS = (10, 15, 30)
+
+
+def apply_guides(form, guides):
+    for name, (help_text, example) in guides.items():
+        field = form.fields.get(name)
+        if field is None:
+            continue
+        field.help_text = help_text
+        field.example = example
+
+
 class FindingForm(forms.ModelForm):
     class Meta:
         model = Finding
@@ -348,6 +417,10 @@ class FindingForm(forms.ModelForm):
             "effect": forms.Textarea(attrs={"rows": 3}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        apply_guides(self, FINDING_GUIDES)
+
 
 class RecommendationForm(forms.ModelForm):
     class Meta:
@@ -356,19 +429,19 @@ class RecommendationForm(forms.ModelForm):
         widgets = {
             "text": forms.Textarea(attrs={"rows": 5}),
             "responsible_organization": OrganizationSearchSelect,
-            "deadline": forms.DateInput(attrs={"type": "date"}),
+            "deadline": DateInput(),
             "evidence_requirements": forms.Textarea(attrs={"rows": 4}),
         }
-        help_texts = {
-            "responsible_organization": "Puede ser el centro auditado u otra dependencia responsable.",
-            "evidence_requirements": "Detalle los documentos que permitirán comprobar el cumplimiento.",
-        }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, deadline_shortcuts=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["responsible_organization"].queryset = Organization.objects.filter(
             is_active=True
         ).only("code", "name").order_by("name")
+        apply_guides(self, RECOMMENDATION_GUIDES)
+        self.fields["deadline"].shortcuts = deadline_shortcuts or []
+        if not deadline_shortcuts:
+            self.fields["deadline"].help_text = ""
 
 
 class DecisionResolutionForm(forms.Form):
@@ -473,10 +546,10 @@ class ResponseForm(forms.ModelForm):
         )
         widgets = {
             "action_description": forms.Textarea(attrs={"rows": 5}),
-            "action_date": forms.DateInput(attrs={"type": "date"}),
+            "action_date": DateInput(),
             "non_compliance_reason": forms.Textarea(attrs={"rows": 3}),
             "action_plan": forms.Textarea(attrs={"rows": 3}),
-            "expected_completion_date": forms.DateInput(attrs={"type": "date"}),
+            "expected_completion_date": DateInput(),
         }
         help_texts = {
             "accuracy_declaration": "Declaro que la información y los archivos presentados son correctos.",

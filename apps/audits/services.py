@@ -43,7 +43,11 @@ def create_audit_document(*, uploaded_file, user, **values):
     )
 
 
-def add_business_days(start_date, business_days):
+def add_business_days(start_date, business_days, holidays=None):
+    """Suma días hábiles excluyendo fines de semana y asuetos activos.
+
+    `holidays` permite pasar un conjunto de fechas ya consultado para evitar
+    una consulta por cada día recorrido."""
     if business_days < 1:
         raise ValueError("La cantidad de días hábiles debe ser mayor que cero.")
 
@@ -52,13 +56,41 @@ def add_business_days(start_date, business_days):
     while added < business_days:
         current += timedelta(days=1)
         is_weekday = current.weekday() < 5
-        is_holiday = BusinessDayHoliday.objects.filter(
-            date=current,
-            is_active=True,
-        ).exists()
+        if holidays is None:
+            is_holiday = BusinessDayHoliday.objects.filter(
+                date=current,
+                is_active=True,
+            ).exists()
+        else:
+            is_holiday = current in holidays
         if is_weekday and not is_holiday:
             added += 1
     return current
+
+
+def recommendation_deadline_shortcuts(case, business_day_counts, today=None):
+    """Fechas sugeridas para la fecha límite de una recomendación.
+
+    Se cuentan desde la fecha del informe (o desde hoy si aún no se ha indicado) e
+    incluyen la fecha límite general del expediente cuando existe."""
+    start = case.report_date or today or timezone.localdate()
+    counts = sorted(set(business_day_counts))
+    shortcuts = []
+    if counts:
+        # Margen amplio: cada semana tiene cinco días hábiles y los asuetos son pocos.
+        horizon = start + timedelta(days=counts[-1] * 2 + 30)
+        holidays = set(
+            BusinessDayHoliday.objects.filter(
+                is_active=True, date__gt=start, date__lte=horizon
+            ).values_list("date", flat=True)
+        )
+        shortcuts = [
+            {"label": f"{count} días hábiles", "value": add_business_days(start, count, holidays)}
+            for count in counts
+        ]
+    if case.response_deadline:
+        shortcuts.append({"label": "Fecha general", "value": case.response_deadline})
+    return shortcuts
 
 
 def with_effective_deadline(queryset=None):
@@ -103,6 +135,18 @@ def copy_historical_recommendations(case, historical_recommendations):
             condition=(
                 "Recomendaciones emitidas en informes anteriores que requieren un nuevo "
                 "seguimiento de su cumplimiento."
+            ),
+            criteria=(
+                "Las recomendaciones emitidas por la Dirección de Auditoría Interna deben "
+                "atenderse y documentarse dentro del plazo establecido."
+            ),
+            cause=(
+                "Las acciones informadas no permitieron dar por cumplidas las recomendaciones "
+                "en el seguimiento anterior."
+            ),
+            effect=(
+                "Persisten las condiciones que originaron las recomendaciones y el riesgo "
+                "asociado a ellas."
             ),
         )
 

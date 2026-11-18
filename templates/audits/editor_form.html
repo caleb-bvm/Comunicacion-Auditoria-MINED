@@ -11,6 +11,14 @@
                 <h1 class="ui-page-title">{{ form_title }}</h1>
                 <p class="ui-page-context">{{ case.audited_organization.name }}</p>
             </header>
+            {% if finding %}
+            <section class="ui-card" aria-labelledby="editor-finding-title">
+                <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span>{% ui_risk_chip finding %}</div>
+                <h2 class="ui-card-title" id="editor-finding-title">{{ finding.title }}</h2>
+                {% if finding.cause %}<p class="ui-help"><strong>Causa:</strong> {{ finding.cause|truncatechars:320 }}</p>{% endif %}
+                <p class="ui-help">La recomendación debe atender la causa del hallazgo.</p>
+            </section>
+            {% endif %}
         </div>
         <div class="ui-layout-main">
             <form method="post" class="ui-card ui-form-grid">
@@ -19,7 +27,8 @@
                 {% include "includes/ui/form_fields.html" with fields=form %}
                 <div class="ui-form-actions">
                     <a class="ui-button ui-button-text" href="{% url 'case_builder' case.pk %}">Cancelar</a>
-                    <button class="ui-button ui-button-filled ui-button-large" type="submit">{{ submit_label }}</button>
+                    <button class="ui-button ui-button-filled ui-button-large" type="submit"{% if submit_next %} name="next" value="{{ submit_next }}"{% endif %}>{{ submit_label }}</button>
+                    {% if secondary_submit_label %}<button class="ui-button ui-button-outlined ui-button-large" type="submit" data-secondary-submit name="next" value="{{ secondary_submit_next|default:'' }}">{{ secondary_submit_label }}</button>{% endif %}
                 </div>
             </form>
         </div>

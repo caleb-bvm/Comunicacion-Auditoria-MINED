@@ -1,6 +1,7 @@
 from django import forms
 
 from apps.core.validators import EVIDENCE_ACCEPT
+from apps.core.widgets import DateInput
 
 from .models import SchoolBoardMember, SchoolBoardPeriod
 
@@ -17,8 +18,8 @@ class SchoolBoardPeriodForm(forms.ModelForm):
             "notes",
         )
         widgets = {
-            "start_date": forms.DateInput(attrs={"type": "date"}),
-            "end_date": forms.DateInput(attrs={"type": "date"}),
+            "start_date": DateInput(),
+            "end_date": DateInput(),
             "supporting_document": forms.ClearableFileInput(attrs={"accept": EVIDENCE_ACCEPT}),
             "notes": forms.Textarea(attrs={"rows": 4}),
         }
@@ -41,8 +42,8 @@ class SchoolBoardPeriodCorrectionForm(forms.ModelForm):
             "notes",
         )
         widgets = {
-            "start_date": forms.DateInput(attrs={"type": "date"}),
-            "end_date": forms.DateInput(attrs={"type": "date"}),
+            "start_date": DateInput(),
+            "end_date": DateInput(),
             "notes": forms.Textarea(attrs={"rows": 4}),
         }
         help_texts = {
@@ -71,7 +72,7 @@ class SchoolBoardMemberForm(forms.ModelForm):
                     "autocomplete": "off",
                 }
             ),
-            "joined_on": forms.DateInput(attrs={"type": "date"}),
+            "joined_on": DateInput(),
         }
         help_texts = {
             "identity_document": "Formato: 00000000-0.",
@@ -91,7 +92,7 @@ class SchoolBoardMemberDepartureForm(forms.ModelForm):
         model = SchoolBoardMember
         fields = ("left_on", "exit_reason", "change_document")
         widgets = {
-            "left_on": forms.DateInput(attrs={"type": "date"}),
+            "left_on": DateInput(),
             "exit_reason": forms.Textarea(attrs={"rows": 4}),
             "change_document": forms.ClearableFileInput(attrs={"accept": EVIDENCE_ACCEPT}),
         }

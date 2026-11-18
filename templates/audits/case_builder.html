@@ -23,9 +23,10 @@
     <div class="ui-layout-main">
         <section class="ui-section" aria-label="Hallazgos">
             {% for finding in findings %}
-            <article class="ui-card" aria-labelledby="builder-finding-{{ finding.pk }}">
-                <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span>{% ui_risk_chip finding %}</div>
+            <article class="ui-card ui-anchor-target" id="hallazgo-{{ finding.pk }}" aria-labelledby="builder-finding-{{ finding.pk }}">
+                <div class="ui-chips"><span class="ui-chip">Hallazgo {{ finding.number }}</span>{% ui_risk_chip finding %}{% if finding.missing_fields %}<span class="ui-chip ui-chip-warning">{% ui_icon "alert" %}Falta redactar</span>{% endif %}</div>
                 <h2 class="ui-card-title" id="builder-finding-{{ finding.pk }}">{{ finding.title }}</h2>
+                {% if finding.missing_fields %}<p class="ui-help">Antes de solicitar aprobación complete {{ finding.missing_fields }}.</p>{% endif %}
                 <div class="ui-row-actions ui-row-actions-start">
                     <a class="ui-button ui-button-text" href="{% url 'finding_edit' finding.pk %}">{% ui_icon "edit" %}Editar hallazgo</a>
                     <form method="post" action="{% url 'finding_delete' finding.pk %}" data-confirm="¿Eliminar este hallazgo y todas sus recomendaciones?">{% csrf_token %}<button class="ui-button ui-button-danger-text" type="submit">Eliminar</button></form>
@@ -34,10 +35,12 @@
                     {% for recommendation in finding.recommendations.all %}
                     <section class="ui-recommendation" aria-labelledby="builder-rec-{{ recommendation.pk }}">
                         <h3 class="ui-recommendation-title" id="builder-rec-{{ recommendation.pk }}">Recomendación {{ finding.number }}.{{ recommendation.number }}</h3>
+                        {% if recommendation.missing_fields %}<div class="ui-chips"><span class="ui-chip ui-chip-warning">{% ui_icon "alert" %}Falta completar {{ recommendation.missing_fields }}</span></div>{% endif %}
                         <p>{{ recommendation.text|truncatechars:260 }}</p>
                         <p class="ui-help">Responde: {{ recommendation.responsible_organization.name }} · {% if recommendation.deadline %}fecha límite {{ recommendation.deadline|date:"j b Y" }}{% else %}sin fecha límite{% endif %}{% if recommendation.source_recommendation %} · importada de {{ recommendation.source_recommendation.source_document.reference }}{% endif %}</p>
                         <div class="ui-row-actions ui-row-actions-start">
                             <a class="ui-button ui-button-text" href="{% url 'recommendation_edit' recommendation.pk %}">Editar</a>
+                            <form method="post" action="{% url 'recommendation_duplicate' recommendation.pk %}">{% csrf_token %}<button class="ui-button ui-button-text" type="submit" title="Crea una copia en este hallazgo para asignarla a otro responsable">Duplicar</button></form>
                             <form method="post" action="{% url 'recommendation_delete' recommendation.pk %}" data-confirm="¿Eliminar esta recomendación?">{% csrf_token %}<button class="ui-button ui-button-danger-text" type="submit">Eliminar</button></form>
                         </div>
                     </section>
