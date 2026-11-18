@@ -73,6 +73,7 @@ from .models import (
 )
 from .pdf import build_response_receipt
 from .historical_documents import save_historical_bundle
+from .snippets import learned_evidence_snippets
 from .services import (
     add_business_days,
     copy_historical_recommendations,
@@ -262,6 +263,13 @@ def recommendation_missing_fields(recommendation):
     if not (recommendation.evidence_requirements or "").strip():
         missing.append("las evidencias requeridas")
     return missing
+
+
+def auditor_evidence_snippets(user):
+    """Evidencias que el auditor redacta con frecuencia, solo de sus propios expedientes."""
+    return learned_evidence_snippets(
+        Recommendation.objects.filter(finding__case__assigned_auditor=user).order_by("-pk")
+    )
 
 
 def redirect_to_finding(finding):
@@ -2494,6 +2502,7 @@ def recommendation_create(request, finding_pk):
         deadline_shortcuts=recommendation_deadline_shortcuts(
             case, DEADLINE_SHORTCUT_BUSINESS_DAYS
         ),
+        learned_evidence=auditor_evidence_snippets(request.user),
     )
     if request.method == "POST" and form.is_valid():
         recommendation = form.save(commit=False)
@@ -2534,6 +2543,7 @@ def recommendation_edit(request, pk):
         deadline_shortcuts=recommendation_deadline_shortcuts(
             case, DEADLINE_SHORTCUT_BUSINESS_DAYS
         ),
+        learned_evidence=auditor_evidence_snippets(request.user),
     )
     if request.method == "POST" and form.is_valid():
         recommendation = form.save()

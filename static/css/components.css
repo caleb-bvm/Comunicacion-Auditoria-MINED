@@ -473,6 +473,7 @@ a.ui-list-row:hover .ui-list-title { color: var(--ui-primary); }
 .ui-field-error input, .ui-field-error select, .ui-field-error textarea { border-color: var(--ui-danger); box-shadow: inset 0 0 0 1px var(--ui-danger); }
 .ui-field-shortcuts { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); }
 .ui-field-shortcuts .ui-button { padding: 0 var(--ui-space-4); font-size: var(--ui-text-support); }
+.ui-field-shortcuts-label { align-self: center; font-size: var(--ui-text-support); color: var(--ui-on-surface-variant); }
 .ui-field-shortcuts .ui-button[aria-pressed="true"] { background: var(--ui-secondary-container); color: var(--ui-on-secondary-container); box-shadow: none; }
 /* Ejemplo de redacción plegable bajo un campo del formulario. */
 .ui-field-example > summary { width: fit-content; min-height: var(--ui-touch); display: inline-flex; align-items: center; color: var(--ui-primary); font-size: var(--ui-text-support); font-weight: 600; cursor: pointer; }

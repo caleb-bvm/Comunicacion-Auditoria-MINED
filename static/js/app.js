@@ -454,6 +454,56 @@ document.querySelectorAll("[data-fill-date]").forEach((button) => {
     refresh();
 });
 
+// Frases frecuentes: "insert" agrega la frase en el cursor; "line" agrega o quita una línea propia.
+(() => {
+    const lines = (field) => field.value.split(/\r?\n/).map((line) => line.trim());
+    const refresh = (field) => {
+        const current = lines(field);
+        document.querySelectorAll(`[data-insert-into="${field.id}"][data-insert-mode="line"]`).forEach((button) => {
+            button.setAttribute("aria-pressed", String(current.includes(button.dataset.text)));
+        });
+    };
+    const insertAtCursor = (field, text) => {
+        const focused = document.activeElement === field;
+        const start = focused ? field.selectionStart : field.value.length;
+        const end = focused ? field.selectionEnd : field.value.length;
+        const before = field.value.slice(0, start);
+        const after = field.value.slice(end);
+        const lead = before && !/\s$/.test(before) ? " " : "";
+        field.value = before + lead + text + after;
+        const caret = (before + lead + text).length;
+        field.focus();
+        field.setSelectionRange(caret, caret);
+    };
+    const toggleLine = (field, text) => {
+        const current = field.value.split(/\r?\n/);
+        const index = current.findIndex((line) => line.trim() === text);
+        if (index >= 0) {
+            current.splice(index, 1);
+            field.value = current.join("\n").replace(/^\n+|\n+$/g, "");
+        } else {
+            field.value = field.value.trim() ? `${field.value.replace(/\s+$/, "")}\n${text}` : text;
+        }
+    };
+    const fields = new Set();
+    document.querySelectorAll("[data-insert-into]").forEach((button) => {
+        const field = document.getElementById(button.dataset.insertInto);
+        if (!field) return;
+        fields.add(field);
+        // Conserva el cursor del campo: el clic en el chip no le quita el foco.
+        button.addEventListener("mousedown", (event) => event.preventDefault());
+        button.addEventListener("click", () => {
+            if (button.dataset.insertMode === "line") toggleLine(field, button.dataset.text);
+            else insertAtCursor(field, button.dataset.text);
+            field.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+    });
+    fields.forEach((field) => {
+        field.addEventListener("input", () => refresh(field));
+        refresh(field);
+    });
+})();
+
 // Confirmaciones y alcance de envío sin manejadores en línea (la CSP los bloquea).
 document.querySelectorAll("form[data-confirm]").forEach((form) => {
     form.addEventListener("submit", (event) => {

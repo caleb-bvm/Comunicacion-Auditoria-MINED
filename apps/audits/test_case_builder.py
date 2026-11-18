@@ -8,6 +8,7 @@ from apps.institutions.models import Organization
 
 from .models import ActivityLog, AuditCase, BusinessDayHoliday, Finding, Recommendation
 from .services import add_business_days, recommendation_deadline_shortcuts
+from .snippets import learned_evidence_snippets
 
 
 class CaseBuilderAssistanceTests(TestCase):
@@ -199,3 +200,81 @@ class CaseBuilderAssistanceTests(TestCase):
         self.assertContains(page, 'type="date" name="deadline" value="2026-12-18"', html=False)
         page = self.client.get(reverse("case_edit", args=[self.case.pk]))
         self.assertContains(page, 'name="report_date" value="2026-11-13"', html=False)
+
+    def test_finding_form_offers_frequent_phrases(self):
+        page = self.client.get(reverse("finding_create", args=[self.case.pk]))
+        self.assertContains(page, 'data-insert-into="id_criteria"')
+        self.assertContains(page, 'data-text="la Ley General de Educación"')
+        self.assertContains(page, 'data-insert-into="id_cause"')
+        self.assertContains(page, 'data-insert-into="id_effect"')
+        self.assertNotContains(page, 'data-insert-into="id_condition"')
+
+    def test_recommendation_form_offers_evidence_lines_and_the_auditors_own(self):
+        own_case = AuditCase.objects.create(
+            reference="IA-BUILDER-PREVIO",
+            title="Expediente anterior",
+            audited_organization=self.center,
+            status=AuditCase.Status.CLOSED,
+            assigned_auditor=self.auditor,
+            created_by=self.auditor,
+        )
+        foreign_case = AuditCase.objects.create(
+            reference="IA-BUILDER-AJENO",
+            title="Expediente de otro auditor",
+            audited_organization=self.center,
+            status=AuditCase.Status.CLOSED,
+            assigned_auditor=self.other_auditor,
+            created_by=self.other_auditor,
+        )
+        own_finding = Finding.objects.create(
+            case=own_case, number=1, title="Previo", risk_level=Finding.RiskLevel.LOW
+        )
+        foreign_finding = Finding.objects.create(
+            case=foreign_case, number=1, title="Ajeno", risk_level=Finding.RiskLevel.LOW
+        )
+        for number, evidence in enumerate(
+            [
+                "Planilla de asistencia firmada.\nConciliaciones bancarias firmadas.",
+                "- Planilla de asistencia firmada.\nLínea usada una sola vez.",
+            ],
+            start=1,
+        ):
+            Recommendation.objects.create(
+                finding=own_finding,
+                number=number,
+                text="Previa",
+                responsible_organization=self.center,
+                evidence_requirements=evidence,
+            )
+        for number in (1, 2):
+            Recommendation.objects.create(
+                finding=foreign_finding,
+                number=number,
+                text="Ajena",
+                responsible_organization=self.center,
+                evidence_requirements="Bitácora reservada de otro auditor.",
+            )
+
+        page = self.client.get(reverse("recommendation_create", args=[self.finding.pk]))
+        self.assertContains(page, 'data-text="Conciliaciones bancarias firmadas."', count=1)
+        self.assertContains(page, "Usadas por usted")
+        self.assertContains(page, 'data-text="Planilla de asistencia firmada."')
+        self.assertNotContains(page, "Línea usada una sola vez.")
+        self.assertNotContains(page, "Bitácora reservada de otro auditor.")
+        self.assertContains(page, 'data-insert-into="id_text"')
+
+    def test_learned_evidence_labels_are_shortened(self):
+        long_line = "Certificación del contador sobre los saldos conciliados al cierre."
+        own_finding = self.finding
+        for number in (2, 3):
+            Recommendation.objects.create(
+                finding=own_finding,
+                number=number,
+                text="Previa",
+                responsible_organization=self.center,
+                evidence_requirements=long_line,
+            )
+        learned = learned_evidence_snippets(Recommendation.objects.all())
+        self.assertEqual(learned[0]["text"], long_line)
+        self.assertTrue(learned[0]["label"].endswith("…"))
+        self.assertLessEqual(len(learned[0]["label"]), 32)

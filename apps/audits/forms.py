@@ -11,6 +11,13 @@ from apps.institutions.models import Organization
 from apps.core.validators import EVIDENCE_ACCEPT, validate_evidence_file
 from apps.core.widgets import FastSelect, DateInput, OrganizationSearchSelect
 
+from .snippets import (
+    EVIDENCE_SNIPPETS,
+    FINDING_SNIPPETS,
+    LINE,
+    RECOMMENDATION_SNIPPETS,
+    build_snippets,
+)
 from .models import (
     AuditCase,
     AuditDocument,
@@ -396,6 +403,12 @@ RECOMMENDATION_GUIDES = {
 DEADLINE_SHORTCUT_BUSINESS_DAYS = (10, 15, 30)
 
 
+def apply_snippets(form, catalogs):
+    for name, entries in catalogs.items():
+        if name in form.fields:
+            form.fields[name].snippets = build_snippets(entries)
+
+
 def apply_guides(form, guides):
     for name, (help_text, example) in guides.items():
         field = form.fields.get(name)
@@ -420,6 +433,7 @@ class FindingForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         apply_guides(self, FINDING_GUIDES)
+        apply_snippets(self, FINDING_SNIPPETS)
 
 
 class RecommendationForm(forms.ModelForm):
@@ -433,13 +447,16 @@ class RecommendationForm(forms.ModelForm):
             "evidence_requirements": forms.Textarea(attrs={"rows": 4}),
         }
 
-    def __init__(self, *args, deadline_shortcuts=None, **kwargs):
+    def __init__(self, *args, deadline_shortcuts=None, learned_evidence=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["responsible_organization"].queryset = Organization.objects.filter(
             is_active=True
         ).only("code", "name").order_by("name")
         apply_guides(self, RECOMMENDATION_GUIDES)
         self.fields["deadline"].shortcuts = deadline_shortcuts or []
+        apply_snippets(self, RECOMMENDATION_SNIPPETS)
+        self.fields["evidence_requirements"].snippets = build_snippets(EVIDENCE_SNIPPETS, mode=LINE)
+        self.fields["evidence_requirements"].learned_snippets = list(learned_evidence or [])
         if not deadline_shortcuts:
             self.fields["deadline"].help_text = ""
 
