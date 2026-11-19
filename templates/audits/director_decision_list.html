@@ -33,7 +33,7 @@
                 <h2 class="ui-list-title" id="decision-{{ decision.pk }}">{{ decision.case.audited_organization.name }}</h2>
                 <p class="ui-list-support">{{ decision.case.reference }} · {{ decision.case.title|truncatechars:90 }} · {{ decision.case.assigned_auditor.get_full_name|default:decision.case.assigned_auditor.username }}</p>
             </div>
-            <a class="ui-button {% if selected_status == 'pending' and forloop.first %}ui-button-filled{% else %}ui-button-tonal{% endif %}" href="{% url 'director_decision_detail' decision.pk %}">{% if selected_status == 'pending' %}Revisar ahora{% else %}Ver resolución{% endif %}</a>
+            <a class="ui-button ui-button-tonal" href="{% url 'director_decision_detail' decision.pk %}">{% if selected_status == 'pending' %}Revisar ahora{% else %}Ver resolución{% endif %}</a>
         </article>
         {% endfor %}
     </div>

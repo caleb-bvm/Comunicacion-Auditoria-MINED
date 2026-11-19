@@ -25,7 +25,7 @@
             <div class="ui-chips">{% if recommendation.status == 'correction_required' %}{% ui_status_chip recommendation.status %}{% endif %}{% ui_deadline_chip recommendation.deadline %}</div>
             <h3 class="ui-card-title" id="case-task-{{ recommendation.pk }}">{{ recommendation.text|truncatechars:180 }}</h3>
             <p class="ui-card-support">{% if recommendation.correction_comment %}Auditoría pide: {{ recommendation.correction_comment|truncatechars:140 }}{% else %}Hallazgo {{ recommendation.finding.number }} · Recomendación {{ recommendation.finding.number }}.{{ recommendation.number }}{% endif %}</p>
-            <div class="ui-card-actions"><a class="ui-button {% if forloop.first %}ui-button-filled ui-button-large{% else %}ui-button-tonal{% endif %}" href="{% url 'respond_recommendation' recommendation.pk %}">{% if recommendation.status == 'correction_required' %}Corregir respuesta{% else %}Presentar respuesta{% endif %}</a></div>
+            <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'respond_recommendation' recommendation.pk %}">{% if recommendation.status == 'correction_required' %}Corregir respuesta{% else %}Presentar respuesta{% endif %}</a></div>
         </article>
         {% endfor %}
         </div>

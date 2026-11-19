@@ -36,7 +36,7 @@
             {% for item in review_items %}
             <div class="ui-list-row">
                 <span class="ui-list-text"><span class="ui-list-title">Recomendación {{ item.recommendation.finding.number }}.{{ item.recommendation.number }} · versión {{ item.response.version }}</span><span class="ui-list-support">{{ item.recommendation.responsible_organization.name }} · llegó el {{ item.response.submitted_at|date:"j b Y" }}</span></span>
-                <a class="ui-button {% if forloop.first and not pending_decision and not can_edit_case %}ui-button-filled{% else %}ui-button-tonal{% endif %}" href="{% url 'review_response' item.response.pk %}">Revisar respuesta</a>
+                <a class="ui-button ui-button-tonal" href="{% url 'review_response' item.response.pk %}">Revisar respuesta</a>
             </div>
             {% endfor %}
         </div>

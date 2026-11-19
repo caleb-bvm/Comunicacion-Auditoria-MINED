@@ -86,12 +86,13 @@ class AuditorScreensTests(TestCase):
         )
         self.client.force_login(self.auditor)
 
-    def test_home_lists_reviews_first_with_one_filled_button(self):
+    def test_home_lists_reviews_with_uniform_tonal_buttons(self):
         page = self.client.get(reverse("dashboard"))
         self.assertContains(page, "Para revisar · 1")
         self.assertContains(page, "Centro Uno · Rec. 1.3")
-        self.assertContains(page, reverse("review_response", args=[self.response.pk]))
-        self.assertContains(page, "ui-button-filled", count=1)
+        review_url = reverse("review_response", args=[self.response.pk])
+        self.assertContains(page, f'class="ui-button ui-button-tonal" href="{review_url}"')
+        self.assertNotContains(page, "ui-button-filled")
 
     def test_case_list_says_what_comes_next(self):
         page = self.client.get(reverse("case_list"))

@@ -23,7 +23,7 @@
                 <div class="ui-chips"><span class="ui-chip">{% if decision.kind == 'closure' %}Piden cerrarlo{% else %}Piden publicarlo{% endif %}</span>{% ui_wait_chip decision.requested_at %}</div>
                 <h2 class="ui-card-title" id="decision-{{ decision.pk }}">{{ decision.case.audited_organization.name }}</h2>
                 <p class="ui-card-support">{{ decision.case.reference }} · {{ decision.case.title|truncatechars:90 }}</p>
-                <div class="ui-card-actions"><a class="ui-button {% if forloop.first %}ui-button-filled ui-button-large{% else %}ui-button-tonal{% endif %}" href="{% url 'director_decision_detail' decision.pk %}">{% if decision.kind == 'closure' %}Decidir el cierre{% else %}Decidir la publicación{% endif %}</a></div>
+                <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'director_decision_detail' decision.pk %}">{% if decision.kind == 'closure' %}Decidir el cierre{% else %}Decidir la publicación{% endif %}</a></div>
             </article>
             {% endfor %}
         </div>

@@ -19,7 +19,7 @@
         {% for item in review_items %}
         <div class="ui-list-row">
             <span class="ui-list-text"><span class="ui-list-title">{{ item.organization.name }} · Rec. {{ item.response.recommendation.finding.number }}.{{ item.response.recommendation.number }}</span><span class="ui-list-support">{{ item.case.reference }} · llegó el {{ item.date|date:"j b" }}</span></span>
-            <a class="ui-button {% if forloop.first %}ui-button-filled{% else %}ui-button-tonal{% endif %}" href="{% url 'review_response' item.response.pk %}">Revisar</a>
+            <a class="ui-button ui-button-tonal" href="{% url 'review_response' item.response.pk %}">Revisar</a>
         </div>
         {% endfor %}
     </section>
@@ -76,7 +76,7 @@
             <div class="ui-chips">{% if recommendation.status == 'correction_required' %}{% ui_status_chip recommendation.status %}{% endif %}{% ui_deadline_chip recommendation.current_deadline %}</div>
             <h2 class="ui-card-title" id="task-{{ recommendation.pk }}">{{ recommendation.text|truncatechars:160 }}</h2>
             <p class="ui-card-support">{% if recommendation.correction_comment %}Auditoría pide: {{ recommendation.correction_comment|truncatechars:110 }}{% else %}Recomendación {{ recommendation.finding.number }}.{{ recommendation.number }} · {{ recommendation.finding.case.reference }}{% endif %}</p>
-            <div class="ui-card-actions"><a class="ui-button {% if forloop.first %}ui-button-filled ui-button-large{% else %}ui-button-tonal{% endif %}" href="{% url 'respond_recommendation' recommendation.pk %}">{% if recommendation.status == 'correction_required' %}Corregir respuesta{% else %}Responder{% endif %}</a></div>
+            <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'respond_recommendation' recommendation.pk %}">{% if recommendation.status == 'correction_required' %}Corregir respuesta{% else %}Responder{% endif %}</a></div>
         </article>
         {% endfor %}
     </div>

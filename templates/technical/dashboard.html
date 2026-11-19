@@ -20,7 +20,7 @@
                 <div class="ui-chips">{% ui_state_chip "support" item.status %}<span class="ui-chip">{{ item.get_category_display }}</span></div>
                 <h2 class="ui-card-title" id="support-{{ item.pk }}">{{ item.subject }}</h2>
                 <p class="ui-card-support">{% if item.requested_by %}{{ item.requested_by.get_full_name|default:item.requested_by.username }}{% else %}{{ item.requester_name|default:"Solicitud pública" }}{% endif %}{% if item.organization %} · {{ item.organization.name }}{% endif %} · hace {{ item.created_at|timesince }}</p>
-                <div class="ui-card-actions"><a class="ui-button {% if forloop.first %}ui-button-filled ui-button-large{% else %}ui-button-tonal{% endif %}" href="{% url 'technical_support_request_detail' item.pk %}">{% if item.status == 'open' %}Atender ahora{% else %}Continuar{% endif %}</a></div>
+                <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'technical_support_request_detail' item.pk %}">{% if item.status == 'open' %}Atender ahora{% else %}Continuar{% endif %}</a></div>
             </article>
             {% endfor %}
         </div>
