@@ -15,6 +15,7 @@
             {% else %}
             <div class="ui-callout ui-callout-inline" role="status">{% ui_icon "check" %}<span>Listo para solicitar el cierre.</span></div>
             {% endif %}
+            {% ui_form_checklist form %}
         </div>
         <div class="ui-layout-main">
             <form method="post" class="ui-card ui-form-grid">

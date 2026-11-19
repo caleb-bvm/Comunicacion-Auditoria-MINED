@@ -1005,3 +1005,72 @@ form[data-analysis-mode].is-updating ~ * { opacity: .55; transition: opacity .15
 .ui-person-header > .ui-page-header { flex: 1 1 240px; min-width: 0; }
 .ui-profile-page .ui-form { display: flex; flex-direction: column; gap: var(--ui-space-5); }
 .ui-profile-page .ui-form-grid { display: grid; gap: var(--ui-space-5) var(--ui-space-4); }
+
+/* ---------- Columna lateral de los formularios: lista de avance y mapa del expediente ----------
+ * Solo en escritorio, donde la columna acompaña al formulario mientras se desplaza; en teléfono
+ * quedarían antes del formulario y lo empujarían hacia abajo. La columna se desplaza por su
+ * cuenta cuando su contenido es más alto que la ventana. */
+.ui-aside-desktop { display: none; }
+@media (min-width: 1081px) {
+    .ui-aside-desktop { display: flex; }
+    .ui-layout-context > .ui-layout-aside {
+        max-height: calc(100vh - 2 * var(--ui-space-8));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        /* Espacio para que el anillo de foco no se recorte. */
+        padding: 4px;
+        margin: -4px;
+    }
+}
+
+.ui-fieldlist { gap: var(--ui-space-3); }
+.ui-fieldlist-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--ui-space-2); }
+.ui-fieldlist-summary { margin: 0; font-size: var(--ui-text-support); line-height: 24px; color: var(--ui-on-surface-variant); font-variant-numeric: tabular-nums; }
+.ui-fieldlist-items, .ui-outline-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ui-fieldlist-item { display: flex; align-items: center; gap: var(--ui-space-2); min-height: 44px; border-top: 1px solid var(--ui-divider); }
+.ui-fieldlist-item:first-child { border-top: 0; }
+.ui-fieldlist-item a {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    padding: var(--ui-space-2) 0;
+    color: var(--ui-on-surface);
+    text-decoration: none;
+    font-size: var(--ui-text-support);
+    line-height: 24px;
+}
+.ui-fieldlist-item a:hover .ui-fieldlist-label { text-decoration: underline; }
+.ui-fieldlist-label { min-width: 0; overflow-wrap: anywhere; }
+.ui-fieldlist-item .ui-icon { flex: 0 0 auto; width: 20px; height: 20px; stroke-width: 2.2; color: var(--ui-outline); }
+.ui-fieldlist-state { flex: 0 0 auto; font-size: var(--ui-text-label); line-height: 20px; font-weight: 600; color: var(--ui-on-surface-variant); text-align: right; }
+.ui-fieldlist-item.is-done .ui-icon, .ui-fieldlist-item.is-done .ui-fieldlist-state { color: var(--ui-success); }
+.ui-fieldlist-item.is-optional .ui-fieldlist-state { font-weight: 400; }
+.ui-fieldlist-item.is-placeholder .ui-icon, .ui-fieldlist-item.is-placeholder .ui-fieldlist-state { color: var(--ui-warning); }
+.ui-fieldlist-item.is-error .ui-icon, .ui-fieldlist-item.is-error .ui-fieldlist-state { color: var(--ui-danger); }
+
+.ui-outline { gap: var(--ui-space-3); }
+.ui-outline-list { gap: 2px; }
+.ui-outline-nested { margin: 2px 0 var(--ui-space-2) var(--ui-space-6); }
+.ui-outline-link {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ui-space-3);
+    min-height: 44px;
+    padding: 10px var(--ui-space-3);
+    border-radius: var(--ui-radius-field);
+    color: var(--ui-on-surface);
+    text-decoration: none;
+    font-size: var(--ui-text-support);
+    line-height: 24px;
+}
+a.ui-outline-link:hover { background: var(--ui-surface-low); }
+.ui-outline-link.is-current { background: var(--ui-secondary-container); color: var(--ui-on-secondary-container); font-weight: 600; }
+.ui-outline-link.is-new { box-shadow: inset 0 0 0 1px var(--ui-primary); background: var(--ui-surface-highlight); }
+.ui-outline-number { flex: 0 0 auto; min-width: 2.25em; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ui-outline-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; display: flex; flex-direction: column; }
+.ui-outline-meta { font-size: var(--ui-text-label); line-height: 20px; font-weight: 400; color: var(--ui-on-surface-variant); }
+.ui-outline-flag { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; font-size: var(--ui-text-label); line-height: 24px; font-weight: 600; color: var(--ui-warning); }
+.ui-outline-flag .ui-icon { width: 18px; height: 18px; stroke-width: 2.2; }

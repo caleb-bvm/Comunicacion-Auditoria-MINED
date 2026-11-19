@@ -1,0 +1,24 @@
+{% load ui %}<nav class="ui-card ui-outline ui-aside-desktop" aria-labelledby="case-outline-title">
+    <h2 class="ui-card-title" id="case-outline-title">Hallazgos del expediente</h2>
+    <ol class="ui-outline-list" role="list">
+        {% for entry in outline.findings %}<li>
+            <a class="ui-outline-link{% if entry.current %} is-current{% endif %}" href="{% url 'finding_edit' entry.finding.pk %}"{% if entry.current %} aria-current="page"{% endif %}>
+                <span class="ui-outline-number">{{ entry.finding.number }}</span>
+                <span class="ui-outline-text">{{ entry.finding.title|truncatechars:80 }}{% if not entry.open and entry.count %}<span class="ui-outline-meta">{{ entry.count }} recomendaci{{ entry.count|pluralize:"ón,ones" }}</span>{% endif %}</span>
+                {% if entry.incomplete %}<span class="ui-outline-flag">{% ui_icon "alert" %}Falta</span>{% endif %}
+            </a>
+            {% if entry.open %}<ol class="ui-outline-list ui-outline-nested" role="list">
+                {% for item in entry.recommendations %}<li>
+                    <a class="ui-outline-link{% if item.current %} is-current{% endif %}" href="{% url 'recommendation_edit' item.recommendation.pk %}"{% if item.current %} aria-current="page"{% endif %}>
+                        <span class="ui-outline-number">{{ entry.finding.number }}.{{ item.recommendation.number }}</span>
+                        <span class="ui-outline-text">{{ item.recommendation.text|truncatechars:70 }}</span>
+                        {% if item.incomplete %}<span class="ui-outline-flag">{% ui_icon "alert" %}Falta</span>{% endif %}
+                    </a>
+                </li>{% endfor %}
+                {% if entry.new_recommendation %}<li><span class="ui-outline-link is-current is-new" aria-current="step"><span class="ui-outline-number">{{ entry.finding.number }}.{{ entry.new_recommendation }}</span><span class="ui-outline-text">Nueva recomendación</span></span></li>{% endif %}
+            </ol>{% endif %}
+        </li>{% endfor %}
+        {% if outline.new_finding %}<li><span class="ui-outline-link is-current is-new" aria-current="step"><span class="ui-outline-number">{{ outline.new_finding }}</span><span class="ui-outline-text">Nuevo hallazgo</span></span></li>{% endif %}
+    </ol>
+    <p class="ui-help">Si abre otro elemento sin guardar, los textos que escribió se conservan en este equipo.</p>
+</nav>

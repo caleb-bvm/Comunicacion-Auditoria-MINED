@@ -338,6 +338,47 @@ def finding_has_placeholders(finding):
     return has_placeholders(*texts)
 
 
+def case_outline(case, *, finding=None, recommendation=None, adding=None):
+    """Mapa del expediente para la columna lateral del editor de hallazgos y recomendaciones.
+
+    Muestra todos los hallazgos con su número; solo el hallazgo en edición despliega sus
+    recomendaciones. `adding` ("finding" o "recommendation") indica dónde quedará el elemento
+    nuevo antes de guardarlo."""
+    entries = []
+    for item in case.findings.prefetch_related("recommendations"):
+        recommendations = list(item.recommendations.all())
+        is_open = finding is not None and item.pk == finding.pk
+        entry = {
+            "finding": item,
+            "current": is_open and recommendation is None and adding is None,
+            "open": is_open,
+            "incomplete": bool(
+                finding_missing_fields(item)
+                or finding_has_placeholders(item)
+                or not recommendations
+            ),
+            "count": len(recommendations),
+            "recommendations": [],
+            "new_recommendation": None,
+        }
+        if is_open:
+            entry["recommendations"] = [
+                {
+                    "recommendation": rec,
+                    "current": recommendation is not None and rec.pk == recommendation.pk,
+                    "incomplete": bool(recommendation_missing_fields(rec)),
+                }
+                for rec in recommendations
+            ]
+            if adding == "recommendation":
+                entry["new_recommendation"] = max((rec.number for rec in recommendations), default=0) + 1
+        entries.append(entry)
+    new_finding = None
+    if adding == "finding":
+        new_finding = max((entry["finding"].number for entry in entries), default=0) + 1
+    return {"findings": entries, "new_finding": new_finding}
+
+
 def redirect_to_finding(finding):
     """Vuelve al constructor del expediente, posicionado en el hallazgo editado."""
     return redirect(f"{reverse('case_builder', args=[finding.case_id])}#hallazgo-{finding.pk}")
@@ -2563,6 +2604,7 @@ def finding_create(request, case_pk):
             "form": form,
             "case": case,
             "form_title": f"Agregar hallazgo {next_finding_number(case)}",
+            "outline": case_outline(case, adding="finding"),
             "form_intro": "Registre la información que fundamenta el hallazgo.",
             "submit_label": "Guardar y agregar recomendación",
             "submit_next": "recommendation",
@@ -2590,6 +2632,7 @@ def finding_edit(request, pk):
             "form": form,
             "case": case,
             "form_title": f"Editar hallazgo {finding.number}",
+            "outline": case_outline(case, finding=finding),
             "form_intro": "Actualice la información del hallazgo antes de publicar.",
             "submit_label": "Guardar cambios",
         },
@@ -2656,6 +2699,7 @@ def recommendation_create(request, finding_pk):
             "form_title": (
                 f"Agregar recomendación {finding.number}.{next_recommendation_number(finding)}"
             ),
+            "outline": case_outline(case, finding=finding, adding="recommendation"),
             "form_intro": "Asigne un responsable, una fecha límite y la evidencia esperada.",
             "submit_label": "Guardar recomendación",
             "secondary_submit_label": "Guardar y agregar otra",
@@ -2699,6 +2743,9 @@ def recommendation_edit(request, pk):
             "finding": recommendation.finding,
             "form_title": (
                 f"Editar recomendación {recommendation.finding.number}.{recommendation.number}"
+            ),
+            "outline": case_outline(
+                case, finding=recommendation.finding, recommendation=recommendation
             ),
             "form_intro": "Actualice la asignación y los requisitos antes de publicar.",
             "submit_label": "Guardar cambios",

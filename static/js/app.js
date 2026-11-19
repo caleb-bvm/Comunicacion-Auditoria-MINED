@@ -935,3 +935,74 @@ function enhanceOrganizationSearch(root) {
         show("No hay conexión: el formulario no se envió y lo escrito sigue en pantalla. Envíelo cuando vuelva la conexión.");
     }, true);
 })();
+
+// Lista de avance del formulario ([data-form-checklist]). El servidor la dibuja con el estado
+// inicial; aquí se actualiza mientras se escribe. Un error de validación se mantiene hasta que
+// se edita ese campo.
+document.querySelectorAll("[data-form-checklist]").forEach((list) => {
+    const LABELS = {
+        done: "Listo",
+        error: "Revisar",
+        placeholder: "Completar [corchetes]",
+        required: "Obligatorio",
+        publish: "Antes de enviar",
+        optional: "Opcional",
+    };
+    const ICONS = { done: "check", error: "alert", placeholder: "alert" };
+    // Misma expresión que PLACEHOLDER_PATTERN en apps/audits/services.py.
+    const PLACEHOLDER = /\[[^\[\]\n]{1,80}\]/;
+    const counter = list.querySelector("[data-checklist-done]");
+    const items = Array.from(list.querySelectorAll("[data-checklist-item]")).map((row) => {
+        const target = document.getElementById(row.dataset.checklistItem);
+        const container = target?.closest(".ui-field");
+        // El control con nombre es el que se envía (el buscador de organizaciones oculta su <select>).
+        const control = container?.querySelector("[name]") || target;
+        const state = Array.from(row.classList).find((name) => name.startsWith("is-"))?.slice(3);
+        return { row, target, container, control, initialFilled: state === "done" || state === "placeholder", touched: false };
+    }).filter((item) => item.control);
+    if (!items.length) return;
+
+    const isFilled = (item) => {
+        const { control } = item;
+        if (control.type === "checkbox") return control.checked;
+        if (control.type === "file") return control.files.length > 0 || item.initialFilled;
+        if (control.multiple) return control.selectedOptions.length > 0;
+        return control.value.trim() !== "";
+    };
+    const stateOf = (item) => {
+        if (!item.touched && item.row.classList.contains("is-error")) return "error";
+        const filled = isFilled(item);
+        if (filled && "placeholders" in item.row.dataset && PLACEHOLDER.test(item.control.value)) return "placeholder";
+        return filled ? "done" : item.row.dataset.kind;
+    };
+    const render = () => {
+        let done = 0;
+        items.forEach((item) => {
+            const state = stateOf(item);
+            item.row.className = `ui-fieldlist-item is-${state}`;
+            item.row.querySelector("use")?.setAttribute("href", `#ui-${ICONS[state] || "pending"}`);
+            const label = item.row.querySelector("[data-checklist-state]");
+            if (label) label.textContent = LABELS[state];
+            if (state === "done" && item.row.dataset.kind !== "optional") done += 1;
+        });
+        if (counter) counter.textContent = String(done);
+    };
+    const form = items[0].control.form;
+    const update = (event) => {
+        const item = items.find((candidate) => candidate.container?.contains(event.target) || candidate.control === event.target);
+        if (item) item.touched = true;
+        render();
+    };
+    form?.addEventListener("input", update);
+    form?.addEventListener("change", update);
+    items.forEach((item) => {
+        item.row.querySelector("a")?.addEventListener("click", (event) => {
+            if (!item.container) return;
+            event.preventDefault();
+            const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+            item.container.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "center" });
+            const focusable = item.target && !item.target.hidden ? item.target : item.container.querySelector("input:not([type=hidden]), textarea, select");
+            focusable?.focus({ preventScroll: true });
+        });
+    });
+});

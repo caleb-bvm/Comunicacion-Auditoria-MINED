@@ -10,6 +10,7 @@
                 <p class="ui-page-context">{{ organization.name }} · {{ organization.code }}</p>
                 <h1 class="ui-page-title">{{ title }}</h1>
             </header>
+            {% ui_form_checklist form %}
         </div>
         <div class="ui-layout-main">
             <form method="post" enctype="multipart/form-data" class="ui-card ui-form-grid" aria-label="{{ title }}">

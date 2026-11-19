@@ -1,0 +1,12 @@
+{% if items %}<section class="ui-card ui-fieldlist ui-aside-desktop" aria-labelledby="form-checklist-title" data-form-checklist>
+    <div class="ui-fieldlist-header">
+        <h2 class="ui-card-title" id="form-checklist-title">{{ title }}</h2>
+        <p class="ui-fieldlist-summary" aria-live="polite"><span data-checklist-done>{{ done }}</span> de {{ total }} listos</p>
+    </div>
+    <ul class="ui-fieldlist-items" role="list">
+        {% for item in items %}<li class="ui-fieldlist-item is-{{ item.state }}" data-checklist-item="{{ item.id }}" data-kind="{{ item.kind }}"{% if item.placeholders %} data-placeholders{% endif %}{% if item.file %} data-file{% endif %}>
+            <a href="#{{ item.id }}"><svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-{% if item.state == 'done' %}check{% elif item.state == 'error' or item.state == 'placeholder' %}alert{% else %}pending{% endif %}"></use></svg><span class="ui-fieldlist-label">{{ item.label }}</span></a>
+            <span class="ui-fieldlist-state" data-checklist-state>{% if item.state == 'done' %}Listo{% elif item.state == 'error' %}Revisar{% elif item.state == 'placeholder' %}Completar [corchetes]{% elif item.state == 'required' %}Obligatorio{% elif item.state == 'publish' %}Antes de enviar{% else %}Opcional{% endif %}</span>
+        </li>{% endfor %}
+    </ul>
+</section>{% endif %}

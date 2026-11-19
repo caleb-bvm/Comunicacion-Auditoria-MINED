@@ -10,6 +10,7 @@
                 <h1 class="ui-page-title">Agregar informe anterior</h1>
                 <p class="ui-page-context">{% if center %}{{ center.code }} · {{ center.name }}. {% endif %}Adjunte el informe original y, si los tiene, sus documentos relacionados.</p>
             </header>
+            {% ui_form_checklist form %}
         </div>
         <div class="ui-layout-main">
             <form method="post" enctype="multipart/form-data" class="ui-stack ui-stack-loose" aria-label="Registrar informe anterior">

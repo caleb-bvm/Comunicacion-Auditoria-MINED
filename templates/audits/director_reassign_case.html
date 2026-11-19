@@ -11,6 +11,7 @@
                 <p class="ui-page-context">{{ case.audited_organization.name }}</p>
             </header>
             <div class="ui-list"><div class="ui-list-row">{% ui_icon "user" %}<span class="ui-list-text"><span class="ui-list-support">Auditor responsable actual</span><span class="ui-list-title">{{ previous_auditor.get_full_name|default:previous_auditor.username }}</span></span></div></div>
+            {% ui_form_checklist form %}
         </div>
         <div class="ui-layout-main">
             <form method="post" class="ui-card ui-form-grid">

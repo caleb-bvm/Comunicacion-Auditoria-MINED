@@ -1,5 +1,6 @@
 """Etiquetas de plantilla del sistema de diseño «Claro y directo»."""
 
+import re
 from datetime import date, timedelta
 
 from django import template
@@ -234,4 +235,74 @@ def ui_avatar(context, person, size="md"):
         "url": url,
         "initials": person.initials if person else "?",
         "size": size if size in AVATAR_SIZES else "md",
+    }
+
+
+# Lista de avance del formulario (columna lateral). Se calcula en el servidor para que funcione
+# sin JavaScript; app.js la actualiza mientras se escribe con las mismas reglas.
+CHECKLIST_MIN_ITEMS = 4
+# Misma expresión que apps.audits.services.PLACEHOLDER_PATTERN y que app.js.
+CHECKLIST_PLACEHOLDER = re.compile(r"\[[^\[\]\n]{1,80}\]")
+CHECKLIST_FILE_WIDGETS = {"clearablefile", "file", "multiplefile"}
+
+
+def _checklist_filled(bound_field):
+    value = bound_field.value()
+    if isinstance(value, (list, tuple)):
+        return any(str(item).strip() for item in value)
+    if value is None or value is False:
+        return False
+    return bool(str(value).strip())
+
+
+@register.inclusion_tag("includes/ui/form_checklist.html")
+def ui_form_checklist(form, title="En este formulario"):
+    """Campos del formulario con su estado: listo, obligatorio, antes de enviar u opcional.
+
+    Un campo con `publish_required = True` puede guardarse vacío en borrador pero debe
+    completarse antes de solicitar la aprobación. Con `flag_placeholders = True` en el
+    formulario se avisa de los datos entre [corchetes] que dejó una plantilla."""
+    items = []
+    flag_placeholders = getattr(form, "flag_placeholders", False)
+    for bound_field in form.visible_fields():
+        field = bound_field.field
+        widget_type = bound_field.widget_type
+        if field.disabled or (widget_type == "checkbox" and not field.required):
+            continue
+        if field.required:
+            kind = "required"
+        elif getattr(field, "publish_required", False):
+            kind = "publish"
+        else:
+            kind = "optional"
+        filled = _checklist_filled(bound_field)
+        if bound_field.errors:
+            state = "error"
+        elif (
+            filled
+            and flag_placeholders
+            and widget_type in {"text", "textarea"}
+            and CHECKLIST_PLACEHOLDER.search(str(bound_field.value()))
+        ):
+            state = "placeholder"
+        elif filled:
+            state = "done"
+        else:
+            state = kind
+        items.append(
+            {
+                "id": bound_field.id_for_label,
+                "label": bound_field.label,
+                "kind": kind,
+                "state": state,
+                "placeholders": flag_placeholders and widget_type in {"text", "textarea"},
+                "file": widget_type in CHECKLIST_FILE_WIDGETS,
+            }
+        )
+    counted = [item for item in items if item["kind"] != "optional"]
+    return {
+        "title": title,
+        "items": items if len(items) >= CHECKLIST_MIN_ITEMS else [],
+        "done": sum(item["state"] == "done" for item in counted),
+        "total": len(counted),
     }

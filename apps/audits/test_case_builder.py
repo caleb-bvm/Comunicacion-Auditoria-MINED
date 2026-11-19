@@ -280,8 +280,8 @@ class CaseBuilderAssistanceTests(TestCase):
         self.assertLessEqual(len(learned[0]["label"]), 32)
 
 
-class AutomaticNumberingTests(TestCase):
-    """El sistema numera hallazgos y recomendaciones sin huecos y permite reordenarlos en borrador."""
+class NumberedCaseSetup:
+    """Expediente en borrador con tres hallazgos; el primero tiene tres recomendaciones."""
 
     def setUp(self):
         self.center = Organization.objects.create(
@@ -316,6 +316,10 @@ class AutomaticNumberingTests(TestCase):
             for number in (1, 2, 3)
         ]
         self.client.force_login(self.auditor)
+
+
+class AutomaticNumberingTests(NumberedCaseSetup, TestCase):
+    """El sistema numera hallazgos y recomendaciones sin huecos y permite reordenarlos en borrador."""
 
     def finding_numbers(self):
         return list(self.case.findings.order_by("number").values_list("title", "number"))
@@ -425,3 +429,72 @@ class AutomaticNumberingTests(TestCase):
         )
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self.findings[0].__class__.objects.get(pk=self.findings[0].pk).number, 1)
+
+
+class FormAsideTests(NumberedCaseSetup, TestCase):
+    """Columna lateral del editor: lista de avance del formulario y mapa del expediente."""
+
+    def test_new_finding_lists_its_fields_with_their_requirement(self):
+        page = self.client.get(reverse("finding_create", args=[self.case.pk]))
+        self.assertContains(page, "En este formulario")
+        self.assertContains(page, '<span data-checklist-done>0</span> de 6 listos', html=False)
+        self.assertContains(page, 'data-checklist-item="id_title" data-kind="required"')
+        self.assertContains(page, 'data-checklist-item="id_condition" data-kind="publish" data-placeholders')
+        self.assertContains(page, "Antes de enviar", count=4)
+        self.assertContains(page, 'href="#id_effect"')
+
+    def test_existing_values_count_as_done_and_placeholders_are_flagged(self):
+        finding = self.findings[1]
+        finding.condition = "Durante [período revisado] no se concilió."
+        finding.criteria = "Instructivo de fondos."
+        finding.save()
+        page = self.client.get(reverse("finding_edit", args=[finding.pk]))
+        # Título, riesgo y criterio listos; la condición tiene datos por completar.
+        self.assertContains(page, '<span data-checklist-done>3</span> de 6 listos', html=False)
+        self.assertContains(page, 'ui-fieldlist-item is-placeholder" data-checklist-item="id_condition"')
+        self.assertContains(page, "Completar [corchetes]")
+
+    def test_fields_with_errors_are_marked_for_review(self):
+        page = self.client.post(
+            reverse("finding_create", args=[self.case.pk]),
+            {"title": "", "risk_level": Finding.RiskLevel.LOW},
+        )
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'ui-fieldlist-item is-error" data-checklist-item="id_title"')
+        self.assertContains(page, "Revisar")
+
+    def test_recommendation_checklist_marks_deadline_and_evidence_before_sending(self):
+        page = self.client.get(reverse("recommendation_create", args=[self.findings[0].pk]))
+        self.assertContains(page, 'data-checklist-item="id_deadline" data-kind="publish"')
+        self.assertContains(page, 'data-checklist-item="id_evidence_requirements" data-kind="publish"')
+        # El responsable y la fecha general vienen precargados del expediente.
+        self.assertContains(page, '<span data-checklist-done>2</span> de 4 listos', html=False)
+
+    def test_short_forms_do_not_show_the_checklist(self):
+        page = self.client.get(reverse("password_change"))
+        self.assertNotContains(page, "data-form-checklist")
+
+    def test_outline_places_the_new_finding_at_the_end(self):
+        page = self.client.get(reverse("finding_create", args=[self.case.pk]))
+        self.assertContains(page, "Hallazgos del expediente")
+        for finding in self.findings:
+            self.assertContains(page, reverse("finding_edit", args=[finding.pk]))
+        self.assertContains(page, '<span class="ui-outline-number">4</span><span class="ui-outline-text">Nuevo hallazgo</span>')
+        self.assertContains(page, "3 recomendaciones")
+        # Los hallazgos 2 y 3 no tienen recomendaciones ni condición: aparecen incompletos.
+        self.assertContains(page, "ui-outline-flag", count=3)
+
+    def test_outline_opens_the_current_finding_and_shows_the_new_recommendation(self):
+        page = self.client.get(reverse("recommendation_create", args=[self.findings[0].pk]))
+        for recommendation in self.recommendations:
+            self.assertContains(page, reverse("recommendation_edit", args=[recommendation.pk]))
+        self.assertContains(page, '<span class="ui-outline-number">1.4</span><span class="ui-outline-text">Nueva recomendación</span>')
+        self.assertNotContains(page, "3 recomendaciones")
+
+    def test_outline_marks_the_item_being_edited(self):
+        page = self.client.get(reverse("recommendation_edit", args=[self.recommendations[1].pk]))
+        url = reverse("recommendation_edit", args=[self.recommendations[1].pk])
+        self.assertContains(page, f'class="ui-outline-link is-current" href="{url}" aria-current="page"')
+        page = self.client.get(reverse("finding_edit", args=[self.findings[2].pk]))
+        url = reverse("finding_edit", args=[self.findings[2].pk])
+        self.assertContains(page, f'class="ui-outline-link is-current" href="{url}" aria-current="page"')

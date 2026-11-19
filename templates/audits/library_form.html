@@ -16,6 +16,7 @@
                 <p class="ui-help">Usada en {{ template_obj.findings.count }} hallazgo{{ template_obj.findings.count|pluralize }}. Los cambios solo afectan a los hallazgos que se creen después.</p>
             </section>
             {% endif %}
+            {% ui_form_checklist form %}
         </div>
         <div class="ui-layout-main">
             <form method="post" class="ui-form-stack" novalidate data-autosave>

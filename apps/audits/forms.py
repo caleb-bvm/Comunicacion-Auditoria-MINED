@@ -423,6 +423,21 @@ def apply_snippets(form, catalogs):
             form.fields[name].snippets = build_snippets(entries)
 
 
+FINDING_PUBLISH_FIELDS = ("condition", "criteria", "cause", "effect")
+RECOMMENDATION_PUBLISH_FIELDS = ("deadline", "evidence_requirements")
+
+
+def mark_publish_required(form, names):
+    """Campos que el borrador admite vacíos pero que deben completarse antes de enviar.
+
+    La lista de avance de la columna lateral los distingue de los opcionales; deben coincidir
+    con finding_missing_fields y recommendation_missing_fields de views.py."""
+    form.flag_placeholders = True
+    for name in names:
+        if name in form.fields:
+            form.fields[name].publish_required = True
+
+
 def apply_guides(form, guides):
     for name, (help_text, example) in guides.items():
         field = form.fields.get(name)
@@ -458,6 +473,7 @@ class FindingForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         apply_guides(self, FINDING_GUIDES)
         apply_snippets(self, FINDING_SNIPPETS)
+        mark_publish_required(self, FINDING_PUBLISH_FIELDS)
         # El área se pide solo cuando Dirección ya definió el catálogo; mientras tanto no se muestra.
         if not FindingCategory.objects.filter(is_active=True).exists():
             del self.fields["category"]
@@ -561,6 +577,7 @@ class RecommendationForm(forms.ModelForm):
         apply_snippets(self, RECOMMENDATION_SNIPPETS)
         self.fields["evidence_requirements"].snippets = build_snippets(EVIDENCE_SNIPPETS, mode=LINE)
         self.fields["evidence_requirements"].learned_snippets = list(learned_evidence or [])
+        mark_publish_required(self, RECOMMENDATION_PUBLISH_FIELDS)
         if not deadline_shortcuts:
             self.fields["deadline"].help_text = ""
 

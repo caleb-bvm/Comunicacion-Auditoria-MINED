@@ -19,6 +19,8 @@
                 <p class="ui-help">La recomendación debe atender la causa del hallazgo.</p>
             </section>
             {% endif %}
+            {% ui_form_checklist form %}
+            {% if outline %}{% include "audits/case_outline.html" %}{% endif %}
         </div>
         <div class="ui-layout-main">
             <form method="post" class="ui-card ui-form-grid" data-autosave>
