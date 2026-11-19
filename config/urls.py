@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
+from django.templatetags.static import static
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 from apps.accounts.views import (
     AccountProfileView, ActivateAccountView, RequiredPasswordChangeView,
@@ -11,7 +13,15 @@ from apps.core.views import ui_reference
 from apps.institutions.search import organization_search
 
 
+class FaviconRedirectView(RedirectView):
+    # Resolved per request so ManifestStaticFilesStorage hashes are read lazily.
+    def get_redirect_url(self, *args, **kwargs):
+        return static("img/favicon.ico")
+
+
 urlpatterns = [
+    # Browsers request /favicon.ico on their own (PDF downloads, bookmarks).
+    path("favicon.ico", FaviconRedirectView.as_view()),
     path("tecnica/", include("apps.accounts.technical_urls")),
     path("administracion/", admin.site.urls),
     path(
