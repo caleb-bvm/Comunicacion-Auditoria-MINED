@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}Centros educativos | Dirección de Auditoría{% endblock %}
+{% block title %}Centros educativos | Auditoría Interna{% endblock %}
 {% block content %}
 <div class="ui-page center-directory">
     <header class="ui-page-header">
@@ -57,7 +57,7 @@
                     <td><a class="ui-table-link" href="{% url 'case_list' %}?organization={{ center.pk }}" aria-label="Ver los {{ center.case_count }} expedientes de {{ center.name }}">{{ center.active_case_count }}</a><span class="ui-table-support">de {{ center.case_count }}</span></td>
                     <td>{{ center.overdue_count }}<span class="ui-table-support">de {{ center.obligation_count }}</span></td>
                     <td>{% if center.compliance_rate is not None %}{{ center.compliance_rate }}%{% else %}N/D{% endif %}</td>
-                    <td class="ui-table-end">{% if not center.active_user_count and center.email %}<form method="post" action="{% url 'director_activate_educational_center' center.pk %}">{% csrf_token %}<button class="ui-button ui-button-tonal" type="submit">{% if center.activation_pending %}Reenviar enlace{% else %}Activar acceso por correo{% endif %}</button></form>{% else %}<a class="ui-button ui-button-tonal" href="{% url 'director_educational_center_detail' center.pk %}">Ver detalle</a>{% endif %}</td>
+                    <td class="ui-table-end">{% if is_director and not center.active_user_count and center.email %}<form method="post" action="{% url 'director_activate_educational_center' center.pk %}">{% csrf_token %}<button class="ui-button ui-button-tonal" type="submit">{% if center.activation_pending %}Reenviar enlace{% else %}Activar acceso por correo{% endif %}</button></form>{% else %}<a class="ui-button ui-button-tonal" href="{% url 'director_educational_center_detail' center.pk %}">Ver detalle</a>{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

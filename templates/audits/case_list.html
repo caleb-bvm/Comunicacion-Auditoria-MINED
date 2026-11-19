@@ -14,7 +14,7 @@
             {% endif %}
         </header>
         <div class="ui-card-actions">
-            {% if selected_organization and user.role == 'audit_manager' %}<a class="ui-button ui-button-text" href="{% url 'director_educational_centers' %}">{% ui_icon "back" %}Volver a centros</a>{% endif %}
+            {% if selected_organization and user.is_audit_staff %}<a class="ui-button ui-button-text" href="{% url 'director_educational_centers' %}">{% ui_icon "back" %}Volver a centros</a>{% endif %}
             {% if user.role == 'auditor' %}<a class="ui-button ui-button-tonal" href="{% url 'case_create' %}">Nuevo expediente</a>{% endif %}
         </div>
     </div>
@@ -62,7 +62,7 @@
         </table>
     </div>
     {% else %}
-    <div class="ui-card"><h2 class="ui-card-title">{% if invalid_organization_filter %}Centro educativo no encontrado{% else %}No hay expedientes con estos filtros{% endif %}</h2>{% if invalid_organization_filter %}<p class="ui-card-support">Seleccione un centro desde el directorio.</p>{% if user.role == 'audit_manager' %}<div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'director_educational_centers' %}">Volver a centros</a></div>{% endif %}{% endif %}</div>
+    <div class="ui-card"><h2 class="ui-card-title">{% if invalid_organization_filter %}Centro educativo no encontrado{% else %}No hay expedientes con estos filtros{% endif %}</h2>{% if invalid_organization_filter %}<p class="ui-card-support">Seleccione un centro desde el directorio.</p>{% if user.is_audit_staff %}<div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'director_educational_centers' %}">Volver a centros</a></div>{% endif %}{% endif %}</div>
     {% endif %}
 
     {% if is_paginated %}<nav class="ui-pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a class="ui-button ui-button-outlined" href="?alcance={{ selected_scope }}&amp;organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;page={{ page_obj.previous_page_number }}">{% ui_icon "back" %}Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="ui-button ui-button-outlined" href="?alcance={{ selected_scope }}&amp;organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;page={{ page_obj.next_page_number }}">Siguiente{% ui_icon "forward" %}</a>{% endif %}</nav>{% endif %}

@@ -241,8 +241,8 @@ class TeamReadOnlyAccessTests(TestCase):
 
     # ---------- CDE ----------
 
-    def test_teammate_consults_cde_of_centers_with_team_cases(self):
+    def test_teammate_consults_cde_of_every_center(self):
         self.client.force_login(self.teammate)
         self.assertEqual(self.client.get(reverse("cde_detail", args=[self.center.pk])).status_code, 200)
         self.make_case("IA-EQ-DOS", AuditCase.Status.DRAFT, center=self.other_center)
-        self.assertEqual(self.client.get(reverse("cde_detail", args=[self.other_center.pk])).status_code, 403)
+        self.assertEqual(self.client.get(reverse("cde_detail", args=[self.other_center.pk])).status_code, 200)

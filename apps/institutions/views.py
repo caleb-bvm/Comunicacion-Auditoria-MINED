@@ -9,8 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.audits.access import auditor_viewable_q
-from apps.audits.models import ActivityLog, AuditCase
+from apps.audits.models import ActivityLog
 from apps.core.scanning import protected_file_response
 
 from .forms import (
@@ -59,13 +58,8 @@ def _can_view_cde(user, organization):
         return True
     if _can_manage_cde(user, organization):
         return True
-    if user.role == User.Role.AUDITOR:
-        # Mismo alcance de consulta que los expedientes: los suyos y los publicados del equipo.
-        return AuditCase.objects.filter(
-            auditor_viewable_q(user),
-            audited_organization=organization,
-        ).exists()
-    return False
+    # El equipo auditor consulta la ficha completa de todos los centros, incluido su CDE.
+    return user.role == User.Role.AUDITOR
 
 
 def _educational_center(pk):

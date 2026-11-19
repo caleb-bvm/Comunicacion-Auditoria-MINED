@@ -152,6 +152,22 @@ def require_director(user):
         raise PermissionDenied("Esta acción corresponde a la Dirección de Auditoría.")
 
 
+def user_can_view_center_profiles(user):
+    """Dirección y el equipo auditor consultan el directorio y la ficha de todos los centros."""
+    return user.is_authenticated and user.role in {User.Role.AUDIT_MANAGER, User.Role.AUDITOR}
+
+
+def center_case_scope(user):
+    """Alcance de expedientes de la ficha de centro: un auditor no ve reservados ni borradores ajenos."""
+    if user.role == User.Role.AUDITOR:
+        return lambda prefix="": auditor_viewable_q(user, prefix)
+    return None
+
+
+def scope_to_center_cases(queryset, scope, prefix=""):
+    return queryset.filter(scope(prefix)) if scope else queryset
+
+
 def user_can_act_on_case(user, case):
     """Actuar (revisar, prorrogar, cerrar) corresponde a Dirección o al auditor asignado."""
     if not user.is_authenticated:
@@ -1350,17 +1366,16 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if not user_is_director(request.user):
-            raise PermissionDenied("Esta sección es exclusiva de la Dirección de Auditoría.")
+        if not user_can_view_center_profiles(request.user):
+            raise PermissionDenied("Esta sección corresponde al personal de Auditoría.")
         return super().dispatch(request, *args, **kwargs)
 
-    @staticmethod
-    def center_queryset():
+    def center_queryset(self):
         institutional_accounts = User.objects.filter(
             role=User.Role.INSTITUTION
         ).order_by("-is_active", "username")
         return (
-            center_analytics_queryset()
+            center_analytics_queryset(case_scope=center_case_scope(self.request.user))
             .prefetch_related(
                 Prefetch("users", queryset=institutional_accounts, to_attr="institutional_accounts")
             )
@@ -1460,6 +1475,7 @@ class DirectorEducationalCenterListView(LoginRequiredMixin, ListView):
                 .values_list("district", flat=True)
                 .distinct()
                 .order_by("district"),
+                "is_director": user_is_director(self.request.user),
                 "total_centers": all_centers.count(),
                 "audited_centers": all_centers.filter(case_count__gt=0).count(),
                 "immediate_attention_centers": all_centers.filter(
@@ -1489,15 +1505,29 @@ class DirectorEducationalCenterDetailView(LoginRequiredMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if not user_is_director(request.user):
-            raise PermissionDenied("Esta sección es exclusiva de la Dirección de Auditoría.")
+        if not user_can_view_center_profiles(request.user):
+            raise PermissionDenied("Esta sección corresponde al personal de Auditoría.")
         return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        if request.user.role == User.Role.AUDITOR:
+            center = response.context_data["center"]
+            log_activity(
+                request,
+                "center_profile_viewed",
+                target=center,
+                details={"organization_code": center.code},
+            )
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.localdate()
+        user = self.request.user
+        scope = center_case_scope(user)
         center = get_object_or_404(
-            center_analytics_queryset(today=today).prefetch_related(
+            center_analytics_queryset(today=today, case_scope=scope).prefetch_related(
                 Prefetch(
                     "users",
                     queryset=User.objects.filter(role=User.Role.INSTITUTION).order_by(
@@ -1511,10 +1541,10 @@ class DirectorEducationalCenterDetailView(LoginRequiredMixin, TemplateView):
         enrich_center(center, today=today)
 
         audited_cases = (
-            AuditCase.objects.filter(
+            scope_to_center_cases(AuditCase.objects.filter(
                 audited_organization=center,
                 status__in=CONSOLIDATED_CASE_STATUSES,
-            )
+            ), scope)
             .select_related("assigned_auditor")
             .annotate(
                 finding_total=Count("findings", distinct=True),
@@ -1522,17 +1552,17 @@ class DirectorEducationalCenterDetailView(LoginRequiredMixin, TemplateView):
             )
             .order_by("-report_date", "-updated_at")
         )
-        provisional_cases = AuditCase.objects.filter(
+        provisional_cases = scope_to_center_cases(AuditCase.objects.filter(
             audited_organization=center,
             status__in=[AuditCase.Status.DRAFT, AuditCase.Status.PENDING_PUBLICATION],
-        ).select_related("assigned_auditor")
+        ), scope).select_related("assigned_auditor")
 
         obligations = list(
             with_effective_deadline(
-                Recommendation.objects.filter(
+                scope_to_center_cases(Recommendation.objects.filter(
                     responsible_organization=center,
                     finding__case__status__in=CONSOLIDATED_CASE_STATUSES,
-                )
+                ), scope, "finding__case__")
             )
             .select_related(
                 "finding__case__audited_organization",
@@ -1580,20 +1610,27 @@ class DirectorEducationalCenterDetailView(LoginRequiredMixin, TemplateView):
                 recommendation.deadline_state = "no_deadline"
                 recommendation.deadline_state_label = "Sin fecha límite"
 
-        high_risk_findings = Finding.objects.filter(
+        high_risk_findings = scope_to_center_cases(Finding.objects.filter(
             case__audited_organization=center,
             case__status__in=ACTIVE_CASE_STATUSES,
             risk_level__in=[Finding.RiskLevel.HIGH, Finding.RiskLevel.CRITICAL],
-        ).select_related("case")
-        recent_responses = Response.objects.filter(
+        ), scope, "case__").select_related("case")
+        recent_responses = scope_to_center_cases(Response.objects.filter(
             recommendation__responsible_organization=center,
             recommendation__finding__case__status__in=CONSOLIDATED_CASE_STATUSES,
-        ).select_related(
+        ), scope, "recommendation__finding__case__").select_related(
             "recommendation__finding__case__audited_organization", "review", "submitted_by"
         )[:10]
         documents = AuditDocument.objects.filter(organization=center, parent_report__isnull=True).select_related(
             "case", "uploaded_by"
         )
+        if user.role == User.Role.AUDITOR:
+            # Mismo criterio que user_can_access_document(): solo lo que el auditor puede descargar.
+            documents = documents.filter(
+                Q(document_type=AuditDocument.DocumentType.HISTORICAL_REPORT)
+                | Q(case__assigned_auditor=user)
+                | (Q(status=AuditDocument.Status.APPROVED) & team_visible_q("case__"))
+            )
         historical_recommendations = HistoricalRecommendation.objects.filter(
             Q(source_document__organization=center) | Q(responsible_organization=center)
         ).select_related("source_document", "responsible_organization").distinct()
@@ -1610,6 +1647,7 @@ class DirectorEducationalCenterDetailView(LoginRequiredMixin, TemplateView):
         context.update(
             {
                 "center": center,
+                "is_director": user_is_director(user),
                 "audited_cases": audited_cases,
                 "provisional_cases": provisional_cases,
                 "obligations": obligations,

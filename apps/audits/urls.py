@@ -44,12 +44,12 @@ urlpatterns = [
         name="director_statistics_xlsx",
     ),
     path(
-        "direccion/centros-educativos/",
+        "centros-educativos/",
         views.DirectorEducationalCenterListView.as_view(),
         name="director_educational_centers",
     ),
     path(
-        "direccion/centros-educativos/<int:pk>/",
+        "centros-educativos/<int:pk>/",
         views.DirectorEducationalCenterDetailView.as_view(),
         name="director_educational_center_detail",
     ),

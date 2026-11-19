@@ -3,7 +3,7 @@
 {% block title %}Consejo Directivo Escolar | {{ organization.name }}{% endblock %}
 {% block content %}
 <div class="ui-page">
-    {% if user.role == 'audit_manager' %}<a class="ui-back" href="{% url 'director_educational_centers' %}">{% ui_icon "back" %}Centros educativos</a>{% endif %}
+    {% if user.is_audit_staff %}<a class="ui-back" href="{% url 'director_educational_center_detail' organization.pk %}">{% ui_icon "back" %}{{ organization.name }}</a>{% endif %}
     <div class="ui-page-header-row">
         <header class="ui-page-header">
             <p class="ui-page-context">{{ organization.code }} · {{ organization.name }}{% if organization.municipality %} · {{ organization.municipality }}{% endif %}{% if organization.department %} · {{ organization.department }}{% endif %}</p>

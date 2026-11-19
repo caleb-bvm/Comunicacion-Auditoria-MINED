@@ -53,16 +53,23 @@ def _count_for_organization(queryset, group_field):
     )
 
 
-def center_analytics_queryset(today=None):
+def center_analytics_queryset(today=None, case_scope=None):
     """Return every educational center with institutional intelligence annotations.
 
     Audit subject indicators are attributed through ``audited_organization`` while
     response and compliance indicators are attributed through
     ``responsible_organization``. Draft and unpublished cases are intentionally
     excluded from consolidated institutional indicators.
+
+    ``case_scope`` is an optional callable ``prefix -> Q`` that limits every
+    indicator to the cases the viewer may consult (for example
+    ``access.auditor_viewable_q``), so counts never reveal reserved cases.
     """
 
     today = today or timezone.localdate()
+
+    def scoped(queryset, prefix):
+        return queryset.filter(case_scope(prefix)) if case_scope else queryset
     due_soon_limit = today + timedelta(days=7)
 
     institutional_users = User.objects.filter(
@@ -80,26 +87,26 @@ def center_analytics_queryset(today=None):
         end_date__gte=today,
     )
 
-    audited_cases = AuditCase.objects.filter(
+    audited_cases = scoped(AuditCase.objects.filter(
         audited_organization_id=OuterRef("pk"),
         status__in=CONSOLIDATED_CASE_STATUSES,
-    )
+    ), "")
     active_audited_cases = audited_cases.filter(status__in=ACTIVE_CASE_STATUSES)
-    provisional_cases = AuditCase.objects.filter(
+    provisional_cases = scoped(AuditCase.objects.filter(
         audited_organization_id=OuterRef("pk"),
         status__in=[AuditCase.Status.DRAFT, AuditCase.Status.PENDING_PUBLICATION],
-    )
+    ), "")
 
-    consolidated_findings = Finding.objects.filter(
+    consolidated_findings = scoped(Finding.objects.filter(
         case__audited_organization_id=OuterRef("pk"),
         case__status__in=CONSOLIDATED_CASE_STATUSES,
-    )
+    ), "case__")
     active_findings = consolidated_findings.filter(case__status__in=ACTIVE_CASE_STATUSES)
 
-    obligations = Recommendation.objects.filter(
+    obligations = scoped(Recommendation.objects.filter(
         responsible_organization_id=OuterRef("pk"),
         finding__case__status__in=CONSOLIDATED_CASE_STATUSES,
-    )
+    ), "finding__case__")
     obligations_with_deadline = with_effective_deadline(obligations)
     terminal_obligations = obligations.filter(
         status__in=TERMINAL_RECOMMENDATION_STATUSES
@@ -114,14 +121,14 @@ def center_analytics_queryset(today=None):
         status__in=RESPONSE_DUE_STATUSES,
     )
 
-    responses = Response.objects.filter(
+    responses = scoped(Response.objects.filter(
         recommendation__responsible_organization_id=OuterRef("pk"),
         recommendation__finding__case__status__in=CONSOLIDATED_CASE_STATUSES,
-    )
-    reviews = Review.objects.filter(
+    ), "recommendation__finding__case__")
+    reviews = scoped(Review.objects.filter(
         response__recommendation__responsible_organization_id=OuterRef("pk"),
         response__recommendation__finding__case__status__in=CONSOLIDATED_CASE_STATUSES,
-    )
+    ), "response__recommendation__finding__case__")
 
     return Organization.objects.filter(
         kind=Organization.Kind.EDUCATIONAL_CENTER

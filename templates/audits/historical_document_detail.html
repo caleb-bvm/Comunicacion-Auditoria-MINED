@@ -3,7 +3,7 @@
 {% block title %}{{ document.reference|default:"Informe" }} | Informes{% endblock %}
 {% block content %}
 <div class="ui-page">
-    {% if user.role == 'audit_manager' and document.organization.kind == 'educational_center' %}<a class="ui-back" href="{% url 'director_educational_center_detail' document.organization_id %}">{% ui_icon "back" %}{{ document.organization.code }} · {{ document.organization.name }}</a>{% elif user.is_audit_staff %}<a class="ui-back" href="{% url 'historical_document_list' %}">{% ui_icon "back" %}Informes</a>{% else %}<a class="ui-back" href="{% url 'institution_history' %}">{% ui_icon "back" %}Historial</a>{% endif %}
+    {% if user.is_audit_staff and document.organization.kind == 'educational_center' %}<a class="ui-back" href="{% url 'director_educational_center_detail' document.organization_id %}">{% ui_icon "back" %}{{ document.organization.code }} · {{ document.organization.name }}</a>{% elif user.is_audit_staff %}<a class="ui-back" href="{% url 'historical_document_list' %}">{% ui_icon "back" %}Informes</a>{% else %}<a class="ui-back" href="{% url 'institution_history' %}">{% ui_icon "back" %}Historial</a>{% endif %}
 
     <div class="ui-page-header-row">
         <header class="ui-page-header">

@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.accounts.models import User
-from apps.audits.models import ActivityLog, AuditCase
+from apps.audits.models import ActivityLog
 
 from .models import Organization, SchoolBoardMember, SchoolBoardPeriod
 
@@ -262,15 +262,8 @@ class SchoolBoardTests(TestCase):
         self.assertNotContains(detail, "Agregar integrante")
         self.assertEqual(create.status_code, 403)
 
-    def test_only_assigned_auditor_can_consult_center_cde(self):
+    def test_every_auditor_can_consult_center_cde_without_managing_it(self):
         self.create_period()
-        AuditCase.objects.create(
-            reference="IA-CDE-001",
-            title="Expediente para consultar el CDE",
-            audited_organization=self.center,
-            assigned_auditor=self.auditor,
-            created_by=self.auditor,
-        )
         unassigned = User.objects.create_user(
             username="auditor-no-asignado",
             password=self.password,
@@ -279,13 +272,14 @@ class SchoolBoardTests(TestCase):
             must_change_password=False,
         )
 
-        self.client.force_login(self.auditor)
-        allowed = self.client.get(reverse("cde_detail", args=[self.center.pk]))
         self.client.force_login(unassigned)
-        denied = self.client.get(reverse("cde_detail", args=[self.center.pk]))
+        allowed = self.client.get(reverse("cde_detail", args=[self.center.pk]))
+        create = self.client.get(reverse("cde_period_create", args=[self.center.pk]))
 
         self.assertEqual(allowed.status_code, 200)
-        self.assertEqual(denied.status_code, 403)
+        self.assertContains(allowed, "CDE 2026–2027")
+        self.assertFalse(allowed.context["can_manage"])
+        self.assertEqual(create.status_code, 403)
 
     def test_anonymous_user_is_redirected_to_login(self):
         response = self.client.get(reverse("cde_detail", args=[self.center.pk]))

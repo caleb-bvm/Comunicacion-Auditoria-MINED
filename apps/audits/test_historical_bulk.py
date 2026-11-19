@@ -50,7 +50,8 @@ class HistoricalBulkTests(TransactionTestCase):
                 self.assertEqual(report.uploaded_by, user)
                 self.assertContains(self.client.get(reverse("historical_document_detail", args=[report.pk])), "Carga múltiple")
         self.client.force_login(self.auditor)
-        self.assertEqual(self.client.get(reverse("director_educational_center_detail", args=[self.center.pk])).status_code, 403)
+        profile = self.client.get(reverse("director_educational_center_detail", args=[self.center.pk]))
+        self.assertContains(profile, reverse("center_historical_bulk_upload", args=[self.center.pk]))
 
     def test_institution_and_anonymous_cannot_use_import_endpoints(self):
         self.client.force_login(self.institution)

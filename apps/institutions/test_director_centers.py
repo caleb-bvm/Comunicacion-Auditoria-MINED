@@ -204,7 +204,7 @@ class DirectorEducationalCenterTests(TestCase):
             self.assertContains(response, "Centro educativo no encontrado")
             self.assertNotContains(response, "IA-NO-DEBE-MOSTRARSE")
 
-    def test_center_list_and_activation_are_restricted_to_director(self):
+    def test_auditor_reads_center_list_but_activation_is_restricted_to_director(self):
         self.client.force_login(self.auditor)
 
         list_response = self.client.get(reverse("director_educational_centers"))
@@ -212,7 +212,7 @@ class DirectorEducationalCenterTests(TestCase):
             reverse("director_activate_educational_center", args=[self.center.pk])
         )
 
-        self.assertEqual(list_response.status_code, 403)
+        self.assertEqual(list_response.status_code, 200)
         self.assertEqual(activation_response.status_code, 403)
         self.assertFalse(
             User.objects.filter(
@@ -437,7 +437,7 @@ class DirectorEducationalCenterTests(TestCase):
         self.assertIsNone(detail.context["current_cde"])
         self.assertContains(detail, "CDE vencido")
 
-    def test_center_detail_exposes_both_analytic_roles_and_is_director_only(self):
+    def test_center_detail_exposes_both_analytic_roles_to_audit_staff_only(self):
         self._published_recommendation(
             audited_center=self.center,
             responsible_center=self.other_center,
@@ -457,8 +457,20 @@ class DirectorEducationalCenterTests(TestCase):
         self.assertEqual(len(allowed.context["obligations"]), 1)
 
         self.client.force_login(self.auditor)
-        forbidden = self.client.get(url)
-        self.assertEqual(forbidden.status_code, 403)
+        self.assertContains(self.client.get(url), "IA-FICHA-001")
+
+        institution = User.objects.create_user(
+            username=self.other_center.code,
+            password=self.common_password,
+            role=User.Role.INSTITUTION,
+            organization=self.other_center,
+            must_change_password=False,
+        )
+        self.client.force_login(institution)
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.assertEqual(
+            self.client.get(reverse("director_educational_centers")).status_code, 403
+        )
 
         self.client.logout()
         anonymous = self.client.get(url)
@@ -483,3 +495,106 @@ class DirectorEducationalCenterTests(TestCase):
             "Avenida Principal 25, Distrito Centro, San Salvador",
             count=1,
         )
+
+    def _other_auditor(self):
+        return User.objects.create_user(
+            username="auditora-equipo",
+            password=self.common_password,
+            role=User.Role.AUDITOR,
+            organization=self.audit_unit,
+            must_change_password=False,
+        )
+
+    def test_auditor_directory_lists_every_center_without_director_actions(self):
+        self.client.force_login(self.auditor)
+
+        response = self.client.get(reverse("director_educational_centers"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.center.name)
+        self.assertContains(response, self.other_center.name)
+        self.assertNotContains(
+            response, reverse("director_activate_educational_center", args=[self.center.pk])
+        )
+        self.assertContains(response, reverse("director_educational_centers"))
+
+        profile = self.client.get(
+            reverse("director_educational_center_detail", args=[self.center.pk])
+        )
+        self.assertEqual(profile.status_code, 200)
+        self.assertNotContains(
+            profile, reverse("director_activate_educational_center", args=[self.center.pk])
+        )
+        self.assertContains(profile, "alcance=equipo")
+        self.assertContains(profile, reverse("cde_detail", args=[self.center.pk]))
+
+    def test_auditor_profile_hides_reserved_cases_and_other_drafts_from_lists_and_counts(self):
+        colleague = self._other_auditor()
+        team_case, _, _ = self._published_recommendation(
+            audited_center=self.center,
+            responsible_center=self.center,
+            reference="IA-EQUIPO-001",
+        )
+        team_case.assigned_auditor = colleague
+        team_case.save(update_fields=["assigned_auditor"])
+        reserved_case, _, _ = self._published_recommendation(
+            audited_center=self.center,
+            responsible_center=self.center,
+            reference="IA-RESERVADO-001",
+            risk=Finding.RiskLevel.CRITICAL,
+            deadline=date.today() - timedelta(days=3),
+        )
+        reserved_case.assigned_auditor = colleague
+        reserved_case.is_reserved = True
+        reserved_case.save(update_fields=["assigned_auditor", "is_reserved"])
+        AuditCase.objects.create(
+            reference="IA-BORRADOR-AJENO",
+            title="Borrador de otra auditora",
+            audited_organization=self.center,
+            assigned_auditor=colleague,
+            created_by=colleague,
+        )
+        AuditCase.objects.create(
+            reference="IA-BORRADOR-PROPIO",
+            title="Borrador propio",
+            audited_organization=self.center,
+            assigned_auditor=self.auditor,
+            created_by=self.auditor,
+        )
+        url = reverse("director_educational_center_detail", args=[self.center.pk])
+
+        self.client.force_login(self.auditor)
+        profile = self.client.get(url)
+
+        self.assertContains(profile, "IA-EQUIPO-001")
+        self.assertContains(profile, "IA-BORRADOR-PROPIO")
+        self.assertNotContains(profile, "IA-RESERVADO-001")
+        self.assertNotContains(profile, "IA-BORRADOR-AJENO")
+        center = profile.context["center"]
+        self.assertEqual(center.case_count, 1)
+        self.assertEqual(center.provisional_case_count, 1)
+        self.assertEqual(center.obligation_count, 1)
+        self.assertEqual(center.critical_active_count, 0)
+        self.assertEqual(center.overdue_count, 0)
+        self.assertEqual(len(profile.context["obligations"]), 1)
+        listed = self._listed_center(
+            self.client.get(reverse("director_educational_centers")), self.center
+        )
+        self.assertEqual(listed.case_count, 1)
+        self.assertEqual(listed.overdue_count, 0)
+
+        self.client.force_login(self.director)
+        director_view = self.client.get(url)
+        self.assertContains(director_view, "IA-RESERVADO-001")
+        self.assertEqual(director_view.context["center"].case_count, 2)
+        self.assertEqual(director_view.context["center"].overdue_count, 1)
+
+    def test_auditor_profile_view_is_logged(self):
+        self.client.force_login(self.auditor)
+
+        self.client.get(reverse("director_educational_center_detail", args=[self.center.pk]))
+
+        entry = ActivityLog.objects.get(action="center_profile_viewed")
+        self.assertEqual(entry.actor, self.auditor)
+        self.assertEqual(entry.target_id, str(self.center.pk))
+        self.assertEqual(entry.details["organization_code"], self.center.code)

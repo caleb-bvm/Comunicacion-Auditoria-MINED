@@ -11,7 +11,7 @@
             <p class="ui-page-context">Código {{ center.code }} · {{ center.display_address }}</p>
         </header>
         <div class="ui-card-actions">
-            <a class="ui-button ui-button-filled" href="{% url 'case_list' %}?organization={{ center.pk }}">Ver expedientes</a>
+            <a class="ui-button ui-button-filled" href="{% url 'case_list' %}?organization={{ center.pk }}{% if not is_director %}&amp;alcance=equipo{% endif %}">Ver expedientes</a>
             <a class="ui-button ui-button-outlined" href="{% url 'cde_detail' center.pk %}">Ver CDE</a>
         </div>
     </div>
@@ -141,7 +141,7 @@
                 <div class="ui-list-row"><dt>Respuestas</dt><dd>{{ center.response_count }} · {{ center.pending_review_count }} por revisar</dd></div>
                 <div class="ui-list-row"><dt>Seguimientos</dt><dd>{{ center.explicit_followup_count }}</dd></div>
             </dl>
-            {% if not center.active_user_count %}{% if center.email %}<form method="post" action="{% url 'director_activate_educational_center' center.pk %}">{% csrf_token %}<button class="ui-button ui-button-tonal ui-button-block" type="submit">{% ui_icon "mail" %}{% if center.activation_pending %}Reenviar enlace{% else %}Enviar enlace de activación{% endif %}</button></form>{% else %}<p class="ui-help">Registre el correo antes de activar el acceso.</p>{% endif %}{% endif %}
+            {% if is_director and not center.active_user_count %}{% if center.email %}<form method="post" action="{% url 'director_activate_educational_center' center.pk %}">{% csrf_token %}<button class="ui-button ui-button-tonal ui-button-block" type="submit">{% ui_icon "mail" %}{% if center.activation_pending %}Reenviar enlace{% else %}Enviar enlace de activación{% endif %}</button></form>{% else %}<p class="ui-help">Registre el correo antes de activar el acceso.</p>{% endif %}{% endif %}
         </section>
 
         <section id="cde" class="ui-section" aria-labelledby="cde-title">

@@ -4,7 +4,7 @@
 {% block content %}
 <div class="ui-page ui-page-form">
     <div class="ui-layout ui-layout-context">
-        {% if center and user.role == 'audit_manager' %}<a class="ui-back ui-layout-full" href="{% url 'director_educational_center_detail' center.pk %}">{% ui_icon "back" %}{{ center.code }} · {{ center.name }}</a>{% else %}<a class="ui-back ui-layout-full" href="{% url 'historical_document_list' %}">{% ui_icon "back" %}Informes</a>{% endif %}
+        {% if center and user.is_audit_staff %}<a class="ui-back ui-layout-full" href="{% url 'director_educational_center_detail' center.pk %}">{% ui_icon "back" %}{{ center.code }} · {{ center.name }}</a>{% else %}<a class="ui-back ui-layout-full" href="{% url 'historical_document_list' %}">{% ui_icon "back" %}Informes</a>{% endif %}
         <div class="ui-layout-aside">
             <header class="ui-page-header">
                 <h1 class="ui-page-title">Agregar informe anterior</h1>
@@ -20,7 +20,7 @@
                 </div>
                 {% include 'audits/historical_attachment_fields.html' %}
                 <div class="ui-form-actions">
-                    <a class="ui-button ui-button-text" href="{% if center and user.role == 'audit_manager' %}{% url 'director_educational_center_detail' center.pk %}{% else %}{% url 'historical_document_list' %}{% endif %}">Cancelar</a>
+                    <a class="ui-button ui-button-text" href="{% if center and user.is_audit_staff %}{% url 'director_educational_center_detail' center.pk %}{% else %}{% url 'historical_document_list' %}{% endif %}">Cancelar</a>
                     <button class="ui-button ui-button-filled ui-button-large" type="submit">Guardar informe y documentos</button>
                 </div>
             </form>
