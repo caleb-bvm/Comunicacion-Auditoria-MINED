@@ -84,6 +84,13 @@ from .services import (
     copy_historical_recommendations,
     has_placeholders,
     create_audit_document,
+    lock_case,
+    move_finding,
+    move_recommendation,
+    next_finding_number,
+    next_recommendation_number,
+    renumber_findings,
+    renumber_recommendations,
     next_document_version,
     recommendation_deadline_shortcuts,
     with_effective_deadline,
@@ -2538,11 +2545,11 @@ def finding_create(request, case_pk):
     if not request.user.is_authenticated:
         return redirect(f"/ingresar/?next={request.path}")
     case = get_editable_case(request.user, case_pk)
-    next_number = (case.findings.aggregate(value=Max("number"))["value"] or 0) + 1
-    form = FindingForm(request.POST or None, initial={"number": next_number})
+    form = FindingForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         finding = form.save(commit=False)
-        finding.case = case
+        finding.case = lock_case(case)
+        finding.number = next_finding_number(case)
         finding.save()
         log_activity(request, "finding_created", case=case, target=finding)
         messages.success(request, f"El hallazgo {finding.number} fue agregado.")
@@ -2555,7 +2562,7 @@ def finding_create(request, case_pk):
         {
             "form": form,
             "case": case,
-            "form_title": "Agregar hallazgo",
+            "form_title": f"Agregar hallazgo {next_finding_number(case)}",
             "form_intro": "Registre la información que fundamenta el hallazgo.",
             "submit_label": "Guardar y agregar recomendación",
             "submit_next": "recommendation",
@@ -2596,10 +2603,16 @@ def finding_delete(request, pk):
         return redirect(f"/ingresar/?next={request.path}")
     finding = get_object_or_404(Finding.objects.select_related("case"), pk=pk)
     case = get_editable_case(request.user, finding.case_id)
+    lock_case(case)
     number = finding.number
     log_activity(request, "finding_deleted", case=case, target=finding, details={"number": number})
     finding.delete()
-    messages.success(request, f"El hallazgo {number} y sus recomendaciones fueron eliminados.")
+    renumber_findings(case)
+    messages.success(
+        request,
+        f"El hallazgo {number} y sus recomendaciones fueron eliminados. "
+        "Los hallazgos siguientes se renumeraron.",
+    )
     return redirect("case_builder", pk=case.pk)
 
 
@@ -2609,11 +2622,9 @@ def recommendation_create(request, finding_pk):
         return redirect(f"/ingresar/?next={request.path}")
     finding = get_object_or_404(Finding.objects.select_related("case"), pk=finding_pk)
     case = get_editable_case(request.user, finding.case_id)
-    next_number = (finding.recommendations.aggregate(value=Max("number"))["value"] or 0) + 1
     form = RecommendationForm(
         request.POST or None,
         initial={
-            "number": next_number,
             "responsible_organization": case.audited_organization_id,
             "deadline": case.response_deadline,
         },
@@ -2626,7 +2637,9 @@ def recommendation_create(request, finding_pk):
     )
     if request.method == "POST" and form.is_valid():
         recommendation = form.save(commit=False)
+        lock_case(case)
         recommendation.finding = finding
+        recommendation.number = next_recommendation_number(finding)
         recommendation.save()
         log_activity(request, "recommendation_created", case=case, target=recommendation)
         messages.success(request, f"La recomendación {finding.number}.{recommendation.number} fue agregada.")
@@ -2640,7 +2653,9 @@ def recommendation_create(request, finding_pk):
             "form": form,
             "case": case,
             "finding": finding,
-            "form_title": f"Agregar recomendación al hallazgo {finding.number}",
+            "form_title": (
+                f"Agregar recomendación {finding.number}.{next_recommendation_number(finding)}"
+            ),
             "form_intro": "Asigne un responsable, una fecha límite y la evidencia esperada.",
             "submit_label": "Guardar recomendación",
             "secondary_submit_label": "Guardar y agregar otra",
@@ -2698,11 +2713,11 @@ def recommendation_duplicate(request, pk):
         return redirect(f"/ingresar/?next={request.path}")
     source = get_object_or_404(Recommendation.objects.select_related("finding__case"), pk=pk)
     case = get_editable_case(request.user, source.finding.case_id)
-    finding = Finding.objects.select_for_update().get(pk=source.finding_id)
-    next_number = (finding.recommendations.aggregate(value=Max("number"))["value"] or 0) + 1
+    lock_case(case)
+    finding = source.finding
     copy = Recommendation.objects.create(
         finding=finding,
-        number=next_number,
+        number=next_recommendation_number(finding),
         text=source.text,
         responsible_organization=source.responsible_organization,
         deadline=source.deadline,
@@ -2732,7 +2747,9 @@ def recommendation_delete(request, pk):
         Recommendation.objects.select_related("finding__case"), pk=pk
     )
     case = get_editable_case(request.user, recommendation.finding.case_id)
-    label = f"{recommendation.finding.number}.{recommendation.number}"
+    lock_case(case)
+    finding = recommendation.finding
+    label = f"{finding.number}.{recommendation.number}"
     log_activity(
         request,
         "recommendation_deleted",
@@ -2741,8 +2758,69 @@ def recommendation_delete(request, pk):
         details={"number": label},
     )
     recommendation.delete()
+    renumber_recommendations(finding)
     messages.success(request, f"La recomendación {label} fue eliminada.")
-    return redirect("case_builder", pk=case.pk)
+    return redirect_to_finding(finding)
+
+
+MOVE_DIRECTIONS = {"up": -1, "down": 1}
+
+
+def move_direction(request):
+    direction = MOVE_DIRECTIONS.get(request.POST.get("direction"))
+    if direction is None:
+        raise Http404("Dirección no válida.")
+    return direction
+
+
+@require_POST
+@transaction.atomic
+def finding_move(request, pk):
+    if not request.user.is_authenticated:
+        return redirect(f"/ingresar/?next={request.path}")
+    finding = get_object_or_404(Finding.objects.select_related("case"), pk=pk)
+    case = get_editable_case(request.user, finding.case_id)
+    previous = finding.number
+    if move_finding(finding, move_direction(request)):
+        log_activity(
+            request,
+            "finding_moved",
+            case=case,
+            target=finding,
+            details={"from": previous, "to": finding.number},
+        )
+        messages.success(request, f"El hallazgo {previous} ahora es el hallazgo {finding.number}.")
+    return redirect_to_finding(finding)
+
+
+@require_POST
+@transaction.atomic
+def recommendation_move(request, pk):
+    if not request.user.is_authenticated:
+        return redirect(f"/ingresar/?next={request.path}")
+    recommendation = get_object_or_404(
+        Recommendation.objects.select_related("finding__case"), pk=pk
+    )
+    case = get_editable_case(request.user, recommendation.finding.case_id)
+    finding = recommendation.finding
+    previous = recommendation.number
+    if move_recommendation(recommendation, move_direction(request)):
+        log_activity(
+            request,
+            "recommendation_moved",
+            case=case,
+            target=recommendation,
+            details={
+                "from": f"{finding.number}.{previous}",
+                "to": f"{finding.number}.{recommendation.number}",
+            },
+        )
+        messages.success(
+            request,
+            f"La recomendación {finding.number}.{previous} ahora es la "
+            f"{finding.number}.{recommendation.number}.",
+        )
+    return redirect_to_finding(finding)
 
 
 @transaction.atomic

@@ -278,3 +278,150 @@ class CaseBuilderAssistanceTests(TestCase):
         self.assertEqual(learned[0]["text"], long_line)
         self.assertTrue(learned[0]["label"].endswith("…"))
         self.assertLessEqual(len(learned[0]["label"]), 32)
+
+
+class AutomaticNumberingTests(TestCase):
+    """El sistema numera hallazgos y recomendaciones sin huecos y permite reordenarlos en borrador."""
+
+    def setUp(self):
+        self.center = Organization.objects.create(
+            code="10755", name="Centro Dos", kind=Organization.Kind.EDUCATIONAL_CENTER
+        )
+        self.auditor = User.objects.create_user(
+            username="auditor-numeracion", role=User.Role.AUDITOR, must_change_password=False
+        )
+        self.auditor.assigned_organizations.add(self.center)
+        self.case = AuditCase.objects.create(
+            reference="IA-NUM-001",
+            title="Numeración",
+            audited_organization=self.center,
+            status=AuditCase.Status.DRAFT,
+            assigned_auditor=self.auditor,
+            created_by=self.auditor,
+            response_deadline=date(2026, 12, 18),
+        )
+        self.findings = [
+            Finding.objects.create(
+                case=self.case, number=number, title=f"Hallazgo {number}", risk_level=Finding.RiskLevel.LOW
+            )
+            for number in (1, 2, 3)
+        ]
+        self.recommendations = [
+            Recommendation.objects.create(
+                finding=self.findings[0],
+                number=number,
+                text=f"Recomendación {number}",
+                responsible_organization=self.center,
+            )
+            for number in (1, 2, 3)
+        ]
+        self.client.force_login(self.auditor)
+
+    def finding_numbers(self):
+        return list(self.case.findings.order_by("number").values_list("title", "number"))
+
+    def recommendation_numbers(self):
+        return list(
+            self.findings[0].recommendations.order_by("number").values_list("text", "number")
+        )
+
+    def test_forms_do_not_ask_for_the_number(self):
+        finding_page = self.client.get(reverse("finding_create", args=[self.case.pk]))
+        self.assertNotContains(finding_page, 'name="number"')
+        self.assertContains(finding_page, "Agregar hallazgo 4")
+        recommendation_page = self.client.get(
+            reverse("recommendation_create", args=[self.findings[0].pk])
+        )
+        self.assertNotContains(recommendation_page, 'name="number"')
+        self.assertContains(recommendation_page, "Agregar recomendación 1.4")
+
+    def test_a_posted_number_is_ignored_and_the_next_one_is_assigned(self):
+        response = self.client.post(
+            reverse("finding_create", args=[self.case.pk]),
+            {"number": 1, "title": "Nuevo", "risk_level": Finding.RiskLevel.LOW},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.case.findings.get(title="Nuevo").number, 4)
+
+        response = self.client.post(
+            reverse("recommendation_create", args=[self.findings[0].pk]),
+            {"number": 1, "text": "Nueva", "responsible_organization": self.center.pk},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.findings[0].recommendations.get(text="Nueva").number, 4)
+
+    def test_editing_keeps_the_number(self):
+        finding = self.findings[1]
+        self.client.post(
+            reverse("finding_edit", args=[finding.pk]),
+            {"number": 1, "title": "Editado", "risk_level": Finding.RiskLevel.LOW},
+        )
+        finding.refresh_from_db()
+        self.assertEqual((finding.title, finding.number), ("Editado", 2))
+
+    def test_deleting_a_finding_renumbers_the_following_ones(self):
+        self.client.post(reverse("finding_delete", args=[self.findings[0].pk]))
+        self.assertEqual(self.finding_numbers(), [("Hallazgo 2", 1), ("Hallazgo 3", 2)])
+
+    def test_deleting_a_recommendation_renumbers_the_following_ones(self):
+        response = self.client.post(reverse("recommendation_delete", args=[self.recommendations[0].pk]))
+        self.assertRedirects(
+            response,
+            reverse("case_builder", args=[self.case.pk]) + f"#hallazgo-{self.findings[0].pk}",
+        )
+        self.assertEqual(
+            self.recommendation_numbers(), [("Recomendación 2", 1), ("Recomendación 3", 2)]
+        )
+
+    def test_move_a_finding_down_and_up(self):
+        url = reverse("finding_move", args=[self.findings[0].pk])
+        self.client.post(url, {"direction": "down"})
+        self.assertEqual(
+            self.finding_numbers(), [("Hallazgo 2", 1), ("Hallazgo 1", 2), ("Hallazgo 3", 3)]
+        )
+        self.client.post(url, {"direction": "up"})
+        self.assertEqual(
+            self.finding_numbers(), [("Hallazgo 1", 1), ("Hallazgo 2", 2), ("Hallazgo 3", 3)]
+        )
+        log = ActivityLog.objects.filter(action="finding_moved").first()
+        self.assertEqual(log.details, {"from": 2, "to": 1})
+
+    def test_moving_past_the_ends_changes_nothing(self):
+        self.client.post(reverse("finding_move", args=[self.findings[0].pk]), {"direction": "up"})
+        self.client.post(reverse("finding_move", args=[self.findings[2].pk]), {"direction": "down"})
+        self.assertEqual(
+            self.finding_numbers(), [("Hallazgo 1", 1), ("Hallazgo 2", 2), ("Hallazgo 3", 3)]
+        )
+        self.assertFalse(ActivityLog.objects.filter(action="finding_moved").exists())
+
+    def test_move_a_recommendation_up(self):
+        self.client.post(
+            reverse("recommendation_move", args=[self.recommendations[2].pk]), {"direction": "up"}
+        )
+        self.assertEqual(
+            self.recommendation_numbers(),
+            [("Recomendación 1", 1), ("Recomendación 3", 2), ("Recomendación 2", 3)],
+        )
+
+    def test_invalid_direction_is_rejected(self):
+        response = self.client.post(
+            reverse("finding_move", args=[self.findings[0].pk]), {"direction": "sideways"}
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_builder_shows_move_buttons_only_where_they_apply(self):
+        page = self.client.get(reverse("case_builder", args=[self.case.pk]))
+        self.assertNotContains(page, 'aria-label="Subir el hallazgo 1"')
+        self.assertContains(page, 'aria-label="Bajar el hallazgo 1"')
+        self.assertContains(page, 'aria-label="Subir el hallazgo 3"')
+        self.assertNotContains(page, 'aria-label="Bajar el hallazgo 3"')
+        self.assertContains(page, 'aria-label="Subir la recomendación 1.2"')
+        self.assertNotContains(page, 'aria-label="Bajar la recomendación 1.3"')
+
+    def test_only_draft_cases_can_be_reordered(self):
+        AuditCase.objects.filter(pk=self.case.pk).update(status=AuditCase.Status.PUBLISHED)
+        response = self.client.post(
+            reverse("finding_move", args=[self.findings[0].pk]), {"direction": "down"}
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(self.findings[0].__class__.objects.get(pk=self.findings[0].pk).number, 1)

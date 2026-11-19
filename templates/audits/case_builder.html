@@ -31,6 +31,7 @@
                 {% if finding.missing_fields %}<p class="ui-help">Antes de solicitar aprobación complete {{ finding.missing_fields }}.</p>{% endif %}
                 <div class="ui-row-actions ui-row-actions-start">
                     <a class="ui-button ui-button-text" href="{% url 'finding_edit' finding.pk %}">{% ui_icon "edit" %}Editar hallazgo</a>
+                    {% if not forloop.first or not forloop.last %}<form method="post" action="{% url 'finding_move' finding.pk %}">{% csrf_token %}{% if not forloop.first %}<button class="ui-button ui-button-text" type="submit" name="direction" value="up" aria-label="Subir el hallazgo {{ finding.number }}">Subir</button>{% endif %}{% if not forloop.last %}<button class="ui-button ui-button-text" type="submit" name="direction" value="down" aria-label="Bajar el hallazgo {{ finding.number }}">Bajar</button>{% endif %}</form>{% endif %}
                     <form method="post" action="{% url 'finding_delete' finding.pk %}" data-confirm="¿Eliminar este hallazgo y todas sus recomendaciones?">{% csrf_token %}<button class="ui-button ui-button-danger-text" type="submit">Eliminar</button></form>
                 </div>
                 <div class="ui-divided">
@@ -42,6 +43,7 @@
                         <p class="ui-help">Responde: {{ recommendation.responsible_organization.name }} · {% if recommendation.deadline %}fecha límite {{ recommendation.deadline|date:"j b Y" }}{% else %}sin fecha límite{% endif %}{% if recommendation.source_recommendation %} · importada de {{ recommendation.source_recommendation.source_document.reference }}{% endif %}</p>
                         <div class="ui-row-actions ui-row-actions-start">
                             <a class="ui-button ui-button-text" href="{% url 'recommendation_edit' recommendation.pk %}">Editar</a>
+                            {% if not forloop.first or not forloop.last %}<form method="post" action="{% url 'recommendation_move' recommendation.pk %}">{% csrf_token %}{% if not forloop.first %}<button class="ui-button ui-button-text" type="submit" name="direction" value="up" aria-label="Subir la recomendación {{ finding.number }}.{{ recommendation.number }}">Subir</button>{% endif %}{% if not forloop.last %}<button class="ui-button ui-button-text" type="submit" name="direction" value="down" aria-label="Bajar la recomendación {{ finding.number }}.{{ recommendation.number }}">Bajar</button>{% endif %}</form>{% endif %}
                             <form method="post" action="{% url 'recommendation_duplicate' recommendation.pk %}">{% csrf_token %}<button class="ui-button ui-button-text" type="submit" title="Crea una copia en este hallazgo para asignarla a otro responsable">Duplicar</button></form>
                             <form method="post" action="{% url 'recommendation_delete' recommendation.pk %}" data-confirm="¿Eliminar esta recomendación?">{% csrf_token %}<button class="ui-button ui-button-danger-text" type="submit">Eliminar</button></form>
                         </div>

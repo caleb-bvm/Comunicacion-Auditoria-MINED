@@ -115,6 +115,77 @@ def with_effective_deadline(queryset=None):
     )
 
 
+# Numeración de hallazgos y recomendaciones. La asigna el sistema: los hallazgos van de 1 a n
+# dentro del expediente y las recomendaciones de 1 a n dentro de su hallazgo. Solo se
+# renumera en borrador, cuando los números todavía no son oficiales. Quien llama debe estar
+# dentro de una transacción y bloquear antes el expediente con lock_case: así dos guardados
+# simultáneos en el mismo expediente no toman el mismo número.
+
+
+def lock_case(case):
+    return AuditCase.objects.select_for_update().get(pk=case.pk)
+
+
+def next_finding_number(case):
+    return (Finding.objects.filter(case=case).aggregate(value=Max("number"))["value"] or 0) + 1
+
+
+def next_recommendation_number(finding):
+    return (
+        Recommendation.objects.filter(finding=finding).aggregate(value=Max("number"))["value"] or 0
+    ) + 1
+
+
+def _renumber(queryset):
+    # En orden ascendente cada número destino ya quedó libre, así que no choca con la
+    # restricción de unicidad aunque PostgreSQL la verifique fila por fila.
+    for expected, (pk, number) in enumerate(queryset.order_by("number").values_list("pk", "number"), start=1):
+        if number != expected:
+            queryset.model.objects.filter(pk=pk).update(number=expected)
+
+
+def renumber_findings(case):
+    _renumber(Finding.objects.filter(case=case))
+
+
+def renumber_recommendations(finding):
+    _renumber(Recommendation.objects.filter(finding=finding))
+
+
+def _swap_with_neighbor(item, siblings, direction):
+    """Intercambia el número con el elemento anterior (-1) o siguiente (+1). Devuelve el vecino."""
+    if direction < 0:
+        neighbor = siblings.filter(number__lt=item.number).order_by("-number").first()
+    else:
+        neighbor = siblings.filter(number__gt=item.number).order_by("number").first()
+    if neighbor is None:
+        return None
+    model = type(item)
+    original, target = item.number, neighbor.number
+    # El 0 no es un número válido para el usuario y sirve de lugar temporal durante el cambio.
+    model.objects.filter(pk=item.pk).update(number=0)
+    model.objects.filter(pk=neighbor.pk).update(number=original)
+    model.objects.filter(pk=item.pk).update(number=target)
+    item.number, neighbor.number = target, original
+    return neighbor
+
+
+def move_finding(finding, direction):
+    lock_case(finding.case)
+    finding.refresh_from_db(fields=["number"])
+    return _swap_with_neighbor(finding, Finding.objects.filter(case_id=finding.case_id), direction)
+
+
+def move_recommendation(recommendation, direction):
+    lock_case(recommendation.finding.case)
+    recommendation.refresh_from_db(fields=["number"])
+    return _swap_with_neighbor(
+        recommendation,
+        Recommendation.objects.filter(finding_id=recommendation.finding_id),
+        direction,
+    )
+
+
 @transaction.atomic
 def copy_historical_recommendations(case, historical_recommendations):
     source_ids = [item.pk for item in historical_recommendations]
@@ -131,11 +202,11 @@ def copy_historical_recommendations(case, historical_recommendations):
     finding = case.findings.filter(
         title="Seguimiento a recomendaciones de auditorías anteriores"
     ).first()
+    case = lock_case(case)
     if finding is None:
-        next_finding_number = (case.findings.aggregate(value=Max("number"))["value"] or 0) + 1
         finding = Finding.objects.create(
             case=case,
-            number=next_finding_number,
+            number=next_finding_number(case),
             title="Seguimiento a recomendaciones de auditorías anteriores",
             risk_level=Finding.RiskLevel.HIGH,
             condition=(
@@ -156,7 +227,7 @@ def copy_historical_recommendations(case, historical_recommendations):
             ),
         )
 
-    next_number = (finding.recommendations.aggregate(value=Max("number"))["value"] or 0) + 1
+    next_number = next_recommendation_number(finding)
     created = []
     for source in pending_sources:
         recommendation = Recommendation.objects.create(
@@ -245,11 +316,10 @@ def create_finding_from_template(case, template, today=None):
 
     La copia es independiente: editar o desactivar la plantilla después no cambia el
     hallazgo. Los plazos se cuentan desde la fecha del informe (o desde hoy)."""
-    case = type(case).objects.select_for_update().get(pk=case.pk)
-    next_number = (case.findings.aggregate(value=Max("number"))["value"] or 0) + 1
+    case = lock_case(case)
     finding = Finding.objects.create(
         case=case,
-        number=next_number,
+        number=next_finding_number(case),
         category=template.category,
         source_template=template,
         risk_level=template.risk_level,
@@ -302,11 +372,10 @@ def create_finding_from_finding(case, source):
 
     El centro auditado del expediente actual queda como responsable y las fechas límite
     toman la fecha general; el texto debe adaptarse porque describe otro caso."""
-    case = type(case).objects.select_for_update().get(pk=case.pk)
-    next_number = (case.findings.aggregate(value=Max("number"))["value"] or 0) + 1
+    case = lock_case(case)
     finding = Finding.objects.create(
         case=case,
-        number=next_number,
+        number=next_finding_number(case),
         category=source.category,
         risk_level=source.risk_level,
         **{name: getattr(source, name) for name in FINDING_TEXT_FIELDS},

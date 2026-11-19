@@ -443,7 +443,8 @@ def category_queryset(current_id=None):
 class FindingForm(forms.ModelForm):
     class Meta:
         model = Finding
-        fields = ("number", "title", "risk_level", "category", "condition", "criteria", "cause", "effect")
+        # El número lo asigna el sistema (services.next_finding_number) y se ordena desde el constructor.
+        fields = ("title", "risk_level", "category", "condition", "criteria", "cause", "effect")
         widgets = {
             "title": forms.Textarea(attrs={"rows": 2}),
             "category": FastSelect,
@@ -541,7 +542,8 @@ RecommendationTemplateFormSet = forms.inlineformset_factory(
 class RecommendationForm(forms.ModelForm):
     class Meta:
         model = Recommendation
-        fields = ("number", "text", "responsible_organization", "deadline", "evidence_requirements")
+        # El número lo asigna el sistema dentro del hallazgo.
+        fields = ("text", "responsible_organization", "deadline", "evidence_requirements")
         widgets = {
             "text": forms.Textarea(attrs={"rows": 5}),
             "responsible_organization": OrganizationSearchSelect,

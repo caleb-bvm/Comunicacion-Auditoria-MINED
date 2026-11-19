@@ -139,6 +139,7 @@ urlpatterns = [
     path("expedientes/<int:case_pk>/hallazgos/nuevo/", views.finding_create, name="finding_create"),
     path("hallazgos/<int:pk>/editar/", views.finding_edit, name="finding_edit"),
     path("hallazgos/<int:pk>/eliminar/", views.finding_delete, name="finding_delete"),
+    path("hallazgos/<int:pk>/mover/", views.finding_move, name="finding_move"),
     path(
         "hallazgos/<int:finding_pk>/recomendaciones/nueva/",
         views.recommendation_create,
@@ -150,6 +151,7 @@ urlpatterns = [
         views.recommendation_duplicate,
         name="recommendation_duplicate",
     ),
+    path("recomendaciones/<int:pk>/mover/", views.recommendation_move, name="recommendation_move"),
     path(
         "recomendaciones/<int:pk>/eliminar/",
         views.recommendation_delete,
