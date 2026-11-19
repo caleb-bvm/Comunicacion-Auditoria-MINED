@@ -22,7 +22,7 @@ TONES = ("danger", "warning", "info", "success", "neutral")
 STATUS_STYLES = {
     "case": {
         "draft": ("neutral", "edit"),
-        "pending_publication": ("info", "decision"),
+        "pending_publication": ("info", "clock"),
         "published": ("info", "send"),
         "in_response": ("info", "pending"),
         "under_review": ("info", "search"),
@@ -61,7 +61,7 @@ STATUS_STYLES = {
     "document": {
         "historical": ("neutral", "history"),
         "draft": ("neutral", "edit"),
-        "pending_approval": ("info", "decision"),
+        "pending_approval": ("info", "clock"),
         "approved": ("success", "check"),
         "returned": ("warning", "back"),
     },
