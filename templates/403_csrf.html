@@ -4,5 +4,11 @@
 {% block error_title %}El formulario ya no es válido{% endblock %}
 {% block error_message %}
 <p>Por seguridad, el sistema rechazó el envío. Suele ocurrir cuando la página estuvo abierta mucho tiempo, cuando se vuelve atrás después de cerrar sesión o cuando el navegador bloquea las cookies.</p>
-<p>Vuelva a abrir la página e intente de nuevo.</p>
+<p>Vuelva a abrir la página e intente de nuevo. Si había escrito un texto largo, el formulario puede ofrecerle recuperarlo.</p>
+{% endblock %}
+{% block support_cause %}Falló la protección contra envíos falsificados (CSRF). {{ reason }}{% endblock %}
+{% block support_checks %}
+<li>Si se repite al iniciar sesión, el navegador puede estar bloqueando cookies: pruebe con otro navegador o permita las cookies de este sitio.</li>
+<li>Si le pasa a todas las personas, revise que el sistema se abra con la dirección configurada en <code>CSRF_TRUSTED_ORIGINS</code> y que Nginx envíe <code>X-Forwarded-Proto https</code>.</li>
+<li>El motivo exacto queda en el registro del servidor: <code>journalctl -u siga-mineducyt | grep "Referencia {{ error.reference }}"</code>.</li>
 {% endblock %}

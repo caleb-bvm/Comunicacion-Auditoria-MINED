@@ -9,7 +9,7 @@ from apps.accounts.views import (
     SecurePasswordResetConfirmView, institution_technical_support,
     password_reset_request, password_support_request,
 )
-from apps.core.views import ui_reference
+from apps.core.views import offline_page, service_worker, ui_reference
 from apps.institutions.search import organization_search
 
 
@@ -22,6 +22,8 @@ class FaviconRedirectView(RedirectView):
 urlpatterns = [
     # Browsers request /favicon.ico on their own (PDF downloads, bookmarks).
     path("favicon.ico", FaviconRedirectView.as_view()),
+    path("sw.js", service_worker, name="service_worker"),
+    path("sin-conexion/", offline_page, name="offline"),
     path("tecnica/", include("apps.accounts.technical_urls")),
     path("administracion/", admin.site.urls),
     path(
@@ -50,3 +52,8 @@ urlpatterns = [
     path("cde/", include("apps.institutions.urls")),
     path("", include("apps.audits.urls")),
 ]
+
+handler400 = "apps.core.errors.bad_request"
+handler403 = "apps.core.errors.permission_denied"
+handler404 = "apps.core.errors.page_not_found"
+handler500 = "apps.core.errors.server_error"

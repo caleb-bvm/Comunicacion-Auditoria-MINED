@@ -5,3 +5,9 @@
 {% block error_message %}
 <p>La dirección no existe o el contenido ya no está disponible. Revise el enlace o vuelva al inicio.</p>
 {% endblock %}
+{% block support_cause %}No existe ninguna página con esta dirección, o el registro que pide (expediente, documento, centro) no existe o no está al alcance de esta cuenta.{% endblock %}
+{% block support_checks %}
+<li>Enlace copiado incompleto o escrito a mano: compare la dirección con la del enlace original.</li>
+<li>Enlaces de invitación o de cambio de contraseña: vencen a las 24 horas o al usarse; pida uno nuevo.</li>
+<li>Algunos registros responden 404 en lugar de 403 a quien no tiene acceso, para no revelar que existen: revise si la cuenta debería verlo.</li>
+{% endblock %}

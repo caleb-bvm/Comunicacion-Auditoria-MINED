@@ -12,6 +12,8 @@ class MustChangePasswordMiddleware:
                 allowed_paths = {
                     reverse("password_change"),
                     reverse("logout"),
+                    reverse("service_worker"),
+                    reverse("offline"),
                 }
             except NoReverseMatch:
                 allowed_paths = set()

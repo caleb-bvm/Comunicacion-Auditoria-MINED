@@ -6,3 +6,10 @@
 <p>{% if exception %}{{ exception }}{% else %}No tiene permiso para abrir esta página.{% endif %}</p>
 <p>Si considera que debería tener acceso, comuníquese con soporte técnico.</p>
 {% endblock %}
+{% block support_cause %}La cuenta inició sesión, pero las reglas de acceso del sistema no le permiten esta acción o este registro.{% endblock %}
+{% block support_checks %}
+<li>Rol de la cuenta: cada página corresponde a un rol (Dirección, auditor, institución o soporte técnico).</li>
+<li>Auditor: solo actúa sobre los expedientes que tiene asignados; los demás publicados son de solo lectura y los reservados no se ven.</li>
+<li>Institución: solo ve lo de su propia organización y las recomendaciones asignadas a ella.</li>
+<li>Si la cuenta debería tener acceso, revise su rol, su organización y la asignación del expediente desde el panel de soporte técnico o con Dirección.</li>
+{% endblock %}

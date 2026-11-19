@@ -1,0 +1,70 @@
+<!doctype html>
+<!-- Página que Nginx sirve desde deploy/errors/ cuando la aplicación no puede responder
+     (ver error_page en deploy/nginx.conf). Las etiquetas «echo» las completa Nginx (SSI). -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Tiempo de espera agotado | Auditoría Interna</title>
+<style>
+:root { color-scheme: light; --primary: #1a4d9c; --surface: #f7f8fb; --card: #ffffff; --text: #191c21; --muted: #42474f; --divider: #e4e8ef; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 32px 16px; background: var(--surface); color: var(--text); font: 18px/28px "Roboto Flex", Roboto, "Segoe UI", system-ui, -apple-system, sans-serif; }
+main { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 24px; }
+@media (min-width: 721px) { main { padding: 48px 40px; border-radius: 20px; background: var(--card); } }
+.context { margin: 0; color: var(--muted); font-size: 16px; line-height: 24px; }
+h1 { margin: 4px 0 0; font-size: 28px; line-height: 36px; font-weight: 500; }
+h2 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 600; }
+p { margin: 0; }
+.message { display: flex; flex-direction: column; gap: 12px; }
+.button { min-height: 56px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--primary); color: #fff; font-size: 16px; font-weight: 600; text-decoration: none; }
+.support { display: flex; flex-direction: column; gap: 8px; padding-top: 24px; border-top: 1px solid var(--divider); }
+.help { color: var(--muted); font-size: 16px; line-height: 24px; }
+dl { margin: 0; }
+dl div { min-height: 48px; padding: 12px 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; }
+dl div + div { border-top: 1px solid var(--divider); }
+dt { color: var(--muted); font-size: 16px; }
+dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+details { border-top: 1px solid var(--divider); }
+summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+details > div { padding-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 16px; line-height: 24px; }
+code { font-family: ui-monospace, Consolas, monospace; font-size: 14px; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<main>
+    <header>
+        <p class="context">Error 504</p>
+        <h1>El sistema tardó demasiado en responder</h1>
+    </header>
+    <div class="message">
+        <p>La solicitud tardó más de lo permitido. Si estaba enviando información, puede que sí se haya guardado: revise la pantalla correspondiente antes de enviarla otra vez.</p>
+        <p>Espere unos minutos y vuelva a intentar.</p>
+    </div>
+    <a class="button" href="/">Volver a intentar</a>
+    <section class="support" aria-labelledby="support-title">
+        <h2 id="support-title">Datos para soporte técnico</h2>
+        <p class="help">Si pide ayuda, envíe una captura de esta pantalla o copie estos datos.</p>
+        <dl>
+            <div><dt>Código</dt><dd>504 Gateway Timeout</dd></div>
+            <div><dt>Dirección</dt><dd><!--# echo var="request_method" default="" --> <!--# echo var="siga_error_path" default="Sin datos" --></dd></div>
+            <div><dt>Fecha y hora del servidor</dt><dd><!--# echo var="time_local" default="Sin datos" --></dd></div>
+            <div><dt>Generada por</dt><dd>Nginx, el servidor web (no la aplicación)</dd></div>
+        </dl>
+        <details>
+            <summary>Qué significa y qué revisar</summary>
+            <div>
+                <p>La aplicación no respondió a Nginx dentro de <code>proxy_read_timeout</code> (180 segundos). Suele deberse a una consulta o exportación muy pesada, al antivirus o a la base de datos lenta.</p>
+                <ul>
+                    <li>Busque la dirección en <code>journalctl -u siga-mineducyt --since "-15 min"</code> para ver si la solicitud terminó o falló.</li>
+                    <li>Revise que PostgreSQL y ClamAV respondan: <code>manage.py deployment_preflight</code>.</li>
+                    <li>Si siempre ocurre con la misma exportación o informe, anote los filtros usados y repórtelo al equipo de desarrollo.</li>
+                </ul>
+            </div>
+        </details>
+    </section>
+</main>
+</body>
+</html>

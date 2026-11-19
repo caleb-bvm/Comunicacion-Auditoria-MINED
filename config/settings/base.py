@@ -41,11 +41,13 @@ MIDDLEWARE = [
     "apps.core.middleware.SecurityHeadersMiddleware",
     "apps.accounts.middleware.MustChangePasswordMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "apps.core.middleware.MethodNotAllowedPageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "axes.middleware.AxesMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
+CSRF_FAILURE_VIEW = "apps.core.errors.csrf_failure"
 
 TEMPLATES = [
     {

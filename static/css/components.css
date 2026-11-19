@@ -914,3 +914,37 @@ form[data-analysis-mode].is-updating ~ * { opacity: .55; transition: opacity .15
     .mobile-card-table tfoot td { display: grid; grid-template-columns: minmax(0, 35%) minmax(0, 1fr); gap: .75rem; }
     .mobile-card-table tfoot td::before { content: attr(data-label); color: var(--md-on-surface-variant); font-weight: 650; }
 }
+
+/* ---------- Páginas de error: datos para soporte técnico ---------- */
+.ui-error-support { display: flex; flex-direction: column; gap: var(--ui-space-2); padding-top: var(--ui-space-6); border-top: 1px solid var(--ui-divider); }
+.ui-error-support-title { margin: 0; font-size: var(--ui-text-title); line-height: 28px; font-weight: 600; letter-spacing: 0; }
+.ui-error-support .ui-help { margin: 0; }
+.ui-error-support .ui-facts dd { font-weight: 600; }
+.ui-error-checks { margin: 0; padding-left: var(--ui-space-5); display: flex; flex-direction: column; gap: var(--ui-space-2); font-size: var(--ui-text-support); line-height: 24px; }
+.ui-error-support code { font-size: var(--ui-text-label); overflow-wrap: anywhere; }
+.ui-offline-status { margin: 0; font-size: var(--ui-text-support); color: var(--ui-on-surface-variant); }
+/* Aviso que aparece en cualquier pantalla cuando el dispositivo pierde la conexión. */
+.ui-offline-banner {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--ui-space-4) + env(safe-area-inset-bottom));
+    z-index: 1000;
+    transform: translateX(-50%);
+    width: min(560px, calc(100% - 2 * var(--ui-space-4)));
+    box-sizing: border-box;
+    padding: var(--ui-space-3) var(--ui-space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-3);
+    border-radius: var(--ui-radius-tile);
+    background: var(--ui-inverse-surface);
+    color: var(--ui-inverse-on-surface);
+    font-size: var(--ui-text-support);
+    line-height: 24px;
+}
+.ui-offline-banner[hidden] { display: none; }
+.ui-offline-banner .ui-icon { width: 24px; height: 24px; flex: 0 0 24px; }
+@media (max-width: 720px) {
+    /* Sobre la barra de navegación inferior del teléfono. */
+    body:has(.mobile-navigation) .ui-offline-banner { bottom: calc(88px + env(safe-area-inset-bottom)); }
+}

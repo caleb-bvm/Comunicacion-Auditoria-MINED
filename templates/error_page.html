@@ -2,6 +2,9 @@
 {% comment %}
 Diseño común de las páginas de error. Algunas se renderizan sin solicitud ni contexto
 (400, 500 y CSRF), por lo que no deben usar {% url %} ni datos del usuario.
+
+Bloques: error_code, error_title y error_message para la persona; support_cause y
+support_checks describen la falla para soporte técnico. `error` lo arma apps/core/errors.py.
 {% endcomment %}
 {% block content %}
 <section class="ui-auth ui-auth-error" aria-labelledby="error-title">
@@ -12,6 +15,25 @@ Diseño común de las páginas de error. Algunas se renderizan sin solicitud ni 
         </header>
         <div class="ui-stack ui-auth-message">{% block error_message %}{% endblock %}</div>
         <a class="ui-button ui-button-filled ui-button-large ui-button-block" href="/">Ir al inicio</a>
+        {% if error %}
+        <section class="ui-error-support" aria-labelledby="error-support-title">
+            <h2 class="ui-error-support-title" id="error-support-title">Datos para soporte técnico</h2>
+            <p class="ui-help">Si pide ayuda, envíe una captura de esta pantalla o copie estos datos.</p>
+            <dl class="ui-list ui-facts">
+                <div class="ui-list-row"><dt>Código</dt><dd>{{ error.status }} {{ error.label }}</dd></div>
+                {% if error.reference %}<div class="ui-list-row"><dt>Referencia</dt><dd>{{ error.reference }}</dd></div>{% endif %}
+                <div class="ui-list-row"><dt>Dirección</dt><dd>{{ error.method }} {{ error.path }}</dd></div>
+                <div class="ui-list-row"><dt>Fecha y hora</dt><dd>{{ error.occurred_at|date:"d/m/Y H:i:s" }}</dd></div>
+            </dl>
+            <details class="ui-details">
+                <summary>Qué significa y qué revisar</summary>
+                <div class="ui-stack">
+                    <p>{% block support_cause %}{% endblock %}</p>
+                    <ul class="ui-error-checks">{% block support_checks %}{% endblock %}</ul>
+                </div>
+            </details>
+        </section>
+        {% endif %}
     </div>
 </section>
 {% endblock %}

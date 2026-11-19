@@ -4,5 +4,11 @@
 {% block error_title %}Error del sistema{% endblock %}
 {% block error_message %}
 <p>Ocurrió un problema inesperado al procesar la solicitud. Intente de nuevo en unos minutos.</p>
-<p>Si el problema continúa, comuníquese con soporte técnico.</p>
+<p>Si el problema continúa, comuníquese con soporte técnico e indique la referencia que aparece abajo.</p>
+{% endblock %}
+{% block support_cause %}El sistema falló al procesar la solicitud (excepción no controlada). Lo enviado puede no haberse guardado: confírmelo en la pantalla correspondiente antes de repetirlo.{% endblock %}
+{% block support_checks %}
+<li>Busque la traza con la referencia: <code>journalctl -u siga-mineducyt | grep -A 40 "Referencia {{ error.reference }}"</code>.</li>
+<li>Si falla en todas las pantallas, ejecute <code>manage.py deployment_preflight</code>: revisa base de datos, migraciones, almacenamiento privado, antivirus y correo.</li>
+<li>Si solo falla en una pantalla o con un registro, anote la dirección y los pasos y repórtelo al equipo de desarrollo junto con la traza.</li>
 {% endblock %}

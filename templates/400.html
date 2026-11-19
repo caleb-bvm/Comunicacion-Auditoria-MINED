@@ -3,5 +3,12 @@
 {% block error_code %}Error 400{% endblock %}
 {% block error_title %}Solicitud no válida{% endblock %}
 {% block error_message %}
-<p>El sistema no pudo procesar la solicitud. Vuelva al inicio e intente de nuevo.</p>
+<p>El sistema no pudo procesar lo que envió el navegador. Vuelva al inicio e intente de nuevo.</p>
+<p>Si estaba enviando un formulario con muchos archivos, intente enviarlo con menos archivos a la vez.</p>
+{% endblock %}
+{% block support_cause %}El servidor rechazó la solicitud antes de procesarla: estaba mal formada o superaba un límite de Django.{% endblock %}
+{% block support_checks %}
+<li>Formularios con demasiados campos o archivos: límites <code>DATA_UPLOAD_MAX_NUMBER_FIELDS</code>, <code>DATA_UPLOAD_MAX_NUMBER_FILES</code> y <code>DATA_UPLOAD_MAX_MEMORY_SIZE</code>.</li>
+<li>Dominio no autorizado: el registro muestra <code>DisallowedHost</code> cuando la dirección no está en <code>ALLOWED_HOSTS</code>.</li>
+<li>En el servidor: <code>journalctl -u siga-mineducyt --since "-15 min"</code> y busque la dirección indicada arriba.</li>
 {% endblock %}

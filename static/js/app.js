@@ -882,3 +882,37 @@ function enhanceOrganizationSearch(root) {
         input.addEventListener("blur", close);
     });
 }
+
+// Sin conexión: el service worker (/sw.js) muestra templates/offline.html cuando una página no
+// se puede abrir, y este aviso avisa en la pantalla abierta y detiene los envíos que se perderían.
+// Los service workers exigen HTTPS o localhost; en la red local por IP solo queda el aviso.
+(() => {
+    if ("serviceWorker" in navigator && window.isSecureContext) {
+        navigator.serviceWorker.register("/sw.js").catch(() => { /* Sin service worker: queda el error del navegador. */ });
+    }
+    const banner = document.createElement("div");
+    banner.className = "ui-offline-banner";
+    banner.setAttribute("role", "status");
+    banner.hidden = true;
+    banner.innerHTML = '<svg class="ui-icon" aria-hidden="true" focusable="false"><use href="#ui-alert"></use></svg><span></span>';
+    const message = banner.querySelector("span");
+    document.body.append(banner);
+    const show = (text) => {
+        message.textContent = text;
+        banner.hidden = false;
+    };
+    const OFFLINE_TEXT = "Sin conexión a internet. Lo que tiene en pantalla se conserva; espere a que vuelva la conexión para enviar o cambiar de página.";
+    window.addEventListener("offline", () => show(OFFLINE_TEXT));
+    window.addEventListener("online", () => {
+        show("Volvió la conexión.");
+        window.setTimeout(() => { if (navigator.onLine) banner.hidden = true; }, 4000);
+    });
+    if (!navigator.onLine) show(OFFLINE_TEXT);
+    document.addEventListener("submit", (event) => {
+        if (navigator.onLine) return;
+        event.preventDefault();
+        // Antes que los demás manejadores: el borrador local no debe borrarse ni pedirse confirmación.
+        event.stopPropagation();
+        show("No hay conexión: el formulario no se envió y lo escrito sigue en pantalla. Envíelo cuando vuelva la conexión.");
+    }, true);
+})();

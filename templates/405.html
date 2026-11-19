@@ -1,0 +1,13 @@
+{% extends "error_page.html" %}
+{% block title %}Acción no disponible | Auditoría Interna{% endblock %}
+{% block error_code %}Error 405{% endblock %}
+{% block error_title %}Esta acción no se puede abrir así{% endblock %}
+{% block error_message %}
+<p>Esta dirección solo funciona desde su botón o formulario en el sistema. Puede pasar al abrir un enlace guardado, al recargar después de enviar un formulario o al volver atrás.</p>
+<p>Vuelva al inicio y repita la acción desde la pantalla habitual.</p>
+{% endblock %}
+{% block support_cause %}El servidor recibió un método HTTP que esta dirección no acepta (por ejemplo, se abrió con GET una acción que solo acepta POST).{% if allowed %} Métodos permitidos: {{ allowed }}.{% endif %}{% endblock %}
+{% block support_checks %}
+<li>Causa habitual: la persona guardó como favorito o compartió la dirección de una acción (enviar, aprobar, cerrar sesión).</li>
+<li>Si ocurre al pulsar un botón del sistema, es un defecto: anote la pantalla y el botón y repórtelo al equipo de desarrollo.</li>
+{% endblock %}

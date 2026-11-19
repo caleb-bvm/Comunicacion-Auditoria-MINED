@@ -1,0 +1,60 @@
+{% load static %}<!doctype html>
+{% comment %}
+Página sin conexión. El service worker (templates/sw.js) la guarda en el navegador y la
+muestra cuando una página no se puede abrir porque el dispositivo no llega al servidor.
+No extiende base.html: no debe llevar datos de ninguna sesión. Los archivos que carga
+deben estar en OFFLINE_ASSETS (apps/core/views.py). js/offline.js completa los datos.
+{% endcomment %}
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Sin conexión | Auditoría Interna</title>
+    <meta name="theme-color" content="#f7f8fb">
+    <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bridge.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components.css' %}">
+</head>
+<body>
+<main id="contenido" class="public-content">
+<section class="ui-auth ui-auth-error" aria-labelledby="error-title">
+    <div class="ui-auth-panel">
+        <header class="ui-page-header">
+            <p class="ui-page-context">Sin conexión</p>
+            <h1 class="ui-auth-title" id="error-title">No se pudo conectar con el sistema</h1>
+        </header>
+        <div class="ui-stack ui-auth-message">
+            <p>Este dispositivo no logró comunicarse con el servidor. Revise que tenga internet (wifi o datos móviles) y vuelva a intentar.</p>
+            <p>La página se abrirá sola cuando vuelva la conexión. Si estaba llenando un formulario, no lo envíe hasta entonces.</p>
+            <p class="ui-offline-status" data-offline-status role="status"></p>
+        </div>
+        <button type="button" class="ui-button ui-button-filled ui-button-large ui-button-block" data-offline-retry>Volver a intentar</button>
+        <section class="ui-error-support" aria-labelledby="error-support-title">
+            <h2 class="ui-error-support-title" id="error-support-title">Datos para soporte técnico</h2>
+            <p class="ui-help">Si pide ayuda, envíe una captura de esta pantalla o copie estos datos.</p>
+            <dl class="ui-list ui-facts">
+                <div class="ui-list-row"><dt>Código</dt><dd>Sin conexión (error de red)</dd></div>
+                <div class="ui-list-row"><dt>Red del dispositivo</dt><dd data-offline-network>Sin datos</dd></div>
+                <div class="ui-list-row"><dt>Dirección</dt><dd data-offline-path>Sin datos</dd></div>
+                <div class="ui-list-row"><dt>Fecha y hora</dt><dd data-offline-time>Sin datos</dd></div>
+            </dl>
+            <details class="ui-details">
+                <summary>Qué significa y qué revisar</summary>
+                <div class="ui-stack">
+                    <p>El navegador no recibió ninguna respuesta del servidor: la solicitud no llegó o la conexión se cortó. Esta página la muestra el propio navegador, así que el servidor no tiene registro de este intento.</p>
+                    <ul class="ui-error-checks">
+                        <li>«Red del dispositivo: sin red»: el problema es la conexión del dispositivo (wifi, datos móviles, modo avión).</li>
+                        <li>«Red del dispositivo: conectada»: el dispositivo tiene red pero no llega al sistema. Pruebe abrir otro sitio; si otros sitios funcionan, revise el DNS del dominio, el firewall de la red institucional y que Nginx esté activo (<code>systemctl status nginx</code>).</li>
+                        <li>Si el servidor responde pero el sistema no, el navegador mostraría el error 502 o 504 en lugar de esta página.</li>
+                    </ul>
+                </div>
+            </details>
+        </section>
+    </div>
+</section>
+</main>
+<script src="{% static 'js/offline.js' %}" defer></script>
+</body>
+</html>

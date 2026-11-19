@@ -52,3 +52,23 @@ class PageCompressionMiddleware(GZipMiddleware):
         if response.streaming or not content_type.startswith(self.compressible_types):
             return response
         return super().process_response(request, response)
+
+
+class MethodNotAllowedPageMiddleware:
+    """Da contenido a los 405 vacíos que generan require_POST y las vistas genéricas."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        if (
+            response.status_code == 405
+            and request.method != "HEAD"
+            and not response.streaming
+            and not response.content
+        ):
+            from .errors import method_not_allowed
+
+            return method_not_allowed(request, response)
+        return response
