@@ -36,6 +36,7 @@ from .forms import (
     AuditorEditForm,
     AuditorReassignmentForm,
     CaseReportDocumentForm,
+    CaseReservationForm,
     ClosureRequestForm,
     DeadlineExtensionForm,
     DEADLINE_SHORTCUT_BUSINESS_DAYS,
@@ -76,6 +77,7 @@ from .models import (
 from .pdf import build_response_receipt
 from .historical_documents import save_historical_bundle
 from .snippets import learned_evidence_snippets
+from .access import auditor_viewable_q, is_team_visible, team_visible_q
 from .services import (
     add_business_days,
     FINDING_TEXT_FIELDS,
@@ -150,6 +152,22 @@ def require_director(user):
         raise PermissionDenied("Esta acción corresponde a la Dirección de Auditoría.")
 
 
+def user_can_act_on_case(user, case):
+    """Actuar (revisar, prorrogar, cerrar) corresponde a Dirección o al auditor asignado."""
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.role == User.Role.AUDIT_MANAGER:
+        return True
+    return user.role == User.Role.AUDITOR and case.assigned_auditor_id == user.pk
+
+
+def user_can_view_case(user, case):
+    """Consulta de solo lectura: el equipo auditor ve los expedientes publicados no reservados."""
+    if user_can_act_on_case(user, case):
+        return True
+    return user.is_authenticated and user.role == User.Role.AUDITOR and is_team_visible(case)
+
+
 def user_can_edit_case(user, case):
     if not user.is_authenticated or case.status != AuditCase.Status.DRAFT:
         return False
@@ -161,7 +179,7 @@ def user_can_access_response(user, response):
     if user.is_superuser or user.role == User.Role.AUDIT_MANAGER:
         return True
     if user.role == User.Role.AUDITOR:
-        return case.assigned_auditor_id == user.pk
+        return case.assigned_auditor_id == user.pk or is_team_visible(case)
     return bool(
         user.role == User.Role.INSTITUTION
         and user.organization_id
@@ -183,6 +201,12 @@ def user_can_access_document(user, document):
             document.document_type == AuditDocument.DocumentType.HISTORICAL_REPORT
             or document.parent_report_id
             or (document.case and document.case.assigned_auditor_id == user.pk)
+            # El equipo consulta solo la versión aprobada de expedientes publicados.
+            or (
+                document.case
+                and document.status == AuditDocument.Status.APPROVED
+                and is_team_visible(document.case)
+            )
         )
     return bool(
         user.role == User.Role.INSTITUTION
@@ -343,6 +367,19 @@ def accessible_cases(user):
 
 def get_accessible_case(user, pk):
     return get_object_or_404(accessible_cases(user), pk=pk)
+
+
+def viewable_cases(user):
+    """Como accessible_cases(), más los expedientes del equipo que un auditor puede consultar."""
+    if user.is_authenticated and user.role == User.Role.AUDITOR:
+        return AuditCase.objects.select_related(
+            "audited_organization", "assigned_auditor"
+        ).filter(auditor_viewable_q(user))
+    return accessible_cases(user)
+
+
+def get_viewable_case(user, pk):
+    return get_object_or_404(viewable_cases(user), pk=pk)
 
 
 def accessible_inquiries(user):
@@ -1719,6 +1756,7 @@ DIRECTOR_ACTIVITY_ACTIONS = (
     "cde_period_created", "cde_period_corrected", "cde_member_added",
     "cde_member_departed", "director_statistics_xlsx_exported",
     "technical_support_requested", "technical_support_updated",
+    "case_viewed_by_team", "case_reserved", "case_unreserved",
 )
 
 
@@ -1899,7 +1937,14 @@ class CaseListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = accessible_cases(self.request.user)
+        user = self.request.user
+        # Los auditores ven su cartera; «Todo el equipo» suma los expedientes publicados de los demás.
+        self.selected_scope = (
+            "equipo"
+            if user.role == User.Role.AUDITOR and self.request.GET.get("alcance") == "equipo"
+            else "mios"
+        )
+        queryset = viewable_cases(user) if self.selected_scope == "equipo" else accessible_cases(user)
         self.selected_organization = None
         self.invalid_organization_filter = False
         self.department_options = []
@@ -1982,6 +2027,7 @@ class CaseListView(LoginRequiredMixin, ListView):
                 "district_options": self.district_options,
                 "selected_department": self.selected_department,
                 "selected_district": self.selected_district,
+                "selected_scope": self.selected_scope,
             }
         )
         if self.request.user.is_audit_staff:
@@ -2036,6 +2082,8 @@ def annotate_case_progress(cases, user):
             case.next_step = "director"
         elif case.status == AuditCase.Status.DRAFT:
             case.next_step = "draft" if user_can_edit_case(user, case) else "draft_other"
+        elif not user_can_act_on_case(user, case):
+            case.next_step = "team"
         elif case.review_response_id:
             case.next_step = "review"
         elif case.open_count:
@@ -2180,6 +2228,13 @@ def historical_document_list(request):
                 document_type=AuditDocument.DocumentType.REPORT,
                 case__assigned_auditor=request.user,
             )
+            | (
+                Q(
+                    document_type=AuditDocument.DocumentType.REPORT,
+                    status=AuditDocument.Status.APPROVED,
+                )
+                & team_visible_q("case__")
+            )
         )
 
     search = request.GET.get("q", "").strip()
@@ -2242,8 +2297,10 @@ def historical_document_list(request):
     organizations = Organization.objects.filter(is_active=True)
     if request.user.role == User.Role.AUDITOR:
         organizations = organizations.filter(
-            audit_cases__assigned_auditor=request.user,
-        ).distinct()
+            pk__in=AuditCase.objects.filter(auditor_viewable_q(request.user)).values(
+                "audited_organization_id"
+            ),
+        )
 
     return render(
         request,
@@ -2803,7 +2860,11 @@ def director_reassign_case(request, pk):
 def case_detail(request, pk):
     if not request.user.is_authenticated:
         return redirect(f"/ingresar/?next={request.path}")
-    case = get_accessible_case(request.user, pk)
+    case = get_viewable_case(request.user, pk)
+    can_act = user_can_act_on_case(request.user, case)
+    is_team_view = request.user.role == User.Role.AUDITOR and not can_act
+    if is_team_view:
+        log_activity(request, "case_viewed_by_team", case=case, target=case)
     visible_responses = Response.objects.select_related(
         "review",
         "school_board_period__organization",
@@ -2823,6 +2884,8 @@ def case_detail(request, pk):
         ),
     )
     documents = case.documents.select_related("uploaded_by")
+    if is_team_view:
+        documents = documents.filter(status=AuditDocument.Status.APPROVED)
     template_name = "audits/case_detail.html"
     institution_tasks = []
     if request.user.role == User.Role.INSTITUTION:
@@ -2851,7 +2914,7 @@ def case_detail(request, pk):
         findings = list(findings)
     # Respuestas cuya última versión espera dictamen: es lo primero que ve Auditoría.
     review_items = []
-    if request.user.role != User.Role.INSTITUTION:
+    if request.user.role != User.Role.INSTITUTION and can_act:
         for finding in findings:
             for recommendation in finding.recommendations.all():
                 latest = recommendation.visible_responses[0] if recommendation.visible_responses else None
@@ -2866,6 +2929,9 @@ def case_detail(request, pk):
             "documents": documents,
             "institution_tasks": institution_tasks,
             "review_items": review_items,
+            "can_act": can_act,
+            "is_team_view": is_team_view,
+            "reservation_form": CaseReservationForm() if user_is_director(request.user) else None,
             "can_edit_case": user_can_edit_case(request.user, case),
             "can_request_closure": (
                 request.user.role == User.Role.AUDITOR
@@ -2886,6 +2952,37 @@ def case_detail(request, pk):
             and case.status != AuditCase.Status.CLOSED,
         },
     )
+
+
+@require_POST
+@transaction.atomic
+def director_case_reservation(request, pk):
+    if not request.user.is_authenticated:
+        return redirect(f"/ingresar/?next={request.path}")
+    require_director(request.user)
+    case = get_object_or_404(AuditCase.objects.select_for_update(), pk=pk)
+    form = CaseReservationForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Escriba una justificación de al menos 10 caracteres.")
+        return redirect("case_detail", pk=case.pk)
+    reason = form.cleaned_data["justification"]
+    case.is_reserved = not case.is_reserved
+    case.reservation_reason = reason
+    case.save(update_fields=["is_reserved", "reservation_reason", "updated_at"])
+    log_activity(
+        request,
+        "case_reserved" if case.is_reserved else "case_unreserved",
+        case=case,
+        target=case,
+        details={"justification": reason},
+    )
+    messages.success(
+        request,
+        "El expediente quedó reservado: solo lo ven el auditor asignado y Dirección."
+        if case.is_reserved
+        else "El expediente volvió a estar disponible para consulta del equipo auditor.",
+    )
+    return redirect("case_detail", pk=case.pk)
 
 
 @transaction.atomic
@@ -3161,7 +3258,7 @@ def download_evidence(request, pk):
         Evidence.objects.select_related("response__recommendation__finding__case"), pk=pk
     )
     case = evidence.response.recommendation.finding.case
-    get_accessible_case(request.user, case.pk)
+    get_viewable_case(request.user, case.pk)
     if not user_can_access_response(request.user, evidence.response):
         raise PermissionDenied("No tiene autorización para descargar esta evidencia.")
     if settings.FILE_SCAN_REQUIRED and evidence.scan_status != Evidence.ScanStatus.CLEAN:
@@ -3187,7 +3284,7 @@ def response_receipt(request, pk):
         pk=pk,
     )
     case = response.recommendation.finding.case
-    get_accessible_case(request.user, case.pk)
+    get_viewable_case(request.user, case.pk)
     if not user_can_access_response(request.user, response):
         raise PermissionDenied("No tiene autorización para descargar esta constancia.")
     pdf_buffer, folio = build_response_receipt(response)

@@ -75,6 +75,11 @@ urlpatterns = [
         views.director_reassign_case,
         name="director_reassign_case",
     ),
+    path(
+        "direccion/expedientes/<int:pk>/reserva/",
+        views.director_case_reservation,
+        name="director_case_reservation",
+    ),
     path("expedientes/", views.CaseListView.as_view(), name="case_list"),
     path("expedientes/nuevo/", views.case_create, name="case_create"),
     path("expedientes/<int:pk>/", views.case_detail, name="case_detail"),

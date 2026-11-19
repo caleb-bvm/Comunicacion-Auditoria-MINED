@@ -794,7 +794,7 @@ class AccessAndWorkflowTests(TestCase):
         with self.assertRaisesMessage(ValidationError, "no corresponde a un archivo PDF"):
             validate_evidence_file(upload)
 
-    def test_unassigned_auditor_cannot_open_case(self):
+    def test_unassigned_auditor_cannot_open_draft_or_reserved_case(self):
         other_auditor = User.objects.create_user(
             username="otro-auditor",
             password="UnaClaveDePrueba!2026",
@@ -803,6 +803,12 @@ class AccessAndWorkflowTests(TestCase):
             must_change_password=False,
         )
         self.client.force_login(other_auditor)
+        AuditCase.objects.filter(pk=self.case.pk).update(status=AuditCase.Status.DRAFT)
+        response = self.client.get(reverse("case_detail", args=[self.case.pk]))
+        self.assertEqual(response.status_code, 404)
+        AuditCase.objects.filter(pk=self.case.pk).update(
+            status=AuditCase.Status.PUBLISHED, is_reserved=True
+        )
         response = self.client.get(reverse("case_detail", args=[self.case.pk]))
         self.assertEqual(response.status_code, 404)
 
@@ -1572,7 +1578,7 @@ class AccessAndWorkflowTests(TestCase):
         self.assertNotContains(result, excluded.reference)
         self.assertNotContains(result, "Distrito B1")
 
-    def test_report_repository_hides_unassigned_case_reports_from_auditor(self):
+    def test_report_repository_hides_reserved_case_reports_from_other_auditors(self):
         assigned_document = AuditDocument.objects.create(
             case=self.case,
             organization=self.center,
@@ -1594,6 +1600,7 @@ class AccessAndWorkflowTests(TestCase):
             organization=self.audit_unit,
             must_change_password=False,
         )
+        # Los expedientes publicados del equipo son consultables; los reservados, no.
         other_case = AuditCase.objects.create(
             reference="IA-OTRO-001",
             title="Expediente de otro auditor",
@@ -1601,6 +1608,8 @@ class AccessAndWorkflowTests(TestCase):
             status=AuditCase.Status.PUBLISHED,
             assigned_auditor=other_auditor,
             created_by=other_auditor,
+            is_reserved=True,
+            reservation_reason="Investigación especial en curso.",
         )
         hidden_document = AuditDocument.objects.create(
             case=other_case,

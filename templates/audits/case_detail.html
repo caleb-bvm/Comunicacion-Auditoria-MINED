@@ -7,7 +7,7 @@
 
     <div class="ui-page-header-row">
         <header class="ui-page-header">
-            <div class="ui-chips">{% ui_case_status_chip case.status %}</div>
+            <div class="ui-chips">{% ui_case_status_chip case.status %}{% if is_team_view %}<span class="ui-chip ui-chip-neutral">{% ui_icon "eye" %}Solo consulta</span>{% endif %}{% if case.is_reserved and can_act %}<span class="ui-chip ui-chip-warning">{% ui_icon "lock" %}Reservado</span>{% endif %}</div>
             <h1 class="ui-page-title">{{ case.title }}</h1>
             <p class="ui-page-context">{{ case.reference }} · {{ case.audited_organization.name }}</p>
         </header>
@@ -18,6 +18,10 @@
         </div>
         {% endif %}
     </div>
+
+    {% if is_team_view %}
+    <div class="ui-callout ui-callout-inline" role="status">{% ui_icon "eye" %}<span><strong>Solo consulta.</strong> Este expediente está a cargo de {{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}; las revisiones, prórrogas y el cierre corresponden a ese auditor o a Dirección. Su consulta queda registrada en la bitácora.</span></div>
+    {% endif %}
 
     {% if pending_decision %}
     <div class="ui-callout ui-callout-inline" role="status">{% ui_icon "info" %}<span><strong>Solicitud de {{ pending_decision.get_kind_display|lower }} pendiente.</strong> Enviada por {{ pending_decision.requested_by.get_full_name|default:pending_decision.requested_by.username }} el {{ pending_decision.requested_at|date:"j b Y" }}.</span></div>
@@ -70,7 +74,7 @@
                                 {% if response.evidence.all %}<ul class="ui-plain-list">{% for item in response.evidence.all %}<li><a href="{% url 'download_evidence' item.pk %}">{{ item.original_filename }}</a> · {{ item.get_category_display }} · {{ item.get_scan_status_display|lower }}</li>{% endfor %}</ul>{% endif %}
                                 {% if response.review %}<div class="ui-callout ui-callout-inline ui-callout-{{ response.review.outcome|ui_tone:"review_outcome" }}"><span><strong>Resultado: {{ response.review.get_outcome_display|lower }}.</strong> {{ response.review.comments|linebreaksbr }}</span></div>{% endif %}
                                 <div class="ui-row-actions ui-row-actions-start">
-                                    {% if not response.review %}<a class="ui-button ui-button-tonal" href="{% url 'review_response' response.pk %}">Revisar respuesta</a>{% endif %}
+                                    {% if can_act and not response.review %}<a class="ui-button ui-button-tonal" href="{% url 'review_response' response.pk %}">Revisar respuesta</a>{% endif %}
                                     <a class="ui-button ui-button-text" href="{% url 'response_receipt' response.pk %}">{% ui_icon "download" %}Descargar constancia</a>
                                 </div>
                             </div>
@@ -78,7 +82,7 @@
                         </div>
                     </details>
                     {% endif %}{% endwith %}
-                    {% if recommendation.status == 'pending' or recommendation.status == 'correction_required' %}<div class="ui-row-actions ui-row-actions-start"><a class="ui-button ui-button-text" href="{% url 'grant_deadline_extension' recommendation.pk %}">{% ui_icon "calendar" %}Registrar prórroga</a></div>{% endif %}
+                    {% if can_act %}{% if recommendation.status == 'pending' or recommendation.status == 'correction_required' %}<div class="ui-row-actions ui-row-actions-start"><a class="ui-button ui-button-text" href="{% url 'grant_deadline_extension' recommendation.pk %}">{% ui_icon "calendar" %}Registrar prórroga</a></div>{% endif %}{% endif %}
                 </section>
                 {% empty %}
                 <p class="ui-help">Este hallazgo aún no tiene recomendaciones registradas.</p>
@@ -97,7 +101,18 @@
             <div class="ui-list-row"><dt>Auditor responsable</dt><dd>{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}{% if can_reassign_case %}<br><a href="{% url 'director_reassign_case' case.pk %}">Reasignar</a>{% endif %}</dd></div>
             <div class="ui-list-row"><dt>Fecha del informe</dt><dd>{{ case.report_date|date:"j b Y"|default:"Por definir" }}</dd></div>
             <div class="ui-list-row"><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"j b Y"|default:"Por definir" }}</dd></div>
+            {% if user.role == 'audit_manager' %}<div class="ui-list-row"><dt>Consulta del equipo</dt><dd>{% if case.is_reserved %}Reservado: solo el auditor asignado y Dirección{% else %}Visible para todo el equipo auditor una vez publicado{% endif %}</dd></div>{% endif %}
         </dl>
+        {% if reservation_form %}
+        <details class="ui-card ui-disclosure" aria-labelledby="case-reservation-title"{% if reservation_form.errors %} open{% endif %}>
+            <summary><span class="ui-disclosure-text"><span class="ui-card-title" id="case-reservation-title">{% if case.is_reserved %}Quitar reserva{% else %}Reservar expediente{% endif %}</span><span class="ui-help">{% if case.is_reserved %}{{ case.reservation_reason|truncatechars:120 }}{% else %}Oculta el expediente al resto del equipo auditor.{% endif %}</span></span></summary>
+            <form method="post" action="{% url 'director_case_reservation' case.pk %}" class="ui-form-stack">
+                {% csrf_token %}
+                {% include "includes/ui/field.html" with field=reservation_form.justification %}
+                <div class="ui-form-actions"><button class="ui-button ui-button-tonal" type="submit">{% if case.is_reserved %}Quitar reserva{% else %}Reservar{% endif %}</button></div>
+            </form>
+        </details>
+        {% endif %}
         {% if documents %}
         <section class="ui-section" aria-labelledby="case-report-title">
             <h2 class="ui-section-title" id="case-report-title">Informe</h2>

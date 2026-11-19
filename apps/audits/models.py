@@ -65,6 +65,10 @@ class AuditCase(models.Model):
         on_delete=models.PROTECT,
         related_name="created_cases",
     )
+    # Un expediente reservado solo lo ven el auditor asignado y Dirección, aunque el resto
+    # del equipo auditor pueda consultar los demás expedientes publicados.
+    is_reserved = models.BooleanField("reservado", default=False)
+    reservation_reason = models.TextField("justificación de la reserva", blank=True)
     created_at = models.DateTimeField("creado", auto_now_add=True)
     updated_at = models.DateTimeField("actualizado", auto_now=True)
 

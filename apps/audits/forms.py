@@ -577,6 +577,16 @@ class DecisionResolutionForm(forms.Form):
     )
 
 
+class CaseReservationForm(forms.Form):
+    justification = forms.CharField(
+        label="Justificación",
+        min_length=10,
+        max_length=1000,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Queda en la bitácora. Por ejemplo: investigación especial o conflicto de interés.",
+    )
+
+
 class ClosureRequestForm(forms.Form):
     justification = forms.CharField(
         label="Fundamento de la solicitud de cierre",
