@@ -213,3 +213,25 @@ def ui_lines(value):
         if cleaned:
             lines.append(cleaned)
     return lines
+
+
+AVATAR_SIZES = {"xs", "sm", "md", "lg", "xl"}
+
+
+@register.inclusion_tag("includes/ui/avatar.html", takes_context=True)
+def ui_avatar(context, person, size="md"):
+    """Foto de perfil o iniciales. Es decorativa: el nombre siempre va junto a ella."""
+    from django.urls import reverse
+
+    from apps.accounts.avatars import user_can_view_avatar
+
+    viewer = context.get("user")
+    url = ""
+    if person and getattr(person, "avatar", None) and viewer is not None and user_can_view_avatar(viewer, person):
+        version = int(person.avatar_updated_at.timestamp()) if person.avatar_updated_at else 0
+        url = f"{reverse('user_avatar', args=[person.pk])}?v={version}"
+    return {
+        "url": url,
+        "initials": person.initials if person else "?",
+        "size": size if size in AVATAR_SIZES else "md",
+    }

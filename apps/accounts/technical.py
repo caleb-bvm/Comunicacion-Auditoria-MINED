@@ -47,7 +47,7 @@ class InternalUserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ("username", "first_name", "last_name", "email", "job_title", "role", "organization")
+        fields = ("username", "first_name", "last_name", "email", "job_title", "phone", "role", "organization")
         widgets = {"organization": OrganizationSearchSelect}
 
     def __init__(self, *args, **kwargs):

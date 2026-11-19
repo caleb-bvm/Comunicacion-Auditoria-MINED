@@ -13,7 +13,6 @@ from django.urls import reverse, reverse_lazy
 
 from django.contrib import messages
 from django.contrib.auth.forms import SetPasswordForm
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import redirect, render
@@ -22,7 +21,6 @@ from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views import View
-from django.views.generic import TemplateView
 from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods
@@ -34,10 +32,6 @@ from .forms import (
 )
 from .models import TechnicalSupportRequest, User
 from .security import client_ip, close_user_sessions
-
-
-class AccountProfileView(LoginRequiredMixin, TemplateView):
-    template_name = "registration/profile.html"
 
 
 @require_http_methods(["GET", "POST"])

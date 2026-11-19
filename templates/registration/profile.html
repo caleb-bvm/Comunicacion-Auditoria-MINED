@@ -2,28 +2,123 @@
 {% load ui %}
 {% block title %}Mi perfil | Auditoría Interna{% endblock %}
 {% block content %}
-<div class="ui-page ui-page-form">
-    <div class="ui-layout ui-layout-context">
-        <div class="ui-layout-aside">
-            <header class="ui-page-header">
-                <h1 class="ui-page-title">Mi perfil</h1>
-            </header>
-            <dl class="ui-list ui-facts">
-                <div class="ui-list-row"><dt>Usuario</dt><dd>{{ user.username }}</dd></div>
-                <div class="ui-list-row"><dt>Correo electrónico</dt><dd>{{ user.email|default:"Sin correo registrado" }}</dd></div>
-                {% if user.organization %}<div class="ui-list-row"><dt>Institución</dt><dd>{{ user.organization.name }}</dd></div>{% endif %}
-                <div class="ui-list-row"><dt>Rol</dt><dd>{{ user.get_role_display }}</dd></div>
-            </dl>
+<div class="ui-page ui-profile-page">
+    <header class="ui-profile-header">
+        <a class="ui-profile-photo-link" href="#foto" aria-label="Cambiar foto de perfil">{% ui_avatar user "xl" %}<span class="ui-profile-photo-badge" aria-hidden="true">{% ui_icon "camera" %}</span></a>
+        <div class="ui-profile-identity">
+            <div class="ui-chips"><span class="ui-chip ui-chip-neutral">{% ui_icon "user" %}{{ user.get_role_display }}</span></div>
+            <h1 class="ui-page-title">{{ user.display_name }}</h1>
+            <p class="ui-page-context">{% if user.job_title %}{{ user.job_title }}{% if user.organization %} · {% endif %}{% endif %}{% if user.organization %}{{ user.organization.name }}{% endif %}{% if not user.job_title and not user.organization %}@{{ user.username }}{% endif %}</p>
         </div>
+    </header>
+
+    <div class="ui-layout">
         <div class="ui-layout-main">
-            <section class="ui-card" aria-labelledby="profile-password-title">
-                <h2 class="ui-card-title" id="profile-password-title">Contraseña</h2>
-                <p class="ui-card-support">Puede actualizar su contraseña cuando lo necesite.</p>
+            <section class="ui-card" id="datos" aria-labelledby="profile-data-title">
+                <h2 class="ui-card-title" id="profile-data-title">Datos personales</h2>
+                <form method="post" class="ui-form" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="section" value="personal">
+                    {% if personal_form.non_field_errors %}<div class="ui-callout ui-callout-inline ui-callout-danger" role="alert">{% ui_icon "alert" %}<span>{{ personal_form.non_field_errors|join:" " }}</span></div>{% endif %}
+                    <div class="ui-form-grid">
+                        {% include "includes/ui/field.html" with field=personal_form.first_name %}
+                        {% include "includes/ui/field.html" with field=personal_form.last_name %}
+                        {% include "includes/ui/field.html" with field=personal_form.job_title %}
+                        {% include "includes/ui/field.html" with field=personal_form.phone %}
+                    </div>
+                    <div class="ui-card-actions"><button class="ui-button ui-button-filled" type="submit">{% ui_icon "check" %}Guardar datos</button></div>
+                </form>
+                <dl class="ui-list ui-facts">
+                    <div class="ui-list-row"><dt>Usuario</dt><dd>{{ user.username }}</dd></div>
+                    <div class="ui-list-row"><dt>Correo electrónico</dt><dd>{{ user.email|default:"Sin correo registrado" }}</dd></div>
+                </dl>
+                <p class="ui-help">El usuario y el correo los administra Soporte técnico.{% if support_url %} <a href="{{ support_url }}">Solicitar un cambio</a>.{% endif %}</p>
+            </section>
+
+            <section class="ui-card" id="foto" aria-labelledby="profile-photo-title">
+                <h2 class="ui-card-title" id="profile-photo-title">Foto de perfil</h2>
+                <p class="ui-card-support">Ayuda a que el equipo y los centros le reconozcan en expedientes y consultas.</p>
+                <div class="ui-profile-photo-editor">
+                    <span data-avatar-preview>{% ui_avatar user "lg" %}</span>
+                    <form method="post" enctype="multipart/form-data" class="ui-form ui-profile-photo-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="section" value="avatar">
+                        {% include "includes/ui/field.html" with field=avatar_form.photo %}
+                        <div class="ui-card-actions">
+                            <button class="ui-button ui-button-tonal" type="submit">{% ui_icon "upload" %}{% if user.avatar %}Cambiar foto{% else %}Subir foto{% endif %}</button>
+                        </div>
+                    </form>
+                </div>
+                {% if user.avatar %}
+                <form method="post" class="ui-row-actions-start">
+                    {% csrf_token %}
+                    <input type="hidden" name="section" value="avatar_remove">
+                    <button class="ui-button ui-button-danger-text" type="submit">{% ui_icon "close" %}Quitar foto</button>
+                </form>
+                {% endif %}
+            </section>
+
+            <section class="ui-card" id="seguridad" aria-labelledby="profile-security-title">
+                <h2 class="ui-card-title" id="profile-security-title">Seguridad</h2>
+                <dl class="ui-list ui-facts">
+                    <div class="ui-list-row"><dt>Contraseña</dt><dd>{% if security.password_changed_at %}Actualizada el {{ security.password_changed_at|date:"j b Y" }}{% else %}Sin fecha registrada{% endif %}</dd></div>
+                    <div class="ui-list-row"><dt>Ingreso anterior</dt><dd>{% if security.previous_login %}{{ security.previous_login.created_at|date:"j b Y, H:i" }} · {{ security.previous_login.details.device|default:"Dispositivo desconocido" }}{% else %}Este es su primer ingreso registrado{% endif %}</dd></div>
+                    <div class="ui-list-row"><dt>Sesiones abiertas</dt><dd>{{ security.session_count }} dispositivo{{ security.session_count|pluralize }}</dd></div>
+                </dl>
+                {% if security.recent_logins|length > 1 %}
+                <details class="ui-profile-logins">
+                    <summary>Ver ingresos recientes</summary>
+                    <ul class="ui-list">
+                        {% for login in security.recent_logins %}
+                        <li class="ui-list-row">{% ui_icon "clock" %}<span class="ui-list-text"><span class="ui-list-title">{{ login.details.device|default:"Dispositivo desconocido" }}</span><span class="ui-list-support">{{ login.created_at|date:"j b Y, H:i" }}{% if forloop.first %} · Más reciente{% endif %}</span></span></li>
+                        {% endfor %}
+                    </ul>
+                </details>
+                {% endif %}
+                <p class="ui-help">Si no reconoce un ingreso, cambie su contraseña y cierre las demás sesiones.</p>
                 <div class="ui-card-actions">
                     <a class="ui-button ui-button-tonal" href="{% url 'password_change' %}">{% ui_icon "lock" %}Cambiar contraseña</a>
+                    {% if security.session_count > 1 %}
+                    <form method="post" action="{% url 'account_close_other_sessions' %}">{% csrf_token %}<button class="ui-button ui-button-outlined" type="submit">{% ui_icon "close" %}Cerrar las demás sesiones</button></form>
+                    {% endif %}
                 </div>
             </section>
+
+            <section class="ui-card" id="preferencias" aria-labelledby="profile-preferences-title">
+                <h2 class="ui-card-title" id="profile-preferences-title">Tamaño del texto</h2>
+                <p class="ui-card-support">Elija «Grande» si le cuesta leer en el teléfono. Se aplica en todas las pantallas.</p>
+                <form method="post" class="ui-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="section" value="preferences">
+                    <fieldset class="ui-choices ui-choices-row">
+                        <legend class="ui-visually-hidden">Tamaño del texto</legend>
+                        {% for choice in preferences_form.text_size %}<label for="{{ choice.id_for_label }}">{{ choice.tag }}<span>{{ choice.choice_label }}</span></label>{% endfor %}
+                    </fieldset>
+                    <div class="ui-card-actions"><button class="ui-button ui-button-tonal" type="submit">Aplicar</button></div>
+                </form>
+            </section>
         </div>
+
+        {% if summary.title %}
+        <aside class="ui-layout-aside" aria-labelledby="profile-summary-title">
+            <h2 class="ui-section-title" id="profile-summary-title">{{ summary.title }}</h2>
+            <div class="ui-figures">
+                {% for figure in summary.figures %}
+                {% if figure.url %}<a class="ui-figure" href="{{ figure.url }}"><strong>{{ figure.value }}</strong><span>{{ figure.label }}</span></a>{% else %}<div class="ui-figure"><strong>{{ figure.value }}</strong><span>{{ figure.label }}</span></div>{% endif %}
+                {% endfor %}
+            </div>
+            {% if summary.facts %}
+            <dl class="ui-list ui-facts ui-card">
+                {% for label, value in summary.facts %}<div class="ui-list-row"><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+            </dl>
+            {% endif %}
+            {% if summary.links %}
+            <nav class="ui-list ui-card" aria-label="Accesos de {{ summary.title|lower }}">
+                {% for label, url in summary.links %}<a class="ui-list-row" href="{{ url }}"><span class="ui-list-text"><span class="ui-list-title">{{ label }}</span></span>{% ui_icon "chevron" %}</a>{% endfor %}
+            </nav>
+            {% endif %}
+        </aside>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

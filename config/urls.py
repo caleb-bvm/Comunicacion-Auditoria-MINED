@@ -4,8 +4,9 @@ from django.templatetags.static import static
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from apps.accounts.profile import account_profile, close_other_sessions, user_avatar
 from apps.accounts.views import (
-    AccountProfileView, ActivateAccountView, RequiredPasswordChangeView,
+    ActivateAccountView, RequiredPasswordChangeView,
     SecurePasswordResetConfirmView, institution_technical_support,
     password_reset_request, password_support_request,
 )
@@ -43,7 +44,9 @@ urlpatterns = [
         name="password_reset_confirm",
     ),
     path("cambiar-contrasena/", RequiredPasswordChangeView.as_view(), name="password_change"),
-    path("mi-perfil/", AccountProfileView.as_view(), name="account_profile"),
+    path("mi-perfil/", account_profile, name="account_profile"),
+    path("mi-perfil/sesiones/cerrar/", close_other_sessions, name="account_close_other_sessions"),
+    path("personas/<int:pk>/foto/", user_avatar, name="user_avatar"),
     path("mi-organizacion/soporte-tecnico/", institution_technical_support,
          name="institution_technical_support"),
     path("activar-cuenta/<uidb64>/<token>/", ActivateAccountView.as_view(), name="activate_account"),

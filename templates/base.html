@@ -1,6 +1,6 @@
-{% load static %}
+{% load static ui %}
 <!doctype html>
-<html lang="es">
+<html lang="es"{% if user.is_authenticated and user.text_size == "large" %} data-text-size="large"{% endif %}>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -118,10 +118,10 @@
             {% endif %}
             {% endif %}
             <div class="sidebar-footer">
-                <a class="nav-item" href="{% url 'account_profile' %}"><span class="nav-icon" aria-hidden="true"><svg><use href="#nav-profile"></use></svg></span><span>Mi perfil</span></a>
+                <a class="nav-item nav-item-profile {% if request.resolver_match.url_name == 'account_profile' %}is-active{% endif %}" href="{% url 'account_profile' %}" {% if request.resolver_match.url_name == 'account_profile' %}aria-current="page"{% endif %}><span class="nav-icon" aria-hidden="true">{% ui_avatar user "xs" %}</span><span>Mi perfil</span></a>
                 {% if sidebar_context %}
                 <div class="sidebar-context">
-                    <span class="context-icon" aria-hidden="true">{% if user.first_name %}{{ user.first_name|first|upper }}{% else %}{{ user.username|first|upper }}{% endif %}</span>
+                    <span class="context-icon" aria-hidden="true">{% ui_avatar user "sm" %}</span>
                     <small>{{ sidebar_context.label }}</small>
                     <strong>{{ sidebar_context.value }}</strong>
                 </div>
@@ -137,6 +137,7 @@
         <header class="mobile-top-bar">
             <div><strong>SIGA-MINEDUCYT</strong></div>
             {% if sidebar_context %}<span>{{ sidebar_context.value }}</span>{% endif %}
+            <a class="mobile-top-profile" href="{% url 'account_profile' %}" aria-label="Mi perfil">{% ui_avatar user "sm" %}</a>
         </header>
         <main id="contenido" class="content">
     {% else %}

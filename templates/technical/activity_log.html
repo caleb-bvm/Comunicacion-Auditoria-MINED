@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Logs | Administración técnica{% endblock %}
 {% block content %}
 <div class="ui-page">
@@ -17,7 +18,7 @@
             <thead><tr><th scope="col">Fecha</th><th scope="col">Actor</th><th scope="col">Acción</th><th scope="col">Objeto</th><th scope="col">Dirección IP</th></tr></thead>
             <tbody>
                 {% for event in page_obj %}
-                <tr><td>{{ event.created_at|date:"d/m/Y H:i:s" }}</td><td>{{ event.actor.username|default:"Sistema" }}</td><td><code>{{ event.action }}</code></td><td>{{ event.target_type|default:"—" }} {{ event.target_id }}</td><td>{{ event.ip_address|default:"—" }}</td></tr>
+                <tr><td>{{ event.created_at|date:"d/m/Y H:i:s" }}</td><td>{% if event.actor %}<span class="ui-person">{% ui_avatar event.actor "sm" %}<span>{{ event.actor.username }}</span></span>{% else %}Sistema{% endif %}</td><td><code>{{ event.action }}</code></td><td>{{ event.target_type|default:"—" }} {{ event.target_id }}</td><td>{{ event.ip_address|default:"—" }}</td></tr>
                 {% empty %}
                 <tr><td colspan="5">No se encontraron eventos.</td></tr>
                 {% endfor %}

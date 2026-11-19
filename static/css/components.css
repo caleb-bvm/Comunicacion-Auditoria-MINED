@@ -948,3 +948,60 @@ form[data-analysis-mode].is-updating ~ * { opacity: .55; transition: opacity .15
     /* Sobre la barra de navegación inferior del teléfono. */
     body:has(.mobile-navigation) .ui-offline-banner { bottom: calc(88px + env(safe-area-inset-bottom)); }
 }
+
+/* Foto de perfil: imagen recortada en círculo o iniciales sobre el contenedor primario. */
+.ui-avatar {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    overflow: hidden;
+    border-radius: var(--ui-radius-full);
+    background: var(--ui-primary-container);
+    color: var(--ui-on-primary-container);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0;
+    user-select: none;
+}
+.ui-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ui-avatar-xs { width: 24px; height: 24px; font-size: var(--ui-text-label); }
+.ui-avatar-sm { width: 36px; height: 36px; font-size: var(--ui-text-label); }
+.ui-avatar-md { width: 40px; height: 40px; font-size: var(--ui-text-support); }
+.ui-avatar-lg { width: 72px; height: 72px; font-size: var(--ui-text-title); }
+.ui-avatar-xl { width: 96px; height: 96px; font-size: var(--ui-text-page-mobile); }
+.ui-person { display: inline-flex; align-items: center; gap: var(--ui-space-3); min-width: 0; }
+.ui-person > span:last-child { min-width: 0; }
+.context-icon:has(.ui-avatar) { background: transparent; width: auto; height: auto; }
+.nav-icon .ui-avatar { width: 24px; height: 24px; }
+.mobile-top-profile { display: none; }
+@media (max-width: 900px) {
+    .mobile-top-bar > span { margin-left: auto; }
+    .mobile-top-profile { text-decoration: none; display: inline-grid; place-items: center; width: var(--ui-touch); height: var(--ui-touch); margin-right: calc(var(--ui-space-2) * -1); border-radius: var(--ui-radius-full); flex: none; }
+}
+
+/* Mi perfil */
+.ui-profile-header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-space-4) var(--ui-space-6); }
+.ui-profile-identity { min-width: 0; flex: 1 1 260px; display: flex; flex-direction: column; gap: var(--ui-space-2); }
+.ui-profile-identity .ui-page-title { overflow-wrap: anywhere; }
+.ui-profile-photo-link { position: relative; display: inline-flex; border-radius: var(--ui-radius-full); text-decoration: none; }
+.ui-profile-photo-badge {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--ui-radius-full);
+    background: var(--ui-primary);
+    color: var(--ui-on-primary);
+    box-shadow: 0 0 0 3px var(--ui-surface);
+}
+.ui-profile-photo-badge .ui-icon { width: 20px; height: 20px; }
+.ui-profile-photo-editor { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--ui-space-4) var(--ui-space-6); }
+.ui-profile-photo-form { flex: 1 1 260px; min-width: 0; }
+.ui-profile-logins summary { min-height: var(--ui-touch); display: flex; align-items: center; color: var(--ui-primary); font-weight: 600; cursor: pointer; }
+.ui-person-header { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--ui-space-4) var(--ui-space-5); }
+.ui-person-header > .ui-page-header { flex: 1 1 240px; min-width: 0; }
+.ui-profile-page .ui-form { display: flex; flex-direction: column; gap: var(--ui-space-5); }
+.ui-profile-page .ui-form-grid { display: grid; gap: var(--ui-space-5) var(--ui-space-4); }

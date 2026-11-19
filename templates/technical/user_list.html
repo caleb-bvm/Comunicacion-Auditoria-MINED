@@ -24,7 +24,7 @@
             <tbody>
                 {% for item in page_obj %}
                 <tr>
-                    <td><a class="ui-table-link" href="{% url 'technical_user_detail' item.pk %}">{{ item.get_full_name|default:item.username }}</a><span class="ui-table-support">{{ item.username }}{% if item.email %} · {{ item.email }}{% endif %}</span></td>
+                    <td><span class="ui-person">{% ui_avatar item "md" %}<span><a class="ui-table-link" href="{% url 'technical_user_detail' item.pk %}">{{ item.get_full_name|default:item.username }}</a><span class="ui-table-support">{{ item.username }}{% if item.email %} · {{ item.email }}{% endif %}</span></span></span></td>
                     <td>{{ item.get_role_display }}</td>
                     <td>{{ item.organization.name|default:"Sin institución" }}</td>
                     <td>{% if item.is_active %}<span class="ui-chip ui-chip-neutral">{% ui_icon "check" %}Activa</span>{% else %}<span class="ui-chip ui-chip-danger">{% ui_icon "lock" %}Suspendida</span>{% endif %}{% if item.must_change_password %}<span class="ui-table-support">Cambio de contraseña pendiente</span>{% endif %}</td>

@@ -98,7 +98,7 @@
     <aside class="ui-layout-aside" aria-label="Datos del expediente">
         <dl class="ui-list ui-facts">
             <div class="ui-list-row"><dt>Código institucional</dt><dd>{{ case.audited_organization.code }}</dd></div>
-            <div class="ui-list-row"><dt>Auditor responsable</dt><dd>{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}{% if can_reassign_case %}<br><a href="{% url 'director_reassign_case' case.pk %}">Reasignar</a>{% endif %}</dd></div>
+            <div class="ui-list-row"><dt>Auditor responsable</dt><dd><span class="ui-person">{% ui_avatar case.assigned_auditor "sm" %}<span>{{ case.assigned_auditor.get_full_name|default:case.assigned_auditor.username }}</span></span>{% if can_reassign_case %}<br><a href="{% url 'director_reassign_case' case.pk %}">Reasignar</a>{% endif %}</dd></div>
             <div class="ui-list-row"><dt>Fecha del informe</dt><dd>{{ case.report_date|date:"j b Y"|default:"Por definir" }}</dd></div>
             <div class="ui-list-row"><dt>Fecha límite</dt><dd>{{ case.response_deadline|date:"j b Y"|default:"Por definir" }}</dd></div>
             {% if user.role == 'audit_manager' %}<div class="ui-list-row"><dt>Consulta del equipo</dt><dd>{% if case.is_reserved %}Reservado: solo el auditor asignado y Dirección{% else %}Visible para todo el equipo auditor una vez publicado{% endif %}</dd></div>{% endif %}

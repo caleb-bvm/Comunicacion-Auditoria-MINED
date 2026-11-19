@@ -5,11 +5,12 @@
 <div class="ui-page auditor-admin-page">
     <a class="ui-back" href="{% url 'director_auditors' %}">{% ui_icon "back" %}Auditores</a>
     <div class="ui-page-header-row">
-        <header class="ui-page-header">
+        <header class="ui-page-header ui-person-header">
+            {% ui_avatar auditor "lg" %}<div class="ui-page-header">
             <div class="ui-chips">{% if auditor.is_active %}<span class="ui-chip ui-chip-neutral">{% ui_icon "check" %}Activo</span>{% else %}<span class="ui-chip ui-chip-neutral">{% ui_icon "folder" %}Archivado</span>{% endif %}</div>
             <h1 class="ui-page-title">{{ auditor.get_full_name|default:auditor.username }}</h1>
-            <p class="ui-page-context">@{{ auditor.username }} · {{ auditor.email|default:"Sin correo" }}</p>
-        </header>
+            <p class="ui-page-context">@{{ auditor.username }} · {{ auditor.email|default:"Sin correo" }}{% if auditor.phone %} · {{ auditor.phone }}{% endif %}</p>
+        </div></header>
         <div class="ui-card-actions">
             <a class="ui-button ui-button-outlined" href="{% url 'director_auditor_edit' auditor.pk %}">{% ui_icon "edit" %}Editar</a>
             <form method="post" action="{% url 'director_auditor_archive' auditor.pk %}">{% csrf_token %}<button class="ui-button {% if auditor.is_active %}ui-button-danger-text{% else %}ui-button-tonal{% endif %}" type="submit">{% if auditor.is_active %}Archivar{% else %}Reactivar{% endif %}</button></form>

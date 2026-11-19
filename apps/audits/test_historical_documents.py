@@ -108,7 +108,7 @@ class HistoricalDocumentsByCenterTests(TransactionTestCase):
         data["attachments-1-file"] = self.pdf("otro-nombre.pdf", "respuesta 0")
         self.assertContains(self.client.post(self.create_url, data), "está repetido")
         self.assertFalse(AuditDocument.objects.exists())
-        self.assertFalse(ActivityLog.objects.exists())
+        self.assertFalse(ActivityLog.objects.exclude(action="login").exists())
         self.assertFalse(any(Path(self.storage.name).rglob("*.pdf")))
 
     def test_invalid_file_invalid_type_and_too_many_rows_do_not_save(self):
@@ -203,7 +203,7 @@ class HistoricalDocumentsByCenterTests(TransactionTestCase):
                     attachments=[{"file": self.pdf("anexo.pdf", "otro contenido"),
                                   "visibility": "audit_only", "document_type": "other"}])
         self.assertFalse(AuditDocument.objects.exists())
-        self.assertFalse(ActivityLog.objects.exists())
+        self.assertFalse(ActivityLog.objects.exclude(action="login").exists())
         self.assertFalse(any(Path(self.storage.name).rglob("*.pdf")))
 
     def test_cross_center_parent_is_rejected_by_model_validation(self):

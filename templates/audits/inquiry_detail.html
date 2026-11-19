@@ -14,7 +14,7 @@
             <section class="ui-thread" aria-label="Conversación">
                 {% for entry in inquiry.messages.all %}
                 <article class="ui-thread-message {% if entry.author.role == 'institution' %}is-institution{% else %}is-audit{% endif %}">
-                    <header><strong>{% if entry.author.role == 'institution' %}{% if user.role == 'institution' %}Su centro{% else %}{{ entry.author.get_full_name|default:entry.author.username }}{% endif %}{% elif user.role == 'institution' %}Auditoría{% else %}{{ entry.author.get_full_name|default:entry.author.username }}{% endif %}</strong><time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"j b Y, H:i" }}</time></header>
+                    <header><span class="ui-person">{% if entry.author.role == 'institution' or user.role != 'institution' %}{% ui_avatar entry.author "sm" %}{% endif %}<strong>{% if entry.author.role == 'institution' %}{% if user.role == 'institution' %}Su centro{% else %}{{ entry.author.get_full_name|default:entry.author.username }}{% endif %}{% elif user.role == 'institution' %}Auditoría{% else %}{{ entry.author.get_full_name|default:entry.author.username }}{% endif %}</strong></span><time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"j b Y, H:i" }}</time></header>
                     <div class="ui-thread-body">{{ entry.body|linebreaksbr }}</div>
                     {% for attachment in entry.attachments.all %}<a class="ui-link-row" href="{% url 'audit_inquiry_attachment' attachment.pk %}">{% ui_icon "file" %}{{ attachment.original_filename }} ({{ attachment.size|filesizeformat }})</a>{% endfor %}
                 </article>

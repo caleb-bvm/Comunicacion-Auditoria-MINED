@@ -18,7 +18,7 @@
             <thead><tr><th scope="col">Fecha</th><th scope="col">Actor</th><th scope="col">Evento</th><th scope="col">Referencia</th></tr></thead>
             <tbody>
                 {% for event in page_obj %}
-                <tr><td>{{ event.created_at|date:"j b Y, H:i" }}</td><td>{{ event.actor.get_full_name|default:event.actor.username|default:"Sistema" }}</td><td><code>{{ event.action }}</code></td><td>{% if event.case %}<a class="ui-table-link" href="{% url 'case_detail' event.case.pk %}">{{ event.case.reference }}</a>{% else %}{{ event.target_type }} {{ event.target_id }}{% endif %}</td></tr>
+                <tr><td>{{ event.created_at|date:"j b Y, H:i" }}</td><td>{% if event.actor %}<span class="ui-person">{% ui_avatar event.actor "sm" %}<span>{{ event.actor.display_name }}</span></span>{% else %}Sistema{% endif %}</td><td><code>{{ event.action }}</code></td><td>{% if event.case %}<a class="ui-table-link" href="{% url 'case_detail' event.case.pk %}">{{ event.case.reference }}</a>{% else %}{{ event.target_type }} {{ event.target_id }}{% endif %}</td></tr>
                 {% empty %}
                 <tr><td colspan="4">No hay actividad para los filtros seleccionados.</td></tr>
                 {% endfor %}

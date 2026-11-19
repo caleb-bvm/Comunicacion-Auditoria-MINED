@@ -64,6 +64,27 @@ el envío si no se adjunta ningún archivo. Una institución puede
 consultar sus propias respuestas y evidencias, pero no los archivos privados enviados por otras
 dependencias que participen en el mismo expediente.
 
+### Fotos de perfil
+
+Cada persona puede subir una foto JPG o PNG de hasta 5 MB desde «Mi perfil». ClamAV analiza
+la carga y luego Pillow la vuelve a dibujar como un JPEG cuadrado de 384 × 384 sin metadatos
+(EXIF, GPS ni perfiles de color). Se guarda en `private/perfiles/` con nombre aleatorio y se sirve
+desde `/personas/<id>/foto/` después de comprobar permisos: el personal de auditoría y la
+administración técnica ven todas las fotos; una institución solo ve las de su propia
+organización, porque en las consultas el personal de auditoría aparece como «Auditoría». Como
+el archivo guardado lo genera el servidor, esta ruta no repite el análisis en cada vista y permite
+caché privada de un día; la URL lleva la fecha de la foto para invalidarla al cambiarla. Al
+reemplazar o quitar una foto, la anterior se elimina: es un dato personal, no parte de un
+expediente.
+
+### Perfil y seguridad de la cuenta
+
+Las personas editan sus nombres, cargo y teléfono; el usuario y el correo los administra Soporte
+técnico. Cada ingreso queda en la bitácora (`login`) con un nombre corto del dispositivo, sin el
+agente de usuario completo. El perfil muestra el ingreso anterior, la fecha del último cambio de
+contraseña y las sesiones abiertas, y permite cerrar las sesiones de otros dispositivos. La
+preferencia «Texto grande» aumenta un 12,5 % todos los tamaños de la interfaz.
+
 ## Plazos y conservación
 
 ### Incorporación de informes por centro

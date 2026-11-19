@@ -78,7 +78,7 @@ class HistoricalBulkTests(TransactionTestCase):
         self.assertEqual(report.document_date.isoformat(), "2016-05-12")
         for model in (AuditCase, Response, DeadlineExtension):
             self.assertFalse(model.objects.exists())
-        self.assertEqual(ActivityLog.objects.filter(actor=self.auditor).count(), 4)
+        self.assertEqual(ActivityLog.objects.filter(actor=self.auditor).exclude(action="login").count(), 4)
 
     def test_retries_and_renamed_duplicates_preserve_existing_metadata_and_file(self):
         report = self.report()
@@ -99,7 +99,7 @@ class HistoricalBulkTests(TransactionTestCase):
         result = self.client.post(self.url, self.data(document_type="other", parent_report=report.pk))
         self.assertEqual(result.json()["status"], "duplicate")
         self.assertEqual(AuditDocument.objects.count(), 2)
-        self.assertEqual(ActivityLog.objects.count(), 2)
+        self.assertEqual(ActivityLog.objects.exclude(action="login").count(), 2)
         self.assertEqual(len([p for p in self.storage.rglob("*") if p.is_file()]), 2)
 
     def test_parent_from_another_center_or_a_child_cannot_be_used(self):

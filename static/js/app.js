@@ -634,6 +634,25 @@ document.querySelectorAll("[data-formset]").forEach((section) => {
     });
 })();
 
+// Vista previa de la foto de perfil antes de subirla (el servidor la recorta igual: cuadrado al centro).
+// Se usa una URL data: porque la CSP solo admite imágenes propias y data:.
+document.querySelectorAll("[data-avatar-input]").forEach((input) => {
+    const preview = document.querySelector("[data-avatar-preview] .ui-avatar");
+    if (!preview || !window.FileReader) return;
+    input.addEventListener("change", () => {
+        const file = input.files && input.files[0];
+        if (!file || !/^image\/(jpeg|png)$/.test(file.type) || file.size > 5 * 1024 * 1024) return;
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+            const image = document.createElement("img");
+            image.alt = "";
+            image.src = reader.result;
+            preview.replaceChildren(image);
+        });
+        reader.readAsDataURL(file);
+    });
+});
+
 // Confirmaciones y alcance de envío sin manejadores en línea (la CSP los bloquea).
 document.querySelectorAll("form[data-confirm]").forEach((form) => {
     form.addEventListener("submit", (event) => {
