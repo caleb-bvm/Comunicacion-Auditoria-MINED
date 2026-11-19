@@ -21,7 +21,7 @@ Desarrollo, pruebas y producción utilizan PostgreSQL. La configuración de prod
 ## Límites de acceso
 
 - Un responsable institucional ve los expedientes de su institución o aquellos que contengan recomendaciones asignadas a ella.
-- Un auditor actúa solamente sobre los expedientes que tiene asignados (borrador, revisiones, prórrogas, cierre y consultas). Puede consultar en modo de solo lectura los expedientes publicados del resto del equipo (respuestas, evidencias y la versión aprobada del informe), pero no los borradores, los pendientes de aprobación ni los que Dirección haya reservado. Cada consulta de un expediente ajeno se registra en la bitácora (`case_viewed_by_team`).
+- Un auditor actúa solamente sobre los expedientes que tiene asignados (borrador, revisiones, prórrogas, cierre y consultas). Puede consultar en modo de solo lectura los expedientes publicados del resto del equipo (respuestas, evidencias y la versión aprobada del informe), pero no los borradores, los pendientes de aprobación ni los que Dirección haya reservado. Cada consulta de un expediente ajeno se registra en la bitácora (`case_viewed_by_team`). El listado de Expedientes muestra solo su cartera; los expedientes del equipo se encuentran desde la ficha de cada centro educativo, cuyo listado filtrado por centro sí los incluye.
 - Dirección puede reservar un expediente con una justificación registrada en la bitácora; mientras esté reservado solo lo ven el auditor asignado y Dirección. La regla de visibilidad del equipo está en `apps/audits/access.py`.
 - Un administrador de Auditoría puede consultar todos los expedientes.
 - El administrador técnico mantiene la plataforma, pero sus actuaciones también quedan sujetas a bitácora.

@@ -11,7 +11,7 @@
             <p class="ui-page-context">Código {{ center.code }} · {{ center.display_address }}</p>
         </header>
         <div class="ui-card-actions">
-            <a class="ui-button ui-button-filled" href="{% url 'case_list' %}?organization={{ center.pk }}{% if not is_director %}&amp;alcance=equipo{% endif %}">Ver expedientes</a>
+            <a class="ui-button ui-button-filled" href="{% url 'case_list' %}?organization={{ center.pk }}">Ver expedientes</a>
             <a class="ui-button ui-button-outlined" href="{% url 'cde_detail' center.pk %}">Ver CDE</a>
         </div>
     </div>

@@ -170,30 +170,38 @@ class TeamReadOnlyAccessTests(TestCase):
 
     # ---------- Listado ----------
 
-    def test_case_list_keeps_my_portfolio_by_default_and_offers_the_team_scope(self):
+    def test_case_list_shows_only_my_portfolio_without_a_team_tab(self):
+        own = self.make_case("IA-PROPIO-001", AuditCase.Status.PUBLISHED, owner=self.teammate)
+        self.client.force_login(self.teammate)
+
+        mine = self.client.get(reverse("case_list"))
+        self.assertEqual([case.pk for case in mine.context["cases"]], [own.pk])
+        self.assertNotContains(mine, "Todo el equipo")
+
+        legacy = self.client.get(reverse("case_list"), {"alcance": "equipo"})
+        self.assertEqual([case.pk for case in legacy.context["cases"]], [own.pk])
+
+    def test_center_case_list_adds_published_team_cases_in_read_only(self):
         own = self.make_case("IA-PROPIO-001", AuditCase.Status.PUBLISHED, owner=self.teammate)
         other_draft = self.make_case("IA-EQ-BORRADOR", AuditCase.Status.DRAFT)
         reserved = self.make_case("IA-EQ-RESERVADO", AuditCase.Status.PUBLISHED, is_reserved=True)
         self.client.force_login(self.teammate)
 
-        mine = self.client.get(reverse("case_list"))
-        self.assertEqual([case.pk for case in mine.context["cases"]], [own.pk])
-        self.assertContains(mine, "Todo el equipo")
-
-        team = self.client.get(reverse("case_list"), {"alcance": "equipo"})
-        references = {case.reference for case in team.context["cases"]}
-        self.assertEqual(references, {"IA-PROPIO-001", "IA-EQ-001"})
+        center = self.client.get(reverse("case_list"), {"organization": self.center.pk})
+        references = {case.reference for case in center.context["cases"]}
+        self.assertEqual(references, {own.reference, "IA-EQ-001"})
         self.assertNotIn(other_draft.reference, references)
         self.assertNotIn(reserved.reference, references)
-        self.assertContains(team, "Solo consulta · Ana Titular")
-        self.assertContains(team, 'name="alcance" value="equipo"')
+        self.assertContains(center, "Solo consulta · Ana Titular")
 
-        search = self.client.get(reverse("case_list"), {"alcance": "equipo", "q": "Titular"})
+        search = self.client.get(
+            reverse("case_list"), {"organization": self.center.pk, "q": "Titular"}
+        )
         self.assertEqual([case.reference for case in search.context["cases"]], ["IA-EQ-001"])
 
-    def test_scope_parameter_does_not_change_other_roles(self):
+    def test_center_filter_does_not_widen_institution_scope(self):
         self.client.force_login(self.institution)
-        page = self.client.get(reverse("case_list"), {"alcance": "equipo"})
+        page = self.client.get(reverse("case_list"), {"organization": self.center.pk})
         self.assertEqual(list(page.context["cases"]), [])
 
     # ---------- Reserva ----------

@@ -1976,13 +1976,13 @@ class CaseListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         user = self.request.user
-        # Los auditores ven su cartera; «Todo el equipo» suma los expedientes publicados de los demás.
-        self.selected_scope = (
-            "equipo"
-            if user.role == User.Role.AUDITOR and self.request.GET.get("alcance") == "equipo"
-            else "mios"
+        # Un auditor ve su cartera. Al llegar desde la ficha de un centro, el listado de ese
+        # centro suma los expedientes publicados del equipo, que se abren en solo consulta.
+        queryset = (
+            viewable_cases(user)
+            if self.request.GET.get("organization", "").strip()
+            else accessible_cases(user)
         )
-        queryset = viewable_cases(user) if self.selected_scope == "equipo" else accessible_cases(user)
         self.selected_organization = None
         self.invalid_organization_filter = False
         self.department_options = []
@@ -2065,7 +2065,6 @@ class CaseListView(LoginRequiredMixin, ListView):
                 "district_options": self.district_options,
                 "selected_department": self.selected_department,
                 "selected_district": self.selected_district,
-                "selected_scope": self.selected_scope,
             }
         )
         if self.request.user.is_audit_staff:

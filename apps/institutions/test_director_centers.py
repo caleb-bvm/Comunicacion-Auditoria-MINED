@@ -525,7 +525,7 @@ class DirectorEducationalCenterTests(TestCase):
         self.assertNotContains(
             profile, reverse("director_activate_educational_center", args=[self.center.pk])
         )
-        self.assertContains(profile, "alcance=equipo")
+        self.assertContains(profile, f"{reverse('case_list')}?organization={self.center.pk}")
         self.assertContains(profile, reverse("cde_detail", args=[self.center.pk]))
 
     def test_auditor_profile_hides_reserved_cases_and_other_drafts_from_lists_and_counts(self):

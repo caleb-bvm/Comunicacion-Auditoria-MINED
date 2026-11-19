@@ -10,7 +10,7 @@
             <p class="ui-page-context">Código {{ selected_organization.code }}{% if selected_organization.municipality %} · {{ selected_organization.municipality }}{% endif %}{% if selected_organization.department %} · {{ selected_organization.department }}{% endif %}</p>
             <h1 class="ui-page-title">{{ selected_organization.name }}</h1>
             {% else %}
-            <h1 class="ui-page-title">{% if user.role == 'auditor' %}{% if selected_scope == 'equipo' %}Expedientes del equipo{% else %}Mi cartera{% endif %}{% else %}Expedientes{% endif %}</h1>
+            <h1 class="ui-page-title">{% if user.role == 'auditor' %}Mi cartera{% else %}Expedientes{% endif %}</h1>
             {% endif %}
         </header>
         <div class="ui-card-actions">
@@ -19,12 +19,8 @@
         </div>
     </div>
 
-    {% if user.role == 'auditor' %}
-    <nav class="ui-tabs" aria-label="Alcance de los expedientes"><a href="{% url 'case_list' %}"{% if selected_scope != 'equipo' %} aria-current="page"{% endif %}>Mi cartera</a><a href="{% url 'case_list' %}?alcance=equipo"{% if selected_scope == 'equipo' %} aria-current="page"{% endif %}>Todo el equipo</a></nav>
-    {% if selected_scope == 'equipo' %}<p class="ui-help">Incluye los expedientes publicados de todos los auditores. Los que no son suyos se abren en modo de solo consulta.</p>{% endif %}
-    {% endif %}
+    {% if user.role == 'auditor' and selected_organization %}<p class="ui-help">Incluye los expedientes publicados de todo el equipo. Los que no son suyos se abren en modo de solo consulta.</p>{% endif %}
     <form method="get" class="ui-filters" role="search" aria-label="Buscar expedientes" data-location-filters data-auto-submit-filters>
-        {% if selected_scope == 'equipo' %}<input type="hidden" name="alcance" value="equipo">{% endif %}
         <div class="ui-field ui-field-grow"><label for="q">Buscar</label><input id="q" name="q" type="search" value="{{ request.GET.q }}" placeholder="Referencia, institución o código"></div>
         <div class="ui-field"><label for="department">Departamento</label><select id="department" name="department"><option value="">Todos</option>{% for department in department_options %}<option value="{{ department }}" {% if selected_department == department %}selected{% endif %}>{{ department }}</option>{% endfor %}</select></div>
         <div class="ui-field"><label for="district">Distrito</label><select id="district" name="district" {% if not selected_department %}disabled{% endif %}><option value="">{% if selected_department %}Todos{% else %}Seleccione departamento{% endif %}</option>{% for district in district_options %}<option value="{{ district }}" {% if selected_district == district %}selected{% endif %}>{{ district }}</option>{% endfor %}</select></div>
@@ -65,7 +61,7 @@
     <div class="ui-card"><h2 class="ui-card-title">{% if invalid_organization_filter %}Centro educativo no encontrado{% else %}No hay expedientes con estos filtros{% endif %}</h2>{% if invalid_organization_filter %}<p class="ui-card-support">Seleccione un centro desde el directorio.</p>{% if user.is_audit_staff %}<div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'director_educational_centers' %}">Volver a centros</a></div>{% endif %}{% endif %}</div>
     {% endif %}
 
-    {% if is_paginated %}<nav class="ui-pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a class="ui-button ui-button-outlined" href="?alcance={{ selected_scope }}&amp;organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;page={{ page_obj.previous_page_number }}">{% ui_icon "back" %}Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="ui-button ui-button-outlined" href="?alcance={{ selected_scope }}&amp;organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;page={{ page_obj.next_page_number }}">Siguiente{% ui_icon "forward" %}</a>{% endif %}</nav>{% endif %}
+    {% if is_paginated %}<nav class="ui-pagination" aria-label="Paginación">{% if page_obj.has_previous %}<a class="ui-button ui-button-outlined" href="?organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;page={{ page_obj.previous_page_number }}">{% ui_icon "back" %}Anterior</a>{% endif %}<span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a class="ui-button ui-button-outlined" href="?organization={{ selected_organization_id|urlencode }}&amp;q={{ request.GET.q|urlencode }}&amp;department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}&amp;page={{ page_obj.next_page_number }}">Siguiente{% ui_icon "forward" %}</a>{% endif %}</nav>{% endif %}
 </div>
 {% else %}
 <div class="ui-page case-list-page">
