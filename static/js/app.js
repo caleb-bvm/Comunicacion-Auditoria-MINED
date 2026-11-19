@@ -89,7 +89,7 @@
         const headings = Array.from(table.querySelectorAll("thead th"), (heading) => (
             heading.hasAttribute("data-card-action") ? "" : heading.textContent.trim()
         ));
-        table.querySelectorAll("tbody tr").forEach((row) => {
+        table.querySelectorAll("tbody tr, tfoot tr").forEach((row) => {
             Array.from(row.cells).forEach((cell, index) => {
                 if (cell.colSpan > 1) {
                     cell.classList.add("mobile-card-message");

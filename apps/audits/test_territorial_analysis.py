@@ -569,7 +569,8 @@ class TerritorialAnalysisTests(TestCase):
         deep, _ = self._export_workbook(depth="deep", **params)
         self.assertIn("analisis-ligero-centros", response["Content-Disposition"])
         self.assertEqual(light.sheetnames, ["Resumen", "Prioridades", "Centros educativos"])
-        self.assertEqual(len(deep.sheetnames), 6)
+        self.assertEqual(len(deep.sheetnames), 7)
+        self.assertIn("Áreas auditadas", deep.sheetnames)
         for book, label, depth in ((light, "Análisis ligero", "light"), (deep, "Análisis profundo", "deep")):
             with self.subTest(depth=depth):
                 self.assertEqual(book.properties.title, label)

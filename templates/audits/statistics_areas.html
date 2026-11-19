@@ -1,0 +1,36 @@
+{% load ui %}
+<section class="ui-section" aria-labelledby="areas-title">
+    <div class="ui-section-head"><div><h2 class="ui-section-title" id="areas-title">Hallazgos por área auditada</h2><p class="ui-help">{{ area_scope_label }}. El cumplimiento se calcula con totales del área; sin resultados definitivos se muestra N/D.</p></div><a class="ui-button ui-button-text" href="{% url 'director_library' %}">Administrar áreas</a></div>
+    {% if area_rows %}
+    <div class="ui-table-wrap">
+        <table class="ui-table ui-table-fit" data-mobile-cards>
+            <caption class="ui-visually-hidden">Hallazgos y recomendaciones por área auditada</caption>
+            <thead><tr><th scope="col">Área</th><th scope="col">Hallazgos</th><th scope="col">Riesgo alto o crítico</th><th scope="col">Recomendaciones</th><th scope="col">Vencidas hoy</th><th scope="col">Cumplimiento</th></tr></thead>
+            <tbody>
+                {% for row in area_rows %}
+                <tr>
+                    <th scope="row"><span class="ui-table-link">{{ row.name }}</span>{% if not row.is_active %}<small>Área inactiva</small>{% elif row.category_id is None %}<small>Hallazgos sin clasificar</small>{% endif %}</th>
+                    <td>{{ row.finding_count }}<small>{{ row.finding_share }}% del total</small></td>
+                    <td>{{ row.high_risk_count }}</td>
+                    <td>{{ row.recommendation_count }}</td>
+                    <td>{% if row.overdue_count %}<span class="ui-chip ui-chip-danger">{% ui_icon "alert" %}{{ row.overdue_count }}</span>{% else %}0{% endif %}</td>
+                    <td>{% if row.compliance_rate is not None %}{{ row.compliance_rate }}%<small>{{ row.complied_count }} de {{ row.terminal_count }} cumplidas</small>{% else %}N/D<small>sin resultados</small>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th scope="row">Total</th>
+                    <td>{{ area_totals.finding_count }}</td>
+                    <td>{{ area_totals.high_risk_count }}</td>
+                    <td>{{ area_totals.recommendation_count }}</td>
+                    <td>{{ area_totals.overdue_count }}</td>
+                    <td>{% if area_totals.compliance_rate is not None %}{{ area_totals.compliance_rate }}%<small>{{ area_totals.complied_count }} de {{ area_totals.terminal_count }} cumplidas</small>{% else %}N/D{% endif %}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <p class="ui-help">Todavía no hay áreas auditadas definidas ni hallazgos en este alcance. Defínalas en la biblioteca para clasificar los hallazgos.</p>
+    {% endif %}
+</section>

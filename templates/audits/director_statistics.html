@@ -114,6 +114,7 @@
             {% endif %}
         </article>
     </section>
+    {% include "audits/statistics_areas.html" %}
     {% endif %}
 
     {% if selected_mode == 'current' %}
@@ -157,6 +158,8 @@
             </table>
         </div>
     </section>
+
+    {% include "audits/statistics_areas.html" %}
 
     <section class="ui-section" aria-labelledby="priority-title">
         <div class="ui-section-head"><h2 class="ui-section-title" id="priority-title">Centros prioritarios</h2><a class="ui-button ui-button-text" href="{% url 'director_educational_centers' %}?department={{ selected_department|urlencode }}&amp;district={{ selected_district|urlencode }}">Ver directorio filtrado</a></div>

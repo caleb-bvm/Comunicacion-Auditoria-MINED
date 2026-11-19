@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 from urllib.parse import urlencode
 
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
@@ -17,10 +17,13 @@ from .models import (
     AuditCase,
     DeadlineExtension,
     Finding,
+    FindingCategory,
     Recommendation,
     Response,
     Review,
 )
+from .services import with_effective_deadline
+from .statistics import RESPONSE_DUE_STATUSES, TERMINAL_RECOMMENDATION_STATUSES
 
 
 PERIOD_CHOICES = (
@@ -463,6 +466,77 @@ def _distribution_rows(centers):
     }
 
 
+def _area_rows(cases, today):
+    """Hallazgos y recomendaciones por área auditada, calculados con totales.
+
+    El cumplimiento divide cumplidas entre resultados definitivos del área; sin resultados
+    definitivos es None (N/D). Las áreas activas aparecen aunque no tengan hallazgos; las
+    inactivas y «Sin área» solo si tienen datos."""
+    high_risk = [Finding.RiskLevel.HIGH, Finding.RiskLevel.CRITICAL]
+    findings = {
+        row["category_id"]: row
+        for row in Finding.objects.filter(case__in=cases)
+        .values("category_id")
+        .annotate(total=Count("pk"), high=Count("pk", filter=Q(risk_level__in=high_risk)))
+    }
+    recommendations = Recommendation.objects.filter(finding__case__in=cases)
+    recommendation_counts = {
+        row["finding__category_id"]: row
+        for row in recommendations.values("finding__category_id").annotate(
+            total=Count("pk"),
+            terminal=Count("pk", filter=Q(status__in=TERMINAL_RECOMMENDATION_STATUSES)),
+            complied=Count("pk", filter=Q(status=Recommendation.Status.COMPLIED)),
+        )
+    }
+    overdue_counts = dict(
+        with_effective_deadline(recommendations)
+        .filter(current_deadline__lt=today, status__in=RESPONSE_DUE_STATUSES)
+        .values("finding__category_id")
+        .annotate(total=Count("pk"))
+        .values_list("finding__category_id", "total")
+    )
+    used_ids = {key for key in (*findings, *recommendation_counts) if key is not None}
+    categories = FindingCategory.objects.filter(Q(is_active=True) | Q(pk__in=used_ids))
+    total_findings = sum(row["total"] for row in findings.values())
+
+    def build(category_id, name, is_active):
+        finding = findings.get(category_id, {})
+        recommendation = recommendation_counts.get(category_id, {})
+        terminal = recommendation.get("terminal", 0)
+        complied = recommendation.get("complied", 0)
+        return {
+            "category_id": category_id,
+            "name": name,
+            "is_active": is_active,
+            "finding_count": finding.get("total", 0),
+            "finding_share": _rate(finding.get("total", 0), total_findings),
+            "high_risk_count": finding.get("high", 0),
+            "recommendation_count": recommendation.get("total", 0),
+            "overdue_count": overdue_counts.get(category_id, 0),
+            "terminal_count": terminal,
+            "complied_count": complied,
+            "compliance_rate": _nullable_rate(complied, terminal),
+        }
+
+    rows = [build(category.pk, category.name, category.is_active) for category in categories]
+    rows.sort(key=lambda row: (-row["finding_count"], row["name"]))
+    if None in findings or None in recommendation_counts:
+        rows.append(build(None, "Sin área", True))
+
+    terminal = sum(row["terminal_count"] for row in rows)
+    complied = sum(row["complied_count"] for row in rows)
+    totals = {
+        "finding_count": total_findings,
+        "high_risk_count": sum(row["high_risk_count"] for row in rows),
+        "recommendation_count": sum(row["recommendation_count"] for row in rows),
+        "overdue_count": sum(row["overdue_count"] for row in rows),
+        "terminal_count": terminal,
+        "complied_count": complied,
+        "compliance_rate": _nullable_rate(complied, terminal),
+    }
+    return rows, totals
+
+
 def _monthly_activity(cases, responses, reviews):
     rows = defaultdict(lambda: {"cases": 0, "responses": 0, "reviews": 0})
     for item in (
@@ -621,6 +695,7 @@ def build_territorial_analysis(params, today=None):
         no_response_recorded_at__isnull=False,
     )
     reports_issued = cases.exclude(report_date__isnull=True)
+    consolidated_cases = cases
     if errors:
         cases = cases.none()
         responses = responses.none()
@@ -644,6 +719,10 @@ def build_territorial_analysis(params, today=None):
     activity_recommendations = Recommendation.objects.filter(finding__case__in=cases)
     monthly_activity, monthly_activity_max = _monthly_activity(
         cases, responses, reviews
+    )
+    # La situación vigente usa todo el historial consolidado; la actividad, el período.
+    area_rows, area_totals = _area_rows(
+        cases if selected_mode == "activity" else consolidated_cases, today
     )
 
     context = {
@@ -695,6 +774,13 @@ def build_territorial_analysis(params, today=None):
         "activity_automatic_no_response_count": automatic_no_response.count(),
         "monthly_activity": monthly_activity,
         "monthly_activity_max": monthly_activity_max,
+        "area_rows": area_rows,
+        "area_totals": area_totals,
+        "area_scope_label": (
+            filters["selected_period_label"]
+            if selected_mode == "activity"
+            else "Todo el historial consolidado"
+        ),
         "never_audited_centers": sorted(
             (center for center in centers if not center.case_count),
             key=lambda center: (center.department, center.district, center.name),

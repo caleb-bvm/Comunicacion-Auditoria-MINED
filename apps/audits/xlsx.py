@@ -550,6 +550,59 @@ def _create_territorial_priority_sheet(workbook, analysis):
     return len(rows)
 
 
+def _create_territorial_area_sheet(workbook, analysis):
+    """Misma tabla de áreas que la web: totales por área y cumplimiento N/D sin resultados."""
+    rows = [
+        [
+            row["name"] + ("" if row["is_active"] else " (inactiva)"),
+            row["finding_count"],
+            row["finding_share"] / 100,
+            row["high_risk_count"],
+            row["recommendation_count"],
+            row["overdue_count"],
+            row["terminal_count"],
+            row["complied_count"],
+            row["compliance_rate"] / 100 if row["compliance_rate"] is not None else "N/D",
+        ]
+        for row in analysis["area_rows"]
+    ]
+    if rows:
+        totals = analysis["area_totals"]
+        rows.append([
+            "Total",
+            totals["finding_count"],
+            1 if totals["finding_count"] else 0,
+            totals["high_risk_count"],
+            totals["recommendation_count"],
+            totals["overdue_count"],
+            totals["terminal_count"],
+            totals["complied_count"],
+            totals["compliance_rate"] / 100 if totals["compliance_rate"] is not None else "N/D",
+        ])
+    sheet = _create_data_sheet(
+        workbook,
+        title="Áreas auditadas",
+        description=(
+            f"{analysis['area_scope_label']}. Hallazgos y recomendaciones por área auditada; "
+            "el cumplimiento divide cumplidas entre resultados definitivos del área."
+        ),
+        headers=(
+            "Área", "Hallazgos", "% de hallazgos", "Riesgo alto o crítico", "Recomendaciones",
+            "Vencidas hoy", "Resultados definitivos", "Cumplidas", "Cumplimiento",
+        ),
+        rows=rows,
+        table_name="TablaAreasAuditadas",
+        widths={1: 34, 3: 15, 4: 22, 5: 18, 6: 15, 7: 22, 9: 15},
+        integer_columns=(2, 4, 5, 6, 7, 8),
+        percentage_columns=(3, 9),
+        wrap_columns=(1,),
+    )
+    if rows:
+        for cell in sheet[4 + len(rows)]:
+            cell.font = Font(name="Aptos", size=9, bold=True, color="17212B")
+    return len(analysis["area_rows"])
+
+
 def _finish_territorial_workbook(workbook, analysis, depth, report_id, counts):
     """Apply shared reading aids without changing the shared analysis metrics."""
     summary = workbook["Resumen"]
@@ -805,16 +858,19 @@ def build_territorial_analysis_xlsx(
     )
 
     priority_count = _create_territorial_priority_sheet(workbook, analysis)
+    area_count = _create_territorial_area_sheet(workbook, analysis)
 
     exported_counts = {
         "centers": len(center_rows),
         "territories": len(territory_rows),
         "priority_centers": priority_count,
         "activity_months": len(analysis["monthly_activity"]),
+        "areas": area_count,
     }
     method_rows = [
         ["Control", "Centros exportados", analysis["center_count"], len(center_rows), "OK" if analysis["center_count"] == len(center_rows) else "ERROR"],
         ["Control", "Territorios exportados", len(analysis["territory_rows"]), len(territory_rows), "OK" if len(analysis["territory_rows"]) == len(territory_rows) else "ERROR"],
+        ["Control", "Áreas auditadas exportadas", len(analysis["area_rows"]), area_count, "OK" if len(analysis["area_rows"]) == area_count else "ERROR"],
         ["Calidad", "Centros sin departamento", analysis["data_quality"]["without_department"], None, "Revisar catálogo" if analysis["data_quality"]["without_department"] else "OK"],
         ["Calidad", "Centros sin distrito", analysis["data_quality"]["without_district"], None, "Revisar catálogo" if analysis["data_quality"]["without_district"] else "OK"],
         ["Metodología", "Situación vigente", None, None, "Usa todo el historial consolidado y excluye borradores."],
@@ -822,6 +878,7 @@ def build_territorial_analysis_xlsx(
         ["Metodología", "Riesgo y hallazgos", None, None, "Se atribuyen al centro educativo auditado."],
         ["Metodología", "Plazos y cumplimiento", None, None, "Se atribuyen a la institución responsable y usan la última prórroga."],
         ["Metodología", "Sin resultados definitivos", None, None, "Se presenta como N/D; no equivale a 0 %."],
+        ["Metodología", "Áreas auditadas", None, None, "Vigente: todo el historial consolidado; actividad: expedientes del período. «Sin área» agrupa hallazgos no clasificados."],
     ]
     method_sheet = _create_data_sheet(
         workbook,

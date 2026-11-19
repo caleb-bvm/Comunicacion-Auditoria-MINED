@@ -1138,6 +1138,7 @@ class AccessAndWorkflowTests(TestCase):
                 "Centros educativos",
                 "Actividad del período",
                 "Prioridades",
+                "Áreas auditadas",
                 "Calidad y metodología",
             ],
         )

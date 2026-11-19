@@ -903,3 +903,14 @@ form[data-analysis-mode].is-updating ~ * { opacity: .55; transition: opacity .15
 /* Aviso de texto recuperable en formularios largos. */
 .ui-autosave { flex-wrap: wrap; align-items: center; }
 .ui-autosave > span { flex: 1 1 240px; }
+
+/* Fila de totales al pie de una tabla. */
+.ui-table tfoot th, .ui-table tfoot td { padding: var(--ui-space-3); border-top: 1px solid var(--ui-outline-variant); font-weight: 600; text-align: left; }
+.ui-table tfoot tr > :first-child { padding-left: var(--ui-space-6); }
+@media (max-width: 720px) {
+    .mobile-card-table tfoot { display: block; width: 100%; margin-top: .75rem; }
+    .mobile-card-table .ui-table tfoot th, .mobile-card-table .ui-table tfoot td { border-top: 0; }
+    .mobile-card-table tfoot th, .mobile-card-table .ui-table tfoot tr > :first-child { display: block; width: 100%; padding: .7rem 0; }
+    .mobile-card-table tfoot td { display: grid; grid-template-columns: minmax(0, 35%) minmax(0, 1fr); gap: .75rem; }
+    .mobile-card-table tfoot td::before { content: attr(data-label); color: var(--md-on-surface-variant); font-weight: 650; }
+}
