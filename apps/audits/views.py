@@ -263,9 +263,9 @@ def publication_issues(case):
         ],
     ).order_by("-version").first()
     if not report_document:
-        issues.append("Cargue el informe elaborado en Word antes de solicitar su aprobación.")
-    elif Path(report_document.original_filename or report_document.file.name).suffix.lower() != ".docx":
-        issues.append("La versión que se someterá a aprobación debe estar en formato Word (.docx).")
+        issues.append("Cargue el informe elaborado en PDF antes de solicitar su aprobación.")
+    elif Path(report_document.original_filename or report_document.file.name).suffix.lower() != ".pdf":
+        issues.append("La versión que se someterá a aprobación debe estar en formato PDF (.pdf).")
     if not case.report_date:
         issues.append("Indique la fecha oficial del informe.")
     if not case.response_deadline:

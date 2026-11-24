@@ -2,8 +2,6 @@ import hashlib
 import secrets
 from datetime import date, timedelta
 from io import BytesIO
-from xml.sax.saxutils import escape
-from zipfile import ZIP_DEFLATED, ZipFile
 
 from django.core.files.base import ContentFile
 from django.conf import settings
@@ -26,45 +24,6 @@ from ...models import (
     Response,
     Review,
 )
-
-
-def build_demo_docx(title, paragraphs):
-    """Build a small, valid Word document without adding a runtime dependency."""
-    body = []
-    for index, paragraph in enumerate([title, *paragraphs]):
-        properties = "<w:rPr><w:b/><w:sz w:val='30'/></w:rPr>" if index == 0 else ""
-        body.append(
-            "<w:p><w:r>"
-            f"{properties}<w:t xml:space='preserve'>{escape(paragraph)}</w:t>"
-            "</w:r></w:p>"
-        )
-    document_xml = (
-        "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>"
-        "<w:document xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'>"
-        f"<w:body>{''.join(body)}<w:sectPr/></w:body></w:document>"
-    )
-    buffer = BytesIO()
-    with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
-        archive.writestr(
-            "[Content_Types].xml",
-            "<?xml version='1.0' encoding='UTF-8'?>"
-            "<Types xmlns='http://schemas.openxmlformats.org/package/2006/content-types'>"
-            "<Default Extension='rels' ContentType='application/vnd.openxmlformats-package.relationships+xml'/>"
-            "<Default Extension='xml' ContentType='application/xml'/>"
-            "<Override PartName='/word/document.xml' "
-            "ContentType='application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml'/>"
-            "</Types>",
-        )
-        archive.writestr(
-            "_rels/.rels",
-            "<?xml version='1.0' encoding='UTF-8'?>"
-            "<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>"
-            "<Relationship Id='rId1' "
-            "Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' "
-            "Target='word/document.xml'/></Relationships>",
-        )
-        archive.writestr("word/document.xml", document_xml)
-    return buffer.getvalue()
 
 
 def build_demo_pdf(title, lines):
@@ -340,7 +299,8 @@ class Command(BaseCommand):
         visibility,
         paragraphs,
     ):
-        payload = build_demo_docx(title, paragraphs)
+        payload = build_demo_pdf(title, paragraphs)
+        report_filename = f"{reference.lower().replace('/', '-')}.pdf"
         document, _ = AuditDocument.objects.get_or_create(
             case=case,
             document_type=AuditDocument.DocumentType.REPORT,
@@ -352,11 +312,14 @@ class Command(BaseCommand):
                 "document_date": case.report_date,
                 "status": status,
                 "visibility": visibility,
-                "original_filename": f"{reference.lower().replace('/', '-')}.docx",
+                "original_filename": report_filename,
                 "size": len(payload),
                 "sha256": hashlib.sha256(payload).hexdigest(),
                 "uploaded_by": auditor,
             },
+        )
+        file_exists = bool(
+            document.file and document.file.storage.exists(document.file.name)
         )
         document.organization = case.audited_organization
         document.reference = reference
@@ -364,12 +327,12 @@ class Command(BaseCommand):
         document.document_date = case.report_date
         document.status = status
         document.visibility = visibility
-        document.original_filename = f"{reference.lower().replace('/', '-')}.docx"
-        document.size = len(payload)
-        document.sha256 = hashlib.sha256(payload).hexdigest()
-        document.uploaded_by = auditor
-        if not document.file or not document.file.storage.exists(document.file.name):
-            document.file.save(document.original_filename, ContentFile(payload), save=False)
+        if not file_exists:
+            document.original_filename = report_filename
+            document.size = len(payload)
+            document.sha256 = hashlib.sha256(payload).hexdigest()
+            document.uploaded_by = auditor
+            document.file.save(report_filename, ContentFile(payload), save=False)
         document.save()
         return document
 

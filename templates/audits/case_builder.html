@@ -71,7 +71,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="ui-card-support">Cargue el informe elaborado en Word antes de solicitar aprobación.</p>
+            <p class="ui-card-support">Cargue el informe elaborado en PDF antes de solicitar aprobación.</p>
             {% endif %}
             <div class="ui-card-actions"><a class="ui-button ui-button-tonal" href="{% url 'case_report_upload' case.pk %}">{% ui_icon "upload" %}Cargar informe</a></div>
         </section>

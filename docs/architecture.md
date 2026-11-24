@@ -54,10 +54,10 @@ La publicación y el cierre requieren una decisión de la Dirección de Auditor�
 
 Los formatos iniciales permitidos son PDF, JPG, PNG, DOCX y XLSX. La validación comprueba extensión, tamaño, firma básica y estructura interna de los documentos de Office. En producción, ClamAV verifica las cargas antes de aceptarlas y se repite el análisis al descargar documentos privados, después de comprobar los permisos. Si el motor rechaza el archivo o no está disponible, se impide la operación. Las evidencias antiguas pendientes pueden verificarse mediante `scan_pending_evidence`. Consulte [la guía de despliegue seguro](production-security.md).
 
-Los nuevos informes se elaboran fuera del sistema y se cargan en Word. Cada carga crea una
+Los nuevos informes se elaboran fuera del sistema y se cargan en PDF. Cada carga crea una
 versión independiente. La Dirección aprueba o devuelve el informe completo; solamente la
-versión aprobada se publica para la institución. Los PDF y Word anteriores se conservan en el
-repositorio de informes anteriores.
+versión aprobada se publica para la institución. Los informes anteriores en PDF o Word se
+conservan en el repositorio de informes anteriores.
 
 Las respuestas institucionales siempre requieren al menos un documento. La validación rechaza
 el envío si no se adjunta ningún archivo. Una institución puede
