@@ -82,21 +82,10 @@
             <div class="ui-chips">{% if publication_issues %}<span class="ui-chip ui-chip-warning">{% ui_icon "alert" %}Falta{{ publication_issues|length|pluralize:"n" }} {{ publication_issues|length }}</span>{% else %}<span class="ui-chip ui-chip-success">{% ui_icon "check" %}Listo</span>{% endif %}</div>
             <h2 class="ui-card-title" id="builder-next-title">Revisión final</h2>
             <p class="ui-card-support">{% if publication_issues %}Falta completar {{ publication_issues|length }} requisito{{ publication_issues|length|pluralize }}.{% else %}El expediente está listo para solicitar aprobación.{% endif %}</p>
+            {% if publication_issues %}<ul class="ui-plain-list" aria-label="Requisitos pendientes">{% for issue in publication_issues %}<li>{{ issue }}</li>{% endfor %}</ul>{% endif %}
             <div class="ui-card-actions"><a class="ui-button ui-button-filled ui-button-large ui-button-block" href="{% url 'case_publish' case.pk %}">Revisar expediente{% ui_icon "forward" %}</a></div>
         </section>
     </aside>
-    <section class="ui-card ui-layout-full ui-card-centered" aria-labelledby="report-versions-title">
-        <div class="ui-section-head"><h2 class="ui-card-title" id="report-versions-title">Informe</h2><a class="ui-button ui-button-text" href="{% url 'case_report_upload' case.pk %}">{% ui_icon "upload" %}Cargar informe</a></div>
-        {% if documents %}
-        <div class="ui-list">
-            {% for document in documents %}
-            <a class="ui-list-row" href="{% url 'download_audit_document' document.pk %}">{% ui_icon "file" %}<span class="ui-list-text"><span class="ui-list-title">Versión {{ document.version }} · {{ document.title }}</span><span class="ui-list-support">{{ document.reference|default:"Sin referencia" }} · {{ document.get_status_display }} · {{ document.uploaded_at|date:"j b Y" }}</span></span>{% ui_icon "download" %}</a>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="ui-card-support">Cargue el informe elaborado en Word antes de solicitar aprobación.</p>
-        {% endif %}
-    </section>
     </div>
 </div>
 {% endblock %}
