@@ -1,0 +1,37 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "siga-dev",
+      "runtimeExecutable": ".venv\\Scripts\\python.exe",
+      "runtimeArgs": [
+        "manage.py",
+        "runserver",
+        "127.0.0.1:8010",
+        "--noreload"
+      ],
+      "port": 8010,
+      "autoPort": false
+    },
+    {
+      "name": "siga-mobile",
+      "runtimeExecutable": ".venv\\Scripts\\python.exe",
+      "runtimeArgs": [
+        "manage.py",
+        "runserver",
+        "127.0.0.1:8011"
+      ],
+      "port": 8011,
+      "autoPort": false
+    },
+    {
+      "name": "siga-visualcheck",
+      "runtimeExecutable": ".venv\\Scripts\\python.exe",
+      "runtimeArgs": [
+        "C:\\Users\\caleb\\AppData\\Local\\Temp\\claude\\56dd467920862bde\\80f611cb-fb38-4c9e-9a00-8ce38fe1aff8\\scratchpad\\visualcheck\\run.py"
+      ],
+      "port": 8012,
+      "autoPort": false
+    }
+  ]
+}

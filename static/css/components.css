@@ -133,6 +133,8 @@ body {
         grid-template-columns: var(--ui-aside-width) minmax(0, 1fr);
     }
     .ui-layout-aside { position: sticky; top: var(--ui-space-8); }
+    .ui-layout-empty-state { align-items: stretch; }
+    .ui-layout-empty-state > .ui-layout-aside > .ui-card { flex: 1; }
 }
 
 .ui-layout-full { grid-column: 1 / -1; }
