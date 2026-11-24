@@ -181,6 +181,14 @@ def make_docx_upload(filename="informe.docx"):
     )
 
 
+def make_pdf_upload(filename="informe.pdf"):
+    return SimpleUploadedFile(
+        filename,
+        b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF",
+        content_type="application/pdf",
+    )
+
+
 @override_settings(MEDIA_ROOT=SEED_TEST_MEDIA_ROOT, FILE_SCAN_REQUIRED=False)
 class SeedDemoCommandTests(TestCase):
     @classmethod
@@ -848,6 +856,7 @@ class AccessAndWorkflowTests(TestCase):
         self.assertEqual(created_case.status, AuditCase.Status.DRAFT)
         self.assertEqual(created_case.assigned_auditor, self.auditor)
         self.assertEqual(created_case.created_by, self.auditor)
+        report_file = make_pdf_upload("informe.pdf")
         report_document = AuditDocument.objects.create(
             case=created_case,
             organization=self.center,
@@ -858,9 +867,9 @@ class AccessAndWorkflowTests(TestCase):
             version=1,
             status=AuditDocument.Status.DRAFT,
             visibility=AuditDocument.Visibility.AUDIT_ONLY,
-            file=SimpleUploadedFile("informe.docx", b"documento de prueba"),
-            original_filename="informe.docx",
-            size=19,
+            file=report_file,
+            original_filename=report_file.name,
+            size=report_file.size,
             sha256="0" * 64,
             uploaded_by=self.auditor,
         )
@@ -989,7 +998,7 @@ class AccessAndWorkflowTests(TestCase):
         self.client.force_login(self.auditor)
         result = self.client.post(reverse("case_publish", args=[draft_case.pk]))
         self.assertEqual(result.status_code, 200)
-        self.assertContains(result, "Cargue el informe elaborado en Word")
+        self.assertContains(result, "Cargue el informe elaborado en PDF")
         draft_case.refresh_from_db()
         self.assertEqual(draft_case.status, AuditCase.Status.DRAFT)
 
@@ -1636,9 +1645,9 @@ class AccessAndWorkflowTests(TestCase):
             [self.center],
         )
 
-    def test_auditor_can_upload_versioned_word_report(self):
+    def test_auditor_can_upload_versioned_pdf_report(self):
         draft_case = AuditCase.objects.create(
-            reference="IA-WORD-001",
+            reference="IA-PDF-001",
             title="Informe elaborado externamente",
             audited_organization=self.center,
             report_date=date.today(),
@@ -1649,22 +1658,26 @@ class AccessAndWorkflowTests(TestCase):
         )
         self.client.force_login(self.auditor)
 
+        upload_form = self.client.get(reverse("case_report_upload", args=[draft_case.pk]))
+        self.assertContains(upload_form, 'accept=".pdf"', html=False)
+        self.assertContains(upload_form, "Cargue el informe elaborado en PDF (.pdf).")
+
         first_upload = self.client.post(
             reverse("case_report_upload", args=[draft_case.pk]),
             {
-                "reference": "BI-WORD-001",
+                "reference": "BI-PDF-001",
                 "title": "Borrador de informe",
                 "document_date": (date.today() + timedelta(days=1)).isoformat(),
-                "file": make_docx_upload("borrador-v1.docx"),
+                "file": make_pdf_upload("borrador-v1.pdf"),
             },
         )
         second_upload = self.client.post(
             reverse("case_report_upload", args=[draft_case.pk]),
             {
-                "reference": "BI-WORD-001",
+                "reference": "BI-PDF-001",
                 "title": "Borrador corregido",
                 "document_date": date.today().isoformat(),
-                "file": make_docx_upload("borrador-v2.docx"),
+                "file": make_pdf_upload("borrador-v2.pdf"),
             },
         )
 
@@ -1705,10 +1718,10 @@ class AccessAndWorkflowTests(TestCase):
         )
         self.assertEqual(decision.document.version, 2)
 
-    def test_case_report_rejects_pdf_even_when_it_is_valid(self):
+    def test_case_report_rejects_docx_even_when_it_is_valid(self):
         draft_case = AuditCase.objects.create(
-            reference="IA-WORD-ONLY",
-            title="Informe que debe permanecer en Word",
+            reference="IA-PDF-ONLY",
+            title="Informe que debe cargarse en PDF",
             audited_organization=self.center,
             status=AuditCase.Status.DRAFT,
             assigned_auditor=self.auditor,
@@ -1719,20 +1732,46 @@ class AccessAndWorkflowTests(TestCase):
         response = self.client.post(
             reverse("case_report_upload", args=[draft_case.pk]),
             {
-                "reference": "BI-WORD-ONLY",
+                "reference": "BI-PDF-ONLY",
                 "title": "Informe incorrecto",
                 "document_date": date.today().isoformat(),
-                "file": SimpleUploadedFile(
-                    "informe.pdf",
-                    b"%PDF-1.4\ncontenido",
-                    content_type="application/pdf",
-                ),
+                "file": make_docx_upload("informe.docx"),
             },
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "formato Word (.docx)")
+        self.assertContains(response, "formato PDF (.pdf)")
         self.assertFalse(draft_case.documents.exists())
+
+    def test_publication_rejects_an_existing_docx_report(self):
+        draft_case = AuditCase.objects.create(
+            reference="IA-LEGACY-DOCX",
+            title="Informe previo en Word",
+            audited_organization=self.center,
+            status=AuditCase.Status.DRAFT,
+            assigned_auditor=self.auditor,
+            created_by=self.auditor,
+        )
+        AuditDocument.objects.create(
+            case=draft_case,
+            organization=self.center,
+            document_type=AuditDocument.DocumentType.REPORT,
+            reference="BI-LEGACY-DOCX",
+            title="Informe Word",
+            version=1,
+            status=AuditDocument.Status.DRAFT,
+            visibility=AuditDocument.Visibility.AUDIT_ONLY,
+            file=make_docx_upload("informe.docx"),
+            original_filename="informe.docx",
+            size=1,
+            sha256="d" * 64,
+            uploaded_by=self.auditor,
+        )
+
+        self.assertIn(
+            "La versión que se someterá a aprobación debe estar en formato PDF (.pdf).",
+            publication_issues(draft_case),
+        )
 
     def test_business_day_extension_skips_weekend_and_holiday(self):
         BusinessDayHoliday.objects.create(

@@ -202,17 +202,17 @@ class CaseReportDocumentForm(forms.ModelForm):
         fields = ("reference", "title", "document_date", "file")
         widgets = {
             "document_date": DateInput(),
-            "file": forms.ClearableFileInput(attrs={"accept": ".docx"}),
+            "file": forms.ClearableFileInput(attrs={"accept": ".pdf"}),
         }
         help_texts = {
-            "file": "Cargue el informe elaborado en Word (.docx).",
+            "file": "Cargue el informe elaborado en PDF (.pdf).",
             "reference": "Referencia que aparecerá en el historial del centro.",
         }
 
     def clean_file(self):
         document = self.cleaned_data.get("file")
-        if document and Path(document.name).suffix.lower() != ".docx":
-            raise forms.ValidationError("El informe debe cargarse en formato Word (.docx).")
+        if document and Path(document.name).suffix.lower() != ".pdf":
+            raise forms.ValidationError("El informe debe cargarse en formato PDF (.pdf).")
         return document
 
 

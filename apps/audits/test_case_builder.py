@@ -172,7 +172,7 @@ class CaseBuilderAssistanceTests(TestCase):
         page = self.client.get(reverse("case_builder", args=[self.case.pk]))
         self.assertNotContains(page, "Complete el criterio, la causa y el efecto del hallazgo 1.")
         self.assertNotContains(page, "Complete las evidencias requeridas de la recomendación 1.1.")
-        self.assertContains(page, "Cargue el informe elaborado en Word antes de solicitar su aprobación.")
+        self.assertContains(page, "Cargue el informe elaborado en PDF antes de solicitar su aprobación.")
 
     def test_duplicate_recommendation_creates_next_number_and_opens_it(self):
         self.recommendation.evidence_requirements = "Conciliaciones firmadas."
