@@ -139,6 +139,7 @@ body {
 
 .ui-layout-full { grid-column: 1 / -1; }
 .ui-layout > .ui-back { justify-self: start; margin-bottom: calc(var(--ui-space-4) * -1); }
+.ui-card-centered { width: 100%; max-width: var(--ui-form-max); justify-self: center; }
 
 /* Tarjetas que se reparten en columnas cuando hay espacio y se apilan cuando no. */
 .ui-card-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ui-space-4); }
