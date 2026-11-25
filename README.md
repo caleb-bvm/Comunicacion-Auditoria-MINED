@@ -65,6 +65,14 @@ El seed deja siete expedientes de demostración: una publicación pendiente de a
 
 Dos de los expedientes publicados se basan en los informes `IA/NA-043-2024` del Centro Escolar Florinda B. González (código 10471) e `IA/NA-046-2024` del Complejo Educativo Comunidad 10 de Octubre (código 11489). Ambos centros quedan activos en el catálogo, pero sin usuario institucional, para que la demostración incluya el flujo de activación desde el perfil de Dirección antes de presentar respuestas.
 
+## Servidor de pruebas en Windows
+
+Para que el equipo de auditoría pruebe el sistema desde la red local, haga doble
+clic en `instalar-servidor.cmd` en una computadora con Windows 10 u 11. El
+instalador descarga lo necesario (Python, PostgreSQL, ClamAV e IIS), pregunta en la
+consola los datos de correo y de la cuenta de administración, y deja SIGA en HTTPS
+con inicio automático. Consulte la [guía del servidor de pruebas](docs/windows-test-server.md).
+
 ## Verificaciones
 
 ```powershell
