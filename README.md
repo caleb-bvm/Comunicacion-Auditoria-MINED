@@ -29,35 +29,35 @@ Primera base funcional para registrar expedientes, hallazgos, recomendaciones, r
 
 ## Inicio local en Windows
 
-Para iniciar normalmente el proyecto y permitir el acceso desde una PC y un teléfono
+Para preparar e iniciar el proyecto y permitir el acceso desde una PC y un teléfono
 Android conectados a la misma red o hotspot, use un solo comando:
 
 ```powershell
 .\iniciar.ps1
 ```
 
-El iniciador detecta automáticamente la dirección IPv4 activa, aplica las migraciones,
-muestra los enlaces para la PC y Android, y publica el servidor en el puerto `8000`.
+La primera vez prepara lo que falte y pregunta en la consola lo necesario:
+Python 3.12 o posterior (lo instala si no existe), el entorno `.venv`, los paquetes,
+PostgreSQL (ofrece instalar la versión 16), la base `siga_mineducyt_dev` con su
+usuario y `.env.development`, y ofrece cargar los datos de demostración. Las veces
+siguientes solo instala los paquetes nuevos si cambió `requirements.txt`, aplica
+las migraciones y levanta el servidor en el puerto `8000`, mostrando los enlaces
+para la PC y Android.
+
+| Opción | Uso |
+| --- | --- |
+| `-DatosDemo` | Carga o actualiza los datos de demostración. |
+| `-Configurar` | Vuelve a crear el usuario y la base de PostgreSQL (pide la contraseña de `postgres`). |
+| `-SoloEstaPC` | Acepta conexiones solo desde esta PC. |
+| `-Port 8010` | Usa otro puerto. |
+
 Si el puerto ya está ocupado, detenga el servidor anterior con `Ctrl+C` y ejecute el
 comando nuevamente. La dirección puede cambiar al reconectarse al hotspot, por lo que
 debe utilizar el enlace que muestre el iniciador en cada sesión.
 
-Para la preparación inicial del proyecto:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-Copy-Item .env.development.example .env.development
-# Complete las credenciales de PostgreSQL en .env.development
-.\.venv\Scripts\python.exe manage.py migrate
-.\.venv\Scripts\python.exe manage.py seed_demo
-.\iniciar.ps1
-```
-
-El desarrollo utiliza PostgreSQL. La base y el usuario indicados en
-`.env.development` deben existir antes de ejecutar las migraciones. El archivo
-local contiene credenciales y está excluido de Git; `.env.development.example`
-sirve únicamente como plantilla.
+`.env.development` contiene credenciales y está excluido de Git;
+`.env.development.example` muestra su formato si prefiere completarlo a mano (por
+ejemplo, con PostgreSQL en otro equipo).
 
 La primera ejecución de `seed_demo` genera credenciales temporales y las muestra una sola vez en la consola. Las ejecuciones posteriores actualizan los datos de ejemplo, pero conservan esas contraseñas. Para regenerarlas deliberadamente, use `python manage.py seed_demo --reset-passwords`. Solo debe utilizarse en desarrollo local.
 
