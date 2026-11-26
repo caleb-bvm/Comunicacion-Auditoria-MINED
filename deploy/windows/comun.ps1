@@ -13,6 +13,15 @@ $SigaSecretsRoot = Join-Path $SigaDataRoot "secretos"
 $SigaPython = Join-Path $SigaAppRoot ".venv\Scripts\python.exe"
 $SigaManage = Join-Path $SigaAppRoot "manage.py"
 
+function Set-SigaUtf8Console {
+    # winget y Python (con PYTHONUTF8=1) escriben en UTF-8, pero Windows PowerShell 5.1
+    # decodifica su salida con la página de códigos de la consola (850 en español), y
+    # "ó" aparece como "├│". Sin consola (tareas programadas) el cambio puede fallar.
+    $utf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false
+    try { [Console]::OutputEncoding = $utf8 } catch { }
+    $global:OutputEncoding = $utf8
+}
+
 function Read-SigaEnvFile {
     param([string]$Path = $SigaEnvPath)
 

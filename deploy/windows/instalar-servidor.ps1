@@ -21,6 +21,7 @@ param(
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 . (Join-Path $PSScriptRoot "comun.ps1")
+Set-SigaUtf8Console
 
 $sourceRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $pythonBase = Join-Path $env:ProgramFiles "Python312\python.exe"

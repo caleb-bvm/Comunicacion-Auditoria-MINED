@@ -14,6 +14,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "comun.ps1")
+Set-SigaUtf8Console
 
 $logPath = Join-Path $SigaLogRoot "$Mode.log"
 

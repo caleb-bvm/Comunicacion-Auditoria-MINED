@@ -22,6 +22,7 @@ param(
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 . (Join-Path $PSScriptRoot "deploy\windows\comun.ps1")
+Set-SigaUtf8Console
 
 $projectRoot = $PSScriptRoot
 $venvPath = Join-Path $projectRoot ".venv"

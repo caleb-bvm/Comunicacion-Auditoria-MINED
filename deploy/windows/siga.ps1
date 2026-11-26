@@ -4,6 +4,7 @@
 #   & "C:\Program Files\SIGA-MINEDUCYT\deploy\windows\siga.ps1" import_center_emails C:\carga\Listado.xlsx --dry-run
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "comun.ps1")
+Set-SigaUtf8Console
 
 $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
