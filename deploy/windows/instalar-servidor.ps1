@@ -659,8 +659,14 @@ function Set-Firewall {
 function Register-Tasks {
     $powershell = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
     $runner = Join-Path $SigaAppRoot "deploy\windows\servicio.ps1"
-    $localService = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\LOCAL SERVICE" -LogonType ServiceAccount -RunLevel Limited
-    $system = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+    # Los nombres de cuenta cambian con el idioma de Windows ("NT AUTHORITY\SERVICIO LOCAL" en
+    # español), así que se obtienen a partir de los SID conocidos.
+    function Get-AccountName([string]$Sid) {
+        (New-Object System.Security.Principal.SecurityIdentifier($Sid)).Translate(
+            [System.Security.Principal.NTAccount]).Value
+    }
+    $localService = New-ScheduledTaskPrincipal -UserId (Get-AccountName "S-1-5-19") -LogonType ServiceAccount -RunLevel Limited
+    $system = New-ScheduledTaskPrincipal -UserId (Get-AccountName "S-1-5-18") -LogonType ServiceAccount -RunLevel Highest
 
     function New-Action([string]$Mode) {
         New-ScheduledTaskAction -Execute $powershell -WorkingDirectory $SigaAppRoot `
