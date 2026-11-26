@@ -123,7 +123,9 @@ function Install-SshServer {
         $keyAuthorized = $false
     }
     $addresses = @(Get-LanAddress)
-    $user = $env:USERNAME
+    # Siempre usuario@equipo (o usuario@dominio): en equipos del dominio MINED, la
+    # cuenta local "MINED" se confunde con el dominio y sshd la rechaza como inválida.
+    $user = "$($env:USERNAME.ToLowerInvariant())@$env:USERDOMAIN"
     if (-not (Get-NetTCPConnection -LocalPort 22 -State Listen -ErrorAction SilentlyContinue)) {
         Show-Note 'El servicio no está escuchando en el puerto 22. Reinicie el equipo y vuelva a ejecutar este archivo.'
     }
@@ -185,6 +187,8 @@ function Write-SshDiagnostics([string]$Path) {
         Get-Content (Join-Path $sshData 'sshd_config') -ErrorAction SilentlyContinue | Where-Object { $_ -match '^\s*[^#\s]' }
         '== Servicio'
         Get-Service sshd | Format-List Name, Status, StartType | Out-String
+        '== Contraseñas vacías (LimitBlankPasswordUse: 1 = solo en la consola)'
+        (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa' -ErrorAction SilentlyContinue).LimitBlankPasswordUse
         (Get-Command sshd.exe -ErrorAction SilentlyContinue).Source
         Get-ItemProperty 'HKLM:\SOFTWARE\OpenSSH' -ErrorAction SilentlyContinue | Format-List DefaultShell | Out-String
         '== Registro de OpenSSH (más reciente primero)'
@@ -380,15 +384,27 @@ if (-not $mode) {
     Write-Host ''
     Write-Host '  1. Este equipo es el SERVIDOR (donde está instalado SIGA). Hágalo primero.'
     Write-Host '  2. Este equipo es MI COMPUTADORA (desde donde me conecto).'
+    Write-Host '  3. Solo guardar el diagnóstico del servidor (en el servidor).'
     Write-Host ''
-    $choice = Read-Host 'Elija 1 o 2'
-    $mode = switch ("$choice".Trim()) { '1' { 'servidor' } '2' { 'cliente' } default { '' } }
+    $choice = Read-Host 'Elija 1, 2 o 3'
+    $mode = switch ("$choice".Trim()) { '1' { 'servidor' } '2' { 'cliente' } '3' { 'diagnostico' } default { '' } }
 }
 
 try {
     switch ($mode) {
         'servidor' { Install-SshServer }
         'cliente' { Connect-SshClient }
+        'diagnostico' {
+            if (-not (Test-Administrator)) {
+                Write-Host 'Se necesitan permisos de administrador. Acepte el aviso de Windows.'
+                Start-Process -FilePath $ScriptFile -ArgumentList 'diagnostico' -Verb RunAs
+                Write-Host 'Continúe en la ventana nueva; puede cerrar esta.'
+            } else {
+                $diagnostics = Join-Path $ScriptDir 'diagnostico-ssh.txt'
+                Write-SshDiagnostics -Path $diagnostics
+                Write-Host "Diagnóstico guardado en $diagnostics" -ForegroundColor Green
+            }
+        }
         default { Write-Host 'Opción no válida. Ejecute el archivo otra vez y elija 1 o 2.' -ForegroundColor Yellow }
     }
 } catch {
