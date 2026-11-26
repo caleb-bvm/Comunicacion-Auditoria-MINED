@@ -190,7 +190,7 @@ function Install-SshAccount {
     } else {
         $password = ConvertTo-SecureString (New-RandomPassword) -AsPlainText -Force
         New-LocalUser -Name $SshUser -Password $password -PasswordNeverExpires -AccountNeverExpires `
-            -FullName 'SIGA SSH' -Description 'Acceso SSH con llave para administrar SIGA-MINEDUCYT.' | Out-Null
+            -FullName 'SIGA SSH' -Description 'Acceso SSH de SIGA (solo con llave)' | Out-Null
         Show-Ok 'Cuenta creada con una contraseña aleatoria que no se guarda en ningún lado.'
     }
 
