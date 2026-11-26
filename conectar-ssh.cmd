@@ -405,7 +405,7 @@ try {
                 Write-Host "Diagnóstico guardado en $diagnostics" -ForegroundColor Green
             }
         }
-        default { Write-Host 'Opción no válida. Ejecute el archivo otra vez y elija 1 o 2.' -ForegroundColor Yellow }
+        default { Write-Host 'Opción no válida. Ejecute el archivo otra vez y elija 1, 2 o 3.' -ForegroundColor Yellow }
     }
 } catch {
     Write-Host ''
