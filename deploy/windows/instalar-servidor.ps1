@@ -359,7 +359,7 @@ function Set-EmailSettings {
         $env:EMAIL_HOST_PASSWORD = $smtpPassword
         $env:EMAIL_USE_SSL = if ($useSsl) { "true" } else { "false" }
         Write-Info "Probando la conexión..."
-        $code = Invoke-AppPython -Arguments @((Join-Path $SigaAppRoot "deploy\windows\probar_smtp.py"))
+        $code = Invoke-AppPython -Arguments @((Join-Path $SigaAppRoot "deploy\probar_smtp.py"))
         Remove-Item Env:EMAIL_HOST_PASSWORD -ErrorAction SilentlyContinue
         if ($code -eq 0) {
             break
@@ -442,7 +442,7 @@ function Initialize-Django {
         "*S-1-5-32-568:(OI)(CI)RX", "*S-1-5-17:(OI)(CI)RX", "/T", "/C")
     Write-Ok "Migraciones y archivos estáticos listos"
 
-    $adminScript = Join-Path $SigaAppRoot "deploy\windows\crear_admin.py"
+    $adminScript = Join-Path $SigaAppRoot "deploy\crear_admin.py"
     if ((Invoke-AppPython -Arguments @($adminScript, "existe")) -eq 0) {
         Write-Ok "Ya existe una cuenta de administración técnica"
         return

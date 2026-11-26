@@ -1,15 +1,17 @@
-"""Crea la primera cuenta de administración técnica (lo usa instalar-servidor.ps1).
+"""Crea la primera cuenta de administración técnica (lo usan los instaladores
+deploy/instalar-servidor.sh y deploy/windows/instalar-servidor.ps1).
 
   python crear_admin.py existe   -> código 0 si ya hay una cuenta technical_admin activa
   python crear_admin.py crear    -> crea la cuenta con las variables SIGA_ADMIN_*
 
-La contraseña llega por variable de entorno para no aparecer en la línea de comandos.
+La contraseña llega por SIGA_ADMIN_PASSWORD o, si falta, por la primera línea de la
+entrada estándar, para no aparecer en la línea de comandos.
 """
 import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.production")
 
 import django  # noqa: E402
@@ -43,7 +45,7 @@ def create_admin():
         # La persona que instala elige su propia contraseña; no es temporal.
         must_change_password=False,
     )
-    password = os.environ["SIGA_ADMIN_PASSWORD"]
+    password = os.environ.get("SIGA_ADMIN_PASSWORD") or sys.stdin.readline().rstrip("\r\n")
     try:
         validate_password(password, user)
     except ValidationError as exc:

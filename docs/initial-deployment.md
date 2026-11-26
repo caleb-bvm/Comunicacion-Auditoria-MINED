@@ -30,6 +30,47 @@ necesita un espacio parecido en el repositorio externo.
 La versión que se instala debe estar en la rama `master` con el CI aprobado
 (`check`, migraciones, pruebas y `pip-audit`).
 
+## Instalación con un solo comando
+
+En Ubuntu 24.04 o Debian 13 (o posteriores), el instalador interactivo hace los
+pasos 1 a 12 de esta guía. Con la cuenta de administración del servidor:
+
+```bash
+sudo apt update && sudo apt install -y git
+sudo git clone --branch master <URL-del-repositorio> /srv/siga-mineducyt
+cd /srv/siga-mineducyt
+sudo bash deploy/instalar-servidor.sh
+```
+
+Instala los paquetes, crea el usuario del servicio y pregunta en la terminal:
+
+| Pregunta | Qué responder |
+| --- | --- |
+| Dominio del sistema | El dominio que TI apuntó al servidor, por ejemplo `auditoria.mined.gob.sv` |
+| Certificado HTTPS | **1** con los archivos del Ministerio: `.pem`/`.crt`/`.cer` con su `.key`, o un `.pfx`/`.p12` con su contraseña. Cópielos antes al servidor (por ejemplo, con `scp` a `/root/`). **2** genera un certificado temporal para pruebas |
+| Correo SMTP | Servidor, puerto, usuario y contraseña. Se prueba la conexión antes de guardarlo |
+| PostgreSQL | **S** lo instala en el mismo servidor. **N** usa un servidor de TI con `verify-full`: pide servidor, base, usuario, contraseña y el certificado de su autoridad |
+| Respaldo | Dirección del repositorio restic externo (`rest:https://…` o `s3:…`). Lo inicializa y genera su clave |
+| Cuenta de administración técnica | Usuario, nombre, correo y contraseña (mínimo 12 caracteres) |
+
+Después configura ClamAV, copia el código, escribe `/etc/siga-mineducyt/production.env`,
+abre 80 y 443 si hay un firewall `ufw` activo, ejecuta `install-production.sh`
+(paso 9) y crea la cuenta. También instala el comando `siga` (paso 11) en
+`/usr/local/bin`. El certificado queda en `/etc/siga-mineducyt/tls/` y las respuestas
+en `/etc/siga-mineducyt/instalador.env`; el registro completo, en
+`/var/log/siga-mineducyt-instalacion.log`.
+
+Guarde una copia de `/etc/siga-mineducyt/restic-password` fuera del servidor (paso 8).
+Si eligió el certificado temporal, cada equipo debe instalar
+`/usr/local/share/siga-mineducyt/SIGA-MINEDUCYT-CA.crt` como autoridad de confianza.
+Cuando llegue el certificado del Ministerio, cámbielo con
+`sudo bash deploy/instalar-servidor.sh --reconfigurar`, que vuelve a preguntar todo
+y ofrece los valores actuales como respuesta predeterminada.
+
+Continúe en el paso 10 (firewall de TI) y luego en el 13. Las secciones 1 a 12
+siguientes describen lo mismo a mano, para otro sistema o para revisar qué hace
+el instalador.
+
 ## 1. Instalar los programas del servidor
 
 ```bash

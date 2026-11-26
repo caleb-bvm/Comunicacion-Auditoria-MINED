@@ -111,8 +111,13 @@ administración del servidor:
 ```bash
 cd /srv/siga-mineducyt
 sudo git pull --ff-only
-sudo bash deploy/install-production.sh --domain auditoria.mined.gob.sv     --cert /etc/ssl/siga/fullchain.pem --key /etc/ssl/siga/privkey.pem
+sudo bash deploy/instalar-servidor.sh
 ```
+
+Si el servidor se instaló a mano (sin `instalar-servidor.sh`), use en su lugar
+`sudo bash deploy/install-production.sh --domain auditoria.mined.gob.sv --cert /etc/ssl/siga/fullchain.pem --key /etc/ssl/siga/privkey.pem`.
+`instalar-servidor.sh` reutiliza lo guardado en `/etc/siga-mineducyt`, no pregunta
+nada y termina llamando a `install-production.sh`.
 
 El instalador solo ejecuta `pip` cuando cambia `requirements.txt`. Si únicamente
 cambió el código, recarga Gunicorn sin cortar las solicitudes en curso: los

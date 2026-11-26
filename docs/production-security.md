@@ -97,7 +97,7 @@ Las pruebas locales automatizadas simulan las respuestas del antivirus. No susti
 
 ## Referencias de implementación
 
-Verificación local del 21 de octubre de 2026: 199 pruebas aprobadas sobre PostgreSQL; comprobación de producción sin errores y con las dos advertencias HSTS descritas arriba; `pip-audit` sin vulnerabilidades conocidas. La validación de las plantillas de `deploy/` en Linux queda pendiente del servidor de ensayo.
+Verificación local del 21 de octubre de 2026: 199 pruebas aprobadas sobre PostgreSQL; comprobación de producción sin errores y con las dos advertencias HSTS descritas arriba; `pip-audit` sin vulnerabilidades conocidas. El 26 de noviembre de 2026, `deploy/instalar-servidor.sh` y `install-production.sh` se ejecutaron completos en un contenedor Ubuntu 24.04 con systemd: PostgreSQL local, ClamAV real, SMTP de prueba con STARTTLS, certificado temporal y luego un PFX con cadena intermedia, respaldo restic a disco local y una segunda ejecución como actualización (recarga sin cortes). Quedan por comprobar en el servidor de ensayo la base de datos remota con `verify-full`, `LoadCredential` del respaldo (el contenedor no lo admite) y un repositorio restic externo.
 
 - [Instalación y operación de Django Axes](https://django-axes.readthedocs.io/en/latest/2_installation.html).
 - [Protocolo INSTREAM de ClamAV](https://docs.clamav.net/manual/Usage/ClamdProtocol.html).

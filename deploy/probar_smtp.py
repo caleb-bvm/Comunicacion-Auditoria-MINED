@@ -1,6 +1,6 @@
 """Prueba la conexión SMTP con las variables EMAIL_* antes de guardarlas.
 
-Lo usa instalar-servidor.ps1; recibe los datos por variables de entorno para no
+Lo usan los instaladores de Linux y Windows; recibe los datos por variables de entorno para no
 exponer la contraseña en la línea de comandos.
 """
 import os

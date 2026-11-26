@@ -291,9 +291,11 @@ systemctl reload nginx
 (umask 077; printf 'deps=%s\nrestart=%s\n' "$deps_hash" "$restart_hash" >"$DEPLOY_STATE.tmp")
 mv "$DEPLOY_STATE.tmp" "$DEPLOY_STATE"
 
-systemctl --no-pager --full status siga-mineducyt.service
-systemctl --no-pager --full status siga-mineducyt-overdue.service
-systemctl --no-pager list-timers 'siga-mineducyt-*'
+# status devuelve 3 si la unidad no está activa (siempre en una tarea oneshot ya terminada):
+# es informativo y no debe hacer fallar un despliegue correcto.
+systemctl --no-pager --full status siga-mineducyt.service || true
+systemctl --no-pager --full status siga-mineducyt-overdue.service || true
+systemctl --no-pager list-timers 'siga-mineducyt-*' || true
 
 echo
 echo "Despliegue completado: https://$DOMAIN"

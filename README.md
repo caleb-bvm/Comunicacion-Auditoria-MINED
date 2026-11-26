@@ -105,7 +105,15 @@ La aplicación de producción usa `config.settings.production`, PostgreSQL y var
 
 Antes de iniciar o reiniciar el servicio, el servidor ejecuta `python manage.py deployment_preflight`. La comprobación debe finalizar con cinco resultados `[OK]`: base de datos, migraciones, almacenamiento privado, antivirus y correo SMTP. Un fallo impide el arranque para evitar publicar una instalación parcialmente operativa.
 
-Cuando el código, el entorno virtual, `production.env`, PostgreSQL, ClamAV y el certificado TLS ya estén preparados en el servidor, el resto de la instalación se puede ejecutar de forma controlada con:
+En Ubuntu 24.04 o Debian 13 (o posteriores), la instalación completa se hace con un solo comando desde la copia del repositorio en `/srv/siga-mineducyt`:
+
+```bash
+sudo bash deploy/instalar-servidor.sh
+```
+
+Instala los paquetes y pregunta en la terminal el dominio, el certificado del Ministerio (PEM o PFX, o uno temporal de pruebas), el correo, la base de datos (local o del servidor de TI), el respaldo restic y la cuenta de administración técnica. Prepara PostgreSQL, ClamAV y `production.env`, ejecuta `install-production.sh` y deja el comando `siga` para administrar. Para actualizar se ejecuta de nuevo, sin preguntas; `--reconfigurar` vuelve a pedir los datos. Detalle en [Despliegue inicial](docs/initial-deployment.md#instalación-con-un-solo-comando).
+
+Cuando el código, el entorno virtual, `production.env`, PostgreSQL, ClamAV y el certificado TLS ya estén preparados en el servidor de otra forma, el resto de la instalación se puede ejecutar de forma controlada con:
 
 ```bash
 sudo bash ./deploy/install-production.sh --domain auditoria.mined.gob.sv \
