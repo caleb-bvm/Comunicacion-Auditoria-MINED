@@ -21,6 +21,7 @@ $InfoFile = Join-Path $ScriptDir 'servidor-ssh.txt'
 $HostAlias = 'siga-servidor'
 $SshDir = Join-Path $env:USERPROFILE '.ssh'
 $KeyPath = Join-Path $SshDir 'siga_servidor'
+$PublicKeyName = 'siga_servidor.pub'
 $WindowsPowerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 
 function Show-Step([string]$Text) { Write-Host ''; Write-Host "==> $Text" -ForegroundColor Cyan }
@@ -106,7 +107,21 @@ function Install-SshServer {
         }
     }
 
-    Show-Step '5/5 Datos para la otra computadora'
+    Show-Step '5/5 Llave de su computadora y datos para conectarse'
+    $usbKey = Join-Path $ScriptDir $PublicKeyName
+    if (Test-Path $usbKey) {
+        # La opción 2 dejó la llave pública junto a este archivo (por ejemplo, en una USB).
+        $publicKey = ([IO.File]::ReadAllText($usbKey)).Trim()
+        if ($publicKey -notmatch '^ssh-ed25519 \S+') { throw "$usbKey no parece una llave SSH pública." }
+        $result = & ([ScriptBlock]::Create((Get-AuthorizeKeyScript $publicKey)))
+        if ("$result" -notmatch 'SIGA-OK') { throw 'No se pudo autorizar la llave de su computadora.' }
+        Show-Ok "Llave de su computadora autorizada ($PublicKeyName)."
+        $keyAuthorized = $true
+    } else {
+        Show-Note "No hay $PublicKeyName junto a este archivo; si el servidor no tiene contraseña,"
+        Show-Note 'ejecute primero la opción 2 en su computadora y traiga la carpeta en una USB.'
+        $keyAuthorized = $false
+    }
     $addresses = @(Get-LanAddress)
     $user = $env:USERNAME
     if (-not (Get-NetTCPConnection -LocalPort 22 -State Listen -ErrorAction SilentlyContinue)) {
@@ -127,9 +142,12 @@ function Install-SshServer {
     Write-Host " Dirección IP : $($addresses -join ', ')" -ForegroundColor Green
     Write-Host " Usuario      : $user" -ForegroundColor Green
     Write-Host '------------------------------------------------------------'
-    Write-Host ' Anote estos datos y ejecute este mismo archivo en su computadora,'
-    Write-Host ' eligiendo la opción 2. Le pedirá la contraseña de Windows de este'
-    Write-Host ' equipo una sola vez (la contraseña, no el PIN).'
+    if ($keyAuthorized) {
+        Write-Host ' Vuelva a su computadora y ejecute la opción 2 para probar la conexión.'
+    } else {
+        Write-Host ' Anote estos datos y ejecute este mismo archivo en su computadora,'
+        Write-Host ' eligiendo la opción 2.'
+    }
     Write-Host ' Reserve esta IP en el router para que no cambie.'
 }
 
@@ -243,8 +261,35 @@ function Connect-SshClient {
     }
     Set-SshHostEntry -Address $address -User $user
     Show-Ok "Alias '$HostAlias' guardado en $(Join-Path $SshDir 'config')"
+    $usbKey = Join-Path $ScriptDir $PublicKeyName
+    $usbKeySaved = $false
+    try {
+        # Es la llave pública: puede viajar en una USB sin riesgo.
+        Copy-Item -LiteralPath "$KeyPath.pub" -Destination $usbKey -Force
+        $usbKeySaved = $true
+    } catch {
+        Show-Note "No se pudo copiar la llave pública junto a este archivo: $($_.Exception.Message)"
+    }
 
-    Show-Step '3/4 Autorizando la llave en el servidor'
+    Show-Step '3/4 Probando la conexión con la llave'
+    if (Test-KeyConnection) { return }
+    Show-Note 'El servidor todavía no reconoce la llave de esta computadora.'
+
+    Show-Step '4/4 Autorizando la llave en el servidor'
+    $answer = Read-Host '    ¿El usuario de Windows del servidor tiene contraseña? (S/N)'
+    if ($answer -notmatch '^[sS]') {
+        $carry = if ($usbKeySaved) { $usbKey } else { "$KeyPath.pub" }
+        Write-Host ''
+        Write-Host '------------------------------------------------------------'
+        Write-Host ' Windows no deja entrar por SSH con contraseña vacía, así que la'
+        Write-Host ' llave se autoriza en el propio servidor:'
+        Write-Host "  1. Copie a una USB este archivo y $PublicKeyName (está en"
+        Write-Host "     $carry)."
+        Write-Host '  2. En el servidor, ejecute el archivo desde la USB con la opción 1.'
+        Write-Host '  3. Vuelva aquí y ejecute la opción 2 otra vez para probar.'
+        Write-Host '------------------------------------------------------------'
+        return
+    }
     Write-Host '    Escriba la contraseña de Windows del servidor cuando la pida (no se verá al escribir).'
     $publicKey = ([IO.File]::ReadAllText("$KeyPath.pub")).Trim()
     $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes((Get-AuthorizeKeyScript $publicKey)))
@@ -263,18 +308,24 @@ function Connect-SshClient {
         throw 'El usuario es administrador, pero la sesión SSH no pudo escribir en C:\ProgramData\ssh. Ejecute la opción 1 en el servidor y vuelva a intentarlo.'
     }
     Show-Ok 'Llave autorizada.'
-
-    Show-Step '4/4 Probando la conexión sin contraseña'
-    $remoteName = & ssh.exe -o BatchMode=yes -o ConnectTimeout=10 $HostAlias 'hostname'
-    if ($LASTEXITCODE -ne 0) {
+    if (-not (Test-KeyConnection)) {
         throw 'La llave quedó instalada, pero el servidor todavía pide contraseña. Ejecute la opción 1 en el servidor otra vez.'
     }
+}
+
+function Test-KeyConnection {
+    # BatchMode impide que ssh pida contraseña: solo vale la llave. Con 'Stop',
+    # PowerShell 5.1 convertiría en excepción el stderr redirigido de ssh.
+    $ErrorActionPreference = 'Continue'
+    $remoteName = & ssh.exe -o BatchMode=yes -o ConnectTimeout=10 $HostAlias 'hostname' 2>$null
+    if ($LASTEXITCODE -ne 0) { return $false }
     Write-Host ''
     Write-Host '------------------------------------------------------------'
     Write-Host " Conexión lista con $(($remoteName | Select-Object -First 1))." -ForegroundColor Green
     Write-Host " Pruebe con:  ssh $HostAlias"
     Write-Host " Dígale a Claude que ya puede usar 'ssh $HostAlias'."
     Write-Host '------------------------------------------------------------'
+    return $true
 }
 
 # ------------------------------------------------------------------- menú --
