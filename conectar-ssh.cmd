@@ -149,6 +149,49 @@ function Install-SshServer {
         Write-Host ' eligiendo la opción 2.'
     }
     Write-Host ' Reserve esta IP en el router para que no cambie.'
+
+    $diagnostics = Join-Path $ScriptDir 'diagnostico-ssh.txt'
+    try {
+        Write-SshDiagnostics -Path $diagnostics
+        Write-Host " Si la conexión falla, lleve $([IO.Path]::GetFileName($diagnostics)) a su computadora."
+    } catch {
+        Show-Note "No se pudo guardar el diagnóstico: $($_.Exception.Message)"
+    }
+}
+
+function Write-SshDiagnostics([string]$Path) {
+    # Solo lee: cuenta, grupos, archivos de llaves con sus permisos, configuración y el
+    # registro de sshd, donde Windows anota por qué rechazó cada intento.
+    $ErrorActionPreference = 'Continue'
+    $sshData = Join-Path $env:ProgramData 'ssh'
+    $report = & {
+        "Generado: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')  Equipo: $env:COMPUTERNAME"
+        '== Usuario que ejecutó la opción 1'
+        "USERNAME=$env:USERNAME"
+        whoami.exe
+        whoami.exe /groups | Select-String 'S-1-5-32-544'
+        '== Cuentas locales'
+        Get-LocalUser | Format-Table Name, FullName, Enabled, PasswordRequired -AutoSize | Out-String -Width 200
+        '== Miembros de Administradores'
+        Get-LocalGroupMember -SID 'S-1-5-32-544' -ErrorAction SilentlyContinue | Format-Table Name, PrincipalSource -AutoSize | Out-String -Width 200
+        '== administrators_authorized_keys'
+        $adminKeys = Join-Path $sshData 'administrators_authorized_keys'
+        if (Test-Path $adminKeys) { icacls.exe $adminKeys; (Get-Acl $adminKeys).Owner; Get-Content $adminKeys } else { 'No existe.' }
+        '== authorized_keys de cada usuario'
+        foreach ($file in @(Get-ChildItem 'C:\Users\*\.ssh\authorized_keys' -Force -ErrorAction SilentlyContinue)) {
+            $file.FullName; icacls.exe $file.FullName; (Get-Acl $file.FullName).Owner; Get-Content $file.FullName
+        }
+        '== sshd_config (líneas activas)'
+        Get-Content (Join-Path $sshData 'sshd_config') -ErrorAction SilentlyContinue | Where-Object { $_ -match '^\s*[^#\s]' }
+        '== Servicio'
+        Get-Service sshd | Format-List Name, Status, StartType | Out-String
+        (Get-Command sshd.exe -ErrorAction SilentlyContinue).Source
+        Get-ItemProperty 'HKLM:\SOFTWARE\OpenSSH' -ErrorAction SilentlyContinue | Format-List DefaultShell | Out-String
+        '== Registro de OpenSSH (más reciente primero)'
+        Get-WinEvent -LogName 'OpenSSH/Operational' -MaxEvents 40 -ErrorAction SilentlyContinue |
+            Format-List TimeCreated, Message | Out-String -Width 200
+    } 2>&1
+    Set-Content -Path $Path -Value ($report | ForEach-Object { "$_" }) -Encoding UTF8
 }
 
 # ----------------------------------------------------------------- cliente --
