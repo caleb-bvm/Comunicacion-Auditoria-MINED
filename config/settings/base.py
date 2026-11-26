@@ -2,6 +2,8 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -118,7 +120,11 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 FILE_SCAN_REQUIRED = env_bool("FILE_SCAN_REQUIRED", default=False)
 CLAMAV_HOST = os.getenv("CLAMAV_HOST", "127.0.0.1")
 CLAMAV_PORT = int(os.getenv("CLAMAV_PORT", "3310"))
-CLAMAV_TIMEOUT = 10
+# A heavy 20 MB PDF can take ~90 s to scan on modest hardware; keep this below the
+# proxy and worker timeouts (180 s in Nginx/Gunicorn and IIS/Waitress).
+CLAMAV_TIMEOUT = int(os.getenv("CLAMAV_TIMEOUT", "120"))
+if not 1 <= CLAMAV_TIMEOUT <= 170:
+    raise ImproperlyConfigured("CLAMAV_TIMEOUT debe estar entre 1 y 170 segundos.")
 SESSION_ABSOLUTE_TIMEOUT = 8 * 60 * 60
 
 SESSION_COOKIE_HTTPONLY = True
