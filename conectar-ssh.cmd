@@ -22,6 +22,7 @@ $HostAlias = 'siga-servidor'
 $SshDir = Join-Path $env:USERPROFILE '.ssh'
 $KeyPath = Join-Path $SshDir 'siga_servidor'
 $PublicKeyName = 'siga_servidor.pub'
+$SshUser = 'siga-ssh'
 $WindowsPowerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 
 function Show-Step([string]$Text) { Write-Host ''; Write-Host "==> $Text" -ForegroundColor Cyan }
@@ -51,7 +52,7 @@ function Install-SshServer {
         return
     }
 
-    Show-Step '1/5 Instalando el servidor SSH de Windows'
+    Show-Step '1/6 Instalando el servidor SSH de Windows'
     $service = Get-Service sshd -ErrorAction SilentlyContinue
     if ($service) {
         Show-Ok 'Ya estaba instalado.'
@@ -78,18 +79,18 @@ function Install-SshServer {
         Show-Ok 'Instalado.'
     }
 
-    Show-Step '2/5 Iniciando el servicio y dejándolo automático'
+    Show-Step '2/6 Iniciando el servicio y dejándolo automático'
     Set-Service sshd -StartupType Automatic
     Start-Service sshd
     Show-Ok 'El servicio sshd está en marcha.'
 
-    Show-Step '3/5 Usando PowerShell como consola de SSH'
+    Show-Step '3/6 Usando PowerShell como consola de SSH'
     $openSshKey = 'HKLM:\SOFTWARE\OpenSSH'
     if (-not (Test-Path $openSshKey)) { New-Item -Path $openSshKey | Out-Null }
     New-ItemProperty -Path $openSshKey -Name DefaultShell -Value $WindowsPowerShell -PropertyType String -Force | Out-Null
     Show-Ok 'Listo.'
 
-    Show-Step '4/5 Firewall y tipo de red'
+    Show-Step '4/6 Firewall y tipo de red'
     $rule = Get-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -ErrorAction SilentlyContinue
     if ($rule) {
         Enable-NetFirewallRule -Name 'OpenSSH-Server-In-TCP'
@@ -107,7 +108,10 @@ function Install-SshServer {
         }
     }
 
-    Show-Step '5/5 Llave de su computadora y datos para conectarse'
+    Show-Step "5/6 Cuenta '$SshUser' para entrar por SSH"
+    Install-SshAccount
+
+    Show-Step '6/6 Llave de su computadora y datos para conectarse'
     $usbKey = Join-Path $ScriptDir $PublicKeyName
     if (Test-Path $usbKey) {
         # La opción 2 dejó la llave pública junto a este archivo (por ejemplo, en una USB).
@@ -118,14 +122,12 @@ function Install-SshServer {
         Show-Ok "Llave de su computadora autorizada ($PublicKeyName)."
         $keyAuthorized = $true
     } else {
-        Show-Note "No hay $PublicKeyName junto a este archivo; si el servidor no tiene contraseña,"
-        Show-Note 'ejecute primero la opción 2 en su computadora y traiga la carpeta en una USB.'
+        Show-Note "No hay $PublicKeyName junto a este archivo. Ejecute la opción 2 en su"
+        Show-Note 'computadora, traiga la carpeta en una USB y repita aquí la opción 1.'
         $keyAuthorized = $false
     }
     $addresses = @(Get-LanAddress)
-    # Siempre usuario@equipo (o usuario@dominio): en equipos del dominio MINED, la
-    # cuenta local "MINED" se confunde con el dominio y sshd la rechaza como inválida.
-    $user = "$($env:USERNAME.ToLowerInvariant())@$env:USERDOMAIN"
+    $user = $SshUser
     if (-not (Get-NetTCPConnection -LocalPort 22 -State Listen -ErrorAction SilentlyContinue)) {
         Show-Note 'El servicio no está escuchando en el puerto 22. Reinicie el equipo y vuelva a ejecutar este archivo.'
     }
@@ -159,6 +161,58 @@ function Install-SshServer {
     } catch {
         Show-Note "No se pudo guardar el diagnóstico: $($_.Exception.Message)"
     }
+}
+
+function New-RandomPassword {
+    # 40 caracteres con mayúsculas, minúsculas, números y símbolos: cumple cualquier
+    # política de contraseñas. Nadie la necesita: SSH entra solo con la llave.
+    $sets = 'ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnpqrstuvwxyz', '23456789', '!#%+-=?@_'
+    $all = -join $sets
+    $random = New-Object Security.Cryptography.RNGCryptoServiceProvider
+    $bytes = New-Object byte[] 40
+    $random.GetBytes($bytes)
+    $chars = for ($i = 0; $i -lt 40; $i++) {
+        $pool = if ($i -lt $sets.Count) { $sets[$i] } else { $all }
+        $pool[$bytes[$i] % $pool.Length]
+    }
+    $random.Dispose()
+    return (-join $chars)
+}
+
+function Install-SshAccount {
+    # Cuenta local aparte: la cuenta "MINED" del equipo se llama igual que el dominio
+    # MINED y sshd no la reconoce; además Windows no deja entrar por red a cuentas sin
+    # contraseña. Esta cuenta es administradora para poder ejecutar siga.ps1.
+    $account = Get-LocalUser -Name $SshUser -ErrorAction SilentlyContinue
+    if ($account) {
+        if (-not $account.Enabled) { Enable-LocalUser -Name $SshUser }
+        Show-Ok 'La cuenta ya existía.'
+    } else {
+        $password = ConvertTo-SecureString (New-RandomPassword) -AsPlainText -Force
+        New-LocalUser -Name $SshUser -Password $password -PasswordNeverExpires -AccountNeverExpires `
+            -FullName 'SIGA SSH' -Description 'Acceso SSH con llave para administrar SIGA-MINEDUCYT.' | Out-Null
+        Show-Ok 'Cuenta creada con una contraseña aleatoria que no se guarda en ningún lado.'
+    }
+
+    # Se agrega por SID y con net.exe como respaldo: Get-LocalGroupMember falla en
+    # equipos del dominio cuando el grupo tiene SID huérfanos.
+    $adminGroup = (New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')).Translate([Security.Principal.NTAccount]).Value.Split('\')[-1]
+    $members = (net.exe localgroup "$adminGroup") -join "`n"
+    if ($members -notmatch "(?m)^\s*(\S+\\)?$([regex]::Escape($SshUser))\s*$") {
+        try {
+            Add-LocalGroupMember -SID 'S-1-5-32-544' -Member $SshUser
+        } catch {
+            net.exe localgroup "$adminGroup" $SshUser /add | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "No se pudo agregar $SshUser al grupo $adminGroup." }
+        }
+    }
+    Show-Ok "Es miembro de $adminGroup."
+
+    # Oculta la cuenta en la pantalla de inicio de sesión de Windows.
+    $hidden = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList'
+    if (-not (Test-Path $hidden)) { New-Item -Path $hidden -Force | Out-Null }
+    New-ItemProperty -Path $hidden -Name $SshUser -Value 0 -PropertyType DWord -Force | Out-Null
+    Show-Ok 'No aparece en la pantalla de inicio de sesión.'
 }
 
 function Write-SshDiagnostics([string]$Path) {
@@ -323,7 +377,8 @@ function Connect-SshClient {
     Show-Note 'El servidor todavía no reconoce la llave de esta computadora.'
 
     Show-Step '4/4 Autorizando la llave en el servidor'
-    $answer = Read-Host '    ¿El usuario de Windows del servidor tiene contraseña? (S/N)'
+    # La cuenta siga-ssh tiene una contraseña aleatoria que nadie conoce: solo sirve la USB.
+    $answer = if ($user -eq $SshUser) { 'N' } else { Read-Host '    ¿El usuario de Windows del servidor tiene contraseña? (S/N)' }
     if ($answer -notmatch '^[sS]') {
         $carry = if ($usbKeySaved) { $usbKey } else { "$KeyPath.pub" }
         Write-Host ''
