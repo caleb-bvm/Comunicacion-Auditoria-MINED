@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -124,5 +125,5 @@ class InstitutionTaskScreensTests(TestCase):
         self.assertContains(page, "Inventario actualizado")
         self.assertContains(page, 'type="radio" name="declared_status"')
         self.assertNotContains(page, "---------")
-        self.assertContains(page, "Hasta 20 MB cada uno.")
+        self.assertContains(page, f"Hasta {settings.FILE_MAX_UPLOAD_MB} MB cada uno.")
         self.assertNotContains(page, "NombreReservado")

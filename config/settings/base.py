@@ -114,17 +114,18 @@ LOGIN_REDIRECT_URL = "dashboard"
 PASSWORD_RESET_TIMEOUT = 3600
 LOGOUT_REDIRECT_URL = "login"
 
-FILE_MAX_UPLOAD_MB = int(os.getenv("FILE_MAX_UPLOAD_MB", "20"))
+FILE_MAX_UPLOAD_MB = int(os.getenv("FILE_MAX_UPLOAD_MB", "50"))
 DATA_UPLOAD_MAX_MEMORY_SIZE = FILE_MAX_UPLOAD_MB * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 FILE_SCAN_REQUIRED = env_bool("FILE_SCAN_REQUIRED", default=False)
 CLAMAV_HOST = os.getenv("CLAMAV_HOST", "127.0.0.1")
 CLAMAV_PORT = int(os.getenv("CLAMAV_PORT", "3310"))
-# A heavy 20 MB PDF can take ~90 s to scan on modest hardware; keep this below the
-# proxy and worker timeouts (180 s in Nginx/Gunicorn and IIS/Waitress).
-CLAMAV_TIMEOUT = int(os.getenv("CLAMAV_TIMEOUT", "120"))
-if not 1 <= CLAMAV_TIMEOUT <= 170:
-    raise ImproperlyConfigured("CLAMAV_TIMEOUT debe estar entre 1 y 170 segundos.")
+# Scanned PDFs take 3-9 s per MB on modest hardware, so a 50 MB file can need several
+# minutes. Downloads are rescanned too. Keep this below the proxy and worker timeouts
+# (720 s in Nginx/Gunicorn and IIS/Waitress).
+CLAMAV_TIMEOUT = int(os.getenv("CLAMAV_TIMEOUT", "600"))
+if not 1 <= CLAMAV_TIMEOUT <= 660:
+    raise ImproperlyConfigured("CLAMAV_TIMEOUT debe estar entre 1 y 660 segundos.")
 SESSION_ABSOLUTE_TIMEOUT = 8 * 60 * 60
 
 SESSION_COOKIE_HTTPONLY = True

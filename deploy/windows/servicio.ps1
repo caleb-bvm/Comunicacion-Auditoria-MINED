@@ -74,8 +74,10 @@ switch ($Mode) {
                 "-m", "waitress",
                 "--listen=127.0.0.1:$Port",
                 "--threads=8",
-                "--channel-timeout=180",
-                "--max-request-body-size=104857600",
+                # Igual que IIS: 12 minutos (el antivirus puede tardar con PDF de 50 MB)
+                # y 600 MB por envío (informe y diez adjuntos de 50 MB).
+                "--channel-timeout=720",
+                "--max-request-body-size=629145600",
                 "--trusted-proxy=127.0.0.1",
                 "--trusted-proxy-count=1",
                 "--trusted-proxy-headers=x-forwarded-for x-forwarded-proto",

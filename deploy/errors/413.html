@@ -56,9 +56,9 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 14px; overflow
         <details>
             <summary>Qué significa y qué revisar</summary>
             <div>
-                <p>Nginx rechazó el envío porque el cuerpo de la solicitud supera <code>client_max_body_size</code> (225 MB). La solicitud no llegó a Django.</p>
+                <p>Nginx rechazó el envío porque el cuerpo de la solicitud supera <code>client_max_body_size</code> (600 MB). La solicitud no llegó a Django.</p>
                 <ul>
-                    <li>Cada archivo admite hasta 20 MB; el envío completo, el informe y diez adjuntos. Si la persona necesita enviar más, que lo divida en varios envíos.</li>
+                    <li>Cada archivo admite hasta 50 MB; el envío completo, el informe y diez adjuntos. Si la persona necesita enviar más, que lo divida en varios envíos.</li>
                     <li>Si el límite debe cambiar, ajuste <code>client_max_body_size</code> en <code>deploy/nginx.conf</code> junto con los límites de Django y vuelva a ejecutar el instalador.</li>
                 </ul>
             </div>

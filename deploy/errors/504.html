@@ -56,7 +56,7 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 14px; overflow
         <details>
             <summary>Qué significa y qué revisar</summary>
             <div>
-                <p>La aplicación no respondió a Nginx dentro de <code>proxy_read_timeout</code> (180 segundos). Suele deberse a una consulta o exportación muy pesada, al antivirus o a la base de datos lenta.</p>
+                <p>La aplicación no respondió a Nginx dentro de <code>proxy_read_timeout</code> (720 segundos). Suele deberse a una consulta o exportación muy pesada, al antivirus o a la base de datos lenta.</p>
                 <ul>
                     <li>Busque la dirección en <code>journalctl -u siga-mineducyt --since "-15 min"</code> para ver si la solicitud terminó o falló.</li>
                     <li>Revise que PostgreSQL y ClamAV respondan: <code>manage.py deployment_preflight</code>.</li>

@@ -853,7 +853,9 @@ fi
 # ---------------------------------------------------------------------------
 
 step "Configurando el antivirus ClamAV"
-max_upload_mb="${CONF[FILE_MAX_UPLOAD_MB]:-20}"
+max_upload_mb="${CONF[FILE_MAX_UPLOAD_MB]:-50}"
+# 20 MB era el valor predeterminado anterior; un valor distinto lo eligió alguien y se respeta.
+[[ "$max_upload_mb" != 20 ]] || max_upload_mb=50
 stream_mb=$((max_upload_mb * 2 > 40 ? max_upload_mb * 2 : 40))
 [[ -f "$CLAMD_CONF.siga-original" ]] || cp -p "$CLAMD_CONF" "$CLAMD_CONF.siga-original"
 set_config_line "$CLAMD_CONF" TCPSocket 3310
@@ -955,7 +957,7 @@ elif [[ -z "${CONF[DJANGO_HSTS_SECONDS]:-}" || "${CONF[DJANGO_HSTS_SECONDS]}" ==
     conf DJANGO_HSTS_SECONDS 3600
 fi
 conf FILE_SCAN_REQUIRED true
-[[ -n "${CONF[FILE_MAX_UPLOAD_MB]:-}" ]] || conf FILE_MAX_UPLOAD_MB 20
+conf FILE_MAX_UPLOAD_MB "$max_upload_mb"
 [[ -n "${CONF[PRIVATE_MEDIA_ROOT]:-}" ]] || conf PRIVATE_MEDIA_ROOT "$STATE_DIR/private"
 conf CLAMAV_HOST 127.0.0.1
 conf CLAMAV_PORT 3310

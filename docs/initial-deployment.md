@@ -111,9 +111,9 @@ Edite `/etc/clamav/clamd.conf` y deje estos valores:
 ```text
 TCPAddr 127.0.0.1
 TCPSocket 3310
-StreamMaxLength 20M
-MaxFileSize 20M
-MaxScanSize 100M
+StreamMaxLength 100M
+MaxFileSize 100M
+MaxScanSize 400M
 AlertExceedsMax yes
 AlertEncrypted yes
 ```
@@ -126,7 +126,7 @@ sudo systemctl status clamav-daemon
 ```
 
 Si más adelante sube el tamaño máximo de archivo (`FILE_MAX_UPLOAD_MB`), suba
-también `StreamMaxLength` y `MaxFileSize` al mismo valor.
+también `StreamMaxLength` y `MaxFileSize` al doble de ese valor (el instalador lo hace solo).
 
 ## 5. Copiar el código
 
@@ -308,7 +308,7 @@ siga import_historical_reports /srv/carga-inicial/informes --user <usuario-de-di
 Revise el reporte. Cada informe se asigna por el código del nombre del archivo. Los
 que no tienen una institución registrada quedan en `DAI-MINED` y el reporte los
 marca en la columna `por_defecto`. Los de estado `error` suelen ser archivos de
-más de 20 MB: comprímalos o cámbielos por una versión más liviana antes de seguir.
+más de 50 MB (`FILE_MAX_UPLOAD_MB`): comprímalos o cámbielos por una versión más liviana antes de seguir.
 
 Cuando el reporte esté bien, ejecute la importación real:
 

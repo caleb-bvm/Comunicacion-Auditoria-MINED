@@ -232,9 +232,10 @@ function Install-ClamAV {
             "LogFile $(Join-Path $SigaLogRoot 'clamd.log')"
             "LogFileMaxSize 10M"
             "LogTime yes"
-            "StreamMaxLength 40M"
-            "MaxFileSize 40M"
-            "MaxScanSize 160M"
+            # El doble de FILE_MAX_UPLOAD_MB (50 MB), como en el instalador de Linux.
+            "StreamMaxLength 100M"
+            "MaxFileSize 100M"
+            "MaxScanSize 400M"
         )
         "freshclam.conf" = @(
             "# SIGA-MINEDUCYT: actualiza las firmas cada dos horas."
@@ -245,11 +246,16 @@ function Install-ClamAV {
             "LogTime yes"
         )
     }
+    $changedConfigs = @()
     foreach ($name in $configs.Keys) {
         $path = Join-Path $clamRoot $name
         if ((Test-Path -LiteralPath $path) -and
             -not (Select-String -LiteralPath $path -SimpleMatch "SIGA-MINEDUCYT" -Quiet)) {
             Copy-Item -LiteralPath $path -Destination "$path.antes-de-siga" -Force
+        }
+        $previous = if (Test-Path -LiteralPath $path) { [System.IO.File]::ReadAllLines($path) -join "`n" } else { $null }
+        if ($previous -ne ($configs[$name] -join "`n")) {
+            $changedConfigs += $name
         }
         [System.IO.File]::WriteAllLines($path, [string[]]$configs[$name], (New-Object System.Text.UTF8Encoding -ArgumentList $false))
     }
@@ -273,6 +279,10 @@ function Install-ClamAV {
         & sc.exe failure $service.Name reset= 86400 actions= restart/60000/restart/60000/restart/60000 | Out-Null
         if ((Get-Service -Name $service.Name).Status -ne "Running") {
             Start-Service -Name $service.Name
+        } elseif ($changedConfigs -contains ($executable -replace "\.exe$", ".conf")) {
+            # Los servicios solo leen su configuración al arrancar.
+            Write-Info "Reiniciando $executable para aplicar la configuración nueva..."
+            Restart-Service -Name $service.Name -Force
         }
     }
 
@@ -385,11 +395,15 @@ function Save-Configuration {
     if (-not $Config["DJANGO_SECRET_KEY"]) {
         $Config["DJANGO_SECRET_KEY"] = New-RandomSecret 64
     }
+    # 20 MB era el valor predeterminado anterior; un valor distinto lo eligió alguien y se respeta.
+    if ($Config["FILE_MAX_UPLOAD_MB"] -eq "20") {
+        $Config["FILE_MAX_UPLOAD_MB"] = "50"
+    }
     $defaults = [ordered]@{
         # Servidor de pruebas: sin HSTS para que el certificado local no bloquee a nadie.
         DJANGO_HSTS_SECONDS = "0"
         FILE_SCAN_REQUIRED = "true"
-        FILE_MAX_UPLOAD_MB = "20"
+        FILE_MAX_UPLOAD_MB = "50"
         PRIVATE_MEDIA_ROOT = $SigaPrivateRoot
         CLAMAV_HOST = "127.0.0.1"
         CLAMAV_PORT = "3310"
@@ -506,7 +520,7 @@ function Install-Iis {
     Invoke-Native $appcmd @("set", "config", "-section:system.webServer/proxy", "/enabled:True",
         "/preserveHostHeader:True", "/reverseRewriteHostInResponseHeaders:False",
         "/xForwardedForHeaderName:X-Forwarded-For", "/includePortInXForwardedFor:False",
-        "/timeout:00:03:00", "/commit:apphost") "No se pudo configurar el proxy de IIS."
+        "/timeout:00:12:00", "/commit:apphost") "No se pudo configurar el proxy de IIS."
     Write-Ok "IIS con URL Rewrite y ARR listo"
 }
 
@@ -613,7 +627,8 @@ function Set-IisSite {
   <system.webServer>
     <security>
       <requestFiltering>
-        <requestLimits maxAllowedContentLength="104857600" />
+        <!-- 600 MB: informe y diez adjuntos de 50 MB, igual que Nginx. -->
+        <requestLimits maxAllowedContentLength="629145600" />
       </requestFiltering>
     </security>
     <rewrite>
